@@ -115,6 +115,38 @@ public:
     return *this;
   }
 
+  // addition operator--adds another array
+  array2 operator+(const array2& a) const 
+  { 
+    // check this and a have same dimensions
+    if (nx != a.nx || ny != a.ny)
+      throw zfp::exception("dimension mismatch while adding array2s");
+
+    //allocate an array named sum in the same dimensions as this and a
+    array2 sum(nx, ny, rate(), 0, cache.size());
+
+    //add the values of this and a and store the result in sum using get and set
+    for (size_t i = 0; i < nx; i++)
+      for (size_t j = 0; j < ny; j++)
+        sum.set(i, j, get(i, j) + a.get(i, j));
+    
+    return sum;
+  }
+
+  array2& operator+=(const array2& a)
+  {
+    // check this and a have same dimensions
+    if (nx != a.nx || ny != a.ny)
+      throw zfp::exception("dimension mismatch while adding array2s");
+
+    //add the values of this and a and store the result in this using get and set
+    for (size_t i = 0; i < nx; i++)
+      for (size_t j = 0; j < ny; j++)
+        set(i, j, get(i, j) + a.get(i, j));
+    
+    return *this;
+  }
+
   // total number of elements in array
   size_t size() const { return nx * ny; }
 
