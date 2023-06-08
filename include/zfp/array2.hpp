@@ -1,5 +1,6 @@
 #ifndef ZFP_ARRAY2_HPP
 #define ZFP_ARRAY2_HPP
+#define ZFP_INDEX_BASED_LIN_ALG
 
 #include <cstddef>
 #include <cstring>
@@ -124,12 +125,18 @@ public:
 
     //allocate an array named sum in the same dimensions as this and a
     array2 sum(nx, ny, rate(), 0, cache.size());
-
+#if defined(ZFP_INDEX_BASED_LIN_ALG)
     //add the values of this and a and store the result in sum using get and set
-    for (size_t i = 0; i < nx; i++)
-      for (size_t j = 0; j < ny; j++)
+    for (size_t j = 0; j < ny; j++)
+      for (size_t i = 0; i < nx; i++)
         sum.set(i, j, get(i, j) + a.get(i, j));
-    
+#elif defined(ZFP_ITERATOR_BASED_LIN_ALG)
+    //add the values of this and a and store the result in sum using iterators
+    const_iterator it_a = a.cbegin();
+    const_iterator it = this->cbegin();
+    for (iterator it_sum = sum.begin(); it_sum != sum.end(); ++it_sum, ++it, ++it_a)
+      *it_sum = *it + *it_a;
+#endif
     return sum;
   }
 
@@ -139,11 +146,19 @@ public:
     // check this and a have same dimensions
     if (nx != a.nx || ny != a.ny)
       throw zfp::exception("dimension mismatch while adding array2s");
-
+#if defined(ZFP_INDEX_BASED_LIN_ALG)
     //add the values of this and a and store the result in this 
-    for (size_t i = 0; i < nx; i++)
-      for (size_t j = 0; j < ny; j++)
+    for (size_t j = 0; j < ny; j++)
+      for (size_t i = 0; i < nx; i++)
         cache.ref(i, j) += a.get(i, j);
+#elif defined(ZFP_ITERATOR_BASED_LIN_ALG)
+    //add the values of a to this using iterators
+    const_iterator it_a = a.cbegin();
+    for (iterator it = begin(); it != end(); ++it, ++it_a)
+      *it += *it_a;
+#endif
+    
+    
     
     return *this;
   }
