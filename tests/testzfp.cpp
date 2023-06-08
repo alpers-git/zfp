@@ -1094,44 +1094,54 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
     std::cout << "linear algebra test only supports 2d arrays" << std::endl;
     return 0;
   }
-  //Generate uncompressed arrays for ground truth
+  //Generate uncompressed arrays with linearly increasing values for ground truth
   uint m = test_size(array_size);
   uint n = m * m * m * m * m * m * m * m * m * m * m * m;
+  uint nx, ny;
+  nx = ny = m * m * m * m * m * m;
 
   Scalar* f = new Scalar[n];
   Scalar* g = new Scalar[n];
   Scalar* h = new Scalar[n];
-  initialize<Scalar>(f, 2, array_size);
-  initialize<Scalar>(g, 2, array_size);
-  //sum f and g and store in h
-  for (uint i = 0; i < n; i++)
-    h[i] = f[i] + g[i];
 
-  uint nx, ny;
-  nx = ny = m * m * m * m * m * m;
+  for (uint i = 0; i < nx; i++)
+  {
+    for (uint j = 0; j < ny; j++)
+    {
+      f[i + nx * j] = (Scalar)(i + nx * j);
+      g[i + nx * j] = (Scalar)(i + nx * j);
+      //sum f and g and store in h
+      h[i + nx * j] = f[i + nx * j] + g[i + nx * j];
+    }
+  }
+
   double rate = 16;
   //produce zfp arrays a and b from f and g
   zfp::array2<Scalar> a(nx, ny, rate, f);
   zfp::array2<Scalar> b(nx, ny, rate, g);
+  zfp::array2<Scalar> c;
 
   //test + operator
-  zfp::array2<Scalar> c = a + b;
+  clock_t start= clock();
+  c = a + b;
+  clock_t end = clock();
 
   uint failures = 0;
   std::ostringstream status;
-  status << "  +  operator: ";
+  status << std::scientific;
+  status.precision(3);
+  status << "  +  operator( " << (double)(end - start)/CLOCKS_PER_SEC << " secs ): ";
   Scalar emax = 0; 
   //test if c and h are equal
-  for (size_t i = 0; i < nx; i++)
+  for (size_t j = 0; j < ny; j++)
   {
-    for (size_t j = 0; j < ny; j++)
+    for (size_t i = 0; i < nx; i++)
     {
-      auto diff = std::abs(h[i * ny + j] - c(i, j));
+      auto diff = std::abs(h[i + nx * j] - c(i, j));
       emax = std::max(emax, diff);
     }
   }
-  status << std::scientific;
-  status.precision(3);
+
   bool pass = true;
   // make sure max error is within tolerance
   if (emax <= tolerance)
@@ -1145,19 +1155,21 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
   std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
 
   // test += operator
+  start = clock();
   a += b;
+  end = clock();
   emax = 0;
   for (size_t i = 0; i < nx; i++)
   {
     for (size_t j = 0; j < ny; j++)
     {
-      auto diff = std::abs(h[i * ny + j] - a(i, j));
+      auto diff = std::abs(h[i + nx * j] - a(i, j));
       emax = std::max(emax, diff);
     }
   }
 
   status.str("");
-  status << "  += operator: ";
+  status << "  += operator( " << (double)(end - start)/CLOCKS_PER_SEC << " secs ): ";
   if (emax <= tolerance)
     status << "tolerance=" << tolerance << " >= " << emax;
   else {

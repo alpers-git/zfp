@@ -115,7 +115,7 @@ public:
     return *this;
   }
 
-  // addition operator--adds another array
+  // addition operator--adds two arrays of identical dimensions
   array2 operator+(const array2& a) const 
   { 
     // check this and a have same dimensions
@@ -133,16 +133,17 @@ public:
     return sum;
   }
 
+  // addition assignment operator--adds another array of identical dimensions
   array2& operator+=(const array2& a)
   {
     // check this and a have same dimensions
     if (nx != a.nx || ny != a.ny)
       throw zfp::exception("dimension mismatch while adding array2s");
 
-    //add the values of this and a and store the result in this using get and set
+    //add the values of this and a and store the result in this 
     for (size_t i = 0; i < nx; i++)
       for (size_t j = 0; j < ny; j++)
-        set(i, j, get(i, j) + a.get(i, j));
+        cache.ref(i, j) += a.get(i, j);
     
     return *this;
   }
