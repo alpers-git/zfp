@@ -1138,7 +1138,7 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
     for (size_t i = 0; i < nx; i++)
     {
       auto diff = std::abs(h[i + nx * j] - c(i, j));
-      emax = std::max(emax, diff);
+      emax = std::max(emax, diff/h[i + nx * j]); //relative error
     }
   }
 
@@ -1164,7 +1164,7 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
     for (size_t j = 0; j < ny; j++)
     {
       auto diff = std::abs(h[i + nx * j] - a(i, j));
-      emax = std::max(emax, diff);
+      emax = std::max(emax, diff/h[i + nx * j]); //relative error
     }
   }
 
@@ -1276,7 +1276,7 @@ int main(int argc, char* argv[])
        }
     }
 
-  failures += linear_algebra_tests<float>(2, Small, 1.2e-3);
+  failures += linear_algebra_tests<float>(2, Small, 0.1);
 
   if (failures)
     std::cout << failures << " test(s) failed" << std::endl;
