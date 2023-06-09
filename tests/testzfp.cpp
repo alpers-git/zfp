@@ -1139,9 +1139,9 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
   status << "  +  op.(" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
   Scalar emax = 0; 
   //test if c and h are equal
-  for (size_t j = 0; j < ny; j++)
+  for (size_t i = 0; i < nx; i++)
   {
-    for (size_t i = 0; i < nx; i++)
+    for (size_t j = 0; j < ny; j++)
     {
       auto diff = std::abs(h[i + nx * j] - c(i, j));
       emax = std::max(emax, diff/(float)h[i + nx * j]); //relative error
@@ -1199,9 +1199,9 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
   status << "  +  op. w/ gencodec (" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
   emax = 0;
   //test if z and h are equal
-  for (size_t j = 0; j < ny; j++)
+  for (size_t i = 0; i < nx; i++)
   {
-    for (size_t i = 0; i < nx; i++)
+    for (size_t j = 0; j < ny; j++)
     {
       auto diff = std::abs(h[i + nx * j] - z(i, j));
       emax = std::max(emax, diff/(float)h[i + nx * j]); //relative error
