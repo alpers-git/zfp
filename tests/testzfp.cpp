@@ -1088,7 +1088,13 @@ template <typename Scalar>
 inline uint
 linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
 {
-  std::cout << "testing linear algebra support" << std::endl;
+  std::cout << "testing linear algebra support" << 
+# if defined(ZFP_INDEX_BASED_LIN_ALG)
+    " (index-based)" <<
+# elif defined(ZFP_ITERATOR_BASED_LIN_ALG)
+    " (iterator-based)" <<
+#endif
+  std::endl;
   if(dims != 2)
   {
     std::cout << "linear algebra test only supports 2d arrays" << std::endl;
@@ -1121,7 +1127,7 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
   zfp::array2<Scalar> b(nx, ny, rate, g);
   zfp::array2<Scalar> c;
 
-  //test + operator
+  //test + op.
   clock_t start= clock();
   c = a + b;
   clock_t end = clock();
@@ -1130,7 +1136,7 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
   std::ostringstream status;
   status << std::scientific;
   status.precision(3);
-  status << "  +  operator( " << (double)(end - start)/CLOCKS_PER_SEC << " secs ): ";
+  status << "  +  op.(" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
   Scalar emax = 0; 
   //test if c and h are equal
   for (size_t j = 0; j < ny; j++)
@@ -1138,7 +1144,7 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
     for (size_t i = 0; i < nx; i++)
     {
       auto diff = std::abs(h[i + nx * j] - c(i, j));
-      emax = std::max(emax, diff/h[i + nx * j]); //relative error
+      emax = std::max(emax, diff/(float)h[i + nx * j]); //relative error
     }
   }
 
@@ -1154,7 +1160,7 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
 
   std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
 
-  // test += operator
+  // test += op.
   start = clock();
   a += b;
   end = clock();
@@ -1164,12 +1170,12 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
     for (size_t j = 0; j < ny; j++)
     {
       auto diff = std::abs(h[i + nx * j] - a(i, j));
-      emax = std::max(emax, diff/h[i + nx * j]); //relative error
+      emax = std::max(emax, diff/(float)h[i + nx * j]); //relative error
     }
   }
 
   status.str("");
-  status << "  += operator( " << (double)(end - start)/CLOCKS_PER_SEC << " secs ): ";
+  status << "  += op.(" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
   if (emax <= tolerance)
     status << "tolerance=" << tolerance << " >= " << emax;
   else {
@@ -1178,9 +1184,67 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
     failures++;
   }
 
+  std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
+
+  zfp::array2<Scalar, zfp::codec::zfp2<Scalar>> x(nx, ny, rate, f);
+  zfp::array2<Scalar, zfp::codec::zfp2<Scalar>> y(nx, ny, rate, g);
+  zfp::array2<Scalar, zfp::codec::zfp2<Scalar>> z;
+
+  //test + op.
+  start= clock();
+  z = x + y;
+  end = clock();
+
+  status.str("");
+  status << "  +  op. w/ gencodec (" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
+  emax = 0;
+  //test if z and h are equal
+  for (size_t j = 0; j < ny; j++)
+  {
+    for (size_t i = 0; i < nx; i++)
+    {
+      auto diff = std::abs(h[i + nx * j] - z(i, j));
+      emax = std::max(emax, diff/(float)h[i + nx * j]); //relative error
+    }
+  }
+
+  if (emax <= tolerance)
+    status << "tolerance=" << tolerance << " >= "<< emax;
+  else {
+    status << "tolerance=" << tolerance << " < " << emax;
+    pass = pass && false;
+    failures++;
+  }
   
   std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
 
+  // test += op.
+  start = clock();
+  x += y;
+  end = clock();
+  emax = 0;
+
+  status.str("");
+
+  status << "  += op. w/ gencodec (" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
+  for (size_t i = 0; i < nx; i++)
+  {
+    for (size_t j = 0; j < ny; j++)
+    {
+      auto diff = std::abs(h[i + nx * j] - x(i, j));
+      emax = std::max(emax, diff/(float)h[i + nx * j]); //relative error
+    }
+  }
+
+  if (emax <= tolerance)
+    status << "tolerance=" << tolerance << " >= " << emax;
+  else {
+    status << "tolerance=" << tolerance << " < " << emax;
+    pass = pass && false;
+    failures++;
+  }
+
+  std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
   delete [] f;
   delete [] g;
   delete [] h;
@@ -1276,7 +1340,7 @@ int main(int argc, char* argv[])
        }
     }
 
-  failures += linear_algebra_tests<float>(2, Small, 0.1);
+  failures += linear_algebra_tests<float>(2, Large, 0.0001);
 
   if (failures)
     std::cout << failures << " test(s) failed" << std::endl;
