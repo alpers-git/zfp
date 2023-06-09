@@ -129,7 +129,7 @@ public:
     //add the values of this and a and store the result in sum using get and set
     for (size_t j = 0; j < ny; j++)
       for (size_t i = 0; i < nx; i++)
-        sum.set(i, j, get(i, j) + a.get(i, j));
+        sum(i,j) = (*this)(i,j) + a(i, j);
 #elif defined(ZFP_ITERATOR_BASED_LIN_ALG)
     //add the values of this and a and store the result in sum using iterators
     const_iterator it_a = a.cbegin();
@@ -150,7 +150,7 @@ public:
     //add the values of this and a and store the result in this 
     for (size_t j = 0; j < ny; j++)
       for (size_t i = 0; i < nx; i++)
-        cache.ref(i, j) += a.get(i, j);
+        (*this)(i,j) += a(i, j);
 #elif defined(ZFP_ITERATOR_BASED_LIN_ALG)
     //add the values of a to this using iterators
     const_iterator it_a = a.cbegin();
