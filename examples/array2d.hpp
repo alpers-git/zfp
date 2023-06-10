@@ -37,6 +37,26 @@ public:
     return size;
   }
 
+  // addition operator--adds one array to another array of identical dimensions
+  array2d& operator+(const array2d& a) const
+  {
+    array2d sum(nx, ny);
+    //2d loop over array
+    for (size_t i = 0; i < nx; i++)
+      for (size_t j = 0; j < ny; j++)
+        sum(i, j) = data[i + nx * j] + a.data[i + nx * j];
+    return sum;
+  }
+
+  array2d& operator+=(const array2d& a)
+  {
+    //2d loop over array
+    for (size_t i = 0; i < nx; i++)
+      for (size_t j = 0; j < ny; j++)
+        data[i + nx * j] += a.data[i + nx * j];
+    return *this;
+  }
+
   // accessors
   double& operator()(size_t x, size_t y) { return data[x + nx * y]; }
   const double& operator()(size_t x, size_t y) const { return data[x + nx * y]; }
