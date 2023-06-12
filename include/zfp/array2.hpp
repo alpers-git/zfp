@@ -127,7 +127,7 @@ public:
     //allocate an array named sum in the same dimensions as this and a
     array2 sum(nx, ny, rate(), 0, cache.size());
 #if defined(ZFP_INDEX_BASED_LIN_ALG)
-    //add the values of this and a and store the result in sum using get and set
+    //add the values of this and a and store the result in sum
     for (size_t j = 0; j < ny; j++)
       for (size_t i = 0; i < nx; i++)
         sum(i,j) = (*this)(i,j) + a(i, j);
@@ -151,7 +151,7 @@ public:
     //allocate an array named sum in the same dimensions as this and a
     array2 sum(nx, ny, rate(), 0, cache.size());
 #if defined(ZFP_INDEX_BASED_LIN_ALG)
-    //add the values of this and a and store the result in sum using get and set
+    //add the values of this and a and store the result in sum
     for (size_t j = 0; j < ny; j++)
       for (size_t i = 0; i < nx; i++)
         sum(i,j) = (*this)(i,j) + a(i, j);
@@ -161,6 +161,25 @@ public:
     const_iterator it = this->cbegin();
     for (iterator it_sum = sum.begin(); it_sum != sum.end(); ++it_sum, ++it, ++it_a)
       *it_sum = *it + *it_a;
+#endif
+    return sum;
+  }
+
+  // addition operator--adds a constant value to every element of this
+  array2 operator+(const Scalar& val) const 
+  { 
+    //allocate an array named sum in the same dimensions as this
+    array2 sum(nx, ny, rate(), 0, cache.size());
+#if defined(ZFP_INDEX_BASED_LIN_ALG)
+    //add the constant value to this and store the result in sum
+    for (size_t j = 0; j < ny; j++)
+      for (size_t i = 0; i < nx; i++)
+        sum(i,j) = (*this)(i,j) + val;
+#elif defined(ZFP_ITERATOR_BASED_LIN_ALG)
+    //add the constant value to this and store the result in sum using iterators
+    const_iterator it = this->cbegin();
+    for (iterator it_sum = sum.begin(); it_sum != sum.end(); ++it_sum, ++it)
+      *it_sum = *it + val;
 #endif
     return sum;
   }
@@ -205,7 +224,7 @@ public:
     return *this;
   }
 
-  //addition assigment operator--adds a constant array to this array of identical dimensions
+  //addition assigment operator--adds a constant value to every element of this
   array2& operator+=(const Scalar& val)
   {
 #if defined(ZFP_INDEX_BASED_LIN_ALG)
