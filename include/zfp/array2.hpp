@@ -240,6 +240,40 @@ public:
     return *this;
   }
 
+  // unary scaling operator--scales the elements of this by a constant factor
+  array2& operator*=(const Scalar& val)
+  {
+#if defined(ZFP_INDEX_BASED_LIN_ALG)
+    //scale the values of this by val
+    for (size_t j = 0; j < ny; j++)
+      for (size_t i = 0; i < nx; i++)
+        (*this)(i,j) *= val;
+#elif defined(ZFP_ITERATOR_BASED_LIN_ALG)
+    //scale the values of this by val using iterators
+    for (iterator it = begin(); it != end(); ++it)
+      *it *= val;
+#endif
+    return *this;
+  }
+
+  // unary negation operator--returns a deep copy with the sign of each element negated
+  array2 operator-() const
+  {
+    //allocate an array named neg with the same dimensions as this
+    array2 neg(nx, ny, rate(), 0, cache.size());
+#if defined(ZFP_INDEX_BASED_LIN_ALG)
+    for (size_t j = 0; j < ny; j++)
+      for (size_t i = 0; i < nx; i++)
+        neg(i,j) = -(*this)(i,j);
+#elif defined(ZFP_ITERATOR_BASED_LIN_ALG)
+    //negate the values of this and store the result in neg using iterators
+    const_iterator it = this->cbegin();
+    for (iterator it_neg = neg.begin(); it_neg != neg.end(); ++it_neg, ++it)
+      *it_neg = -(*it);
+#endif
+    return neg;
+  }
+
   // total number of elements in array
   size_t size() const { return nx * ny; }
 
