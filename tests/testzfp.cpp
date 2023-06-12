@@ -1350,9 +1350,6 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
     {
       auto diff = std::abs(h[i + nx * j] - raw_c(i, j));
       emax = std::max(emax, diff/(float)h[i + nx * j]); //relative error
-      if( diff > tolerance)
-        std::cout << " c[ " << i << " , " << j << " ] = " << raw_c(i, j) << 
-        " h[ " << i << " , " << j << " ] = " << h[i + nx * j] << std::endl;
     }
   }
 
