@@ -38,22 +38,21 @@ public:
   }
 
   // addition operator--adds one array to another array of identical dimensions
-  array2d& operator+(const array2d& a) const
+  array2d operator+(const array2d& a) const
   {
     array2d sum(nx, ny);
-    //2d loop over array
     for (size_t i = 0; i < nx; i++)
       for (size_t j = 0; j < ny; j++)
-        sum(i, j) = data[i + nx * j] + a.data[i + nx * j];
+        sum(i, j) = (*this)(i, j) + a(i, j);
     return sum;
   }
 
-  array2d& operator+=(const array2d& a)
+  array2d& operator+=(const array2d &a)
   {
-    //2d loop over array
+    // 2d loop over array
     for (size_t i = 0; i < nx; i++)
       for (size_t j = 0; j < ny; j++)
-        data[i + nx * j] += a.data[i + nx * j];
+        (*this)(i, j) += a(i, j);
     return *this;
   }
 
