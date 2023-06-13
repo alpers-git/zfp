@@ -1,6 +1,5 @@
 #ifndef ZFP_ARRAY2_HPP
 #define ZFP_ARRAY2_HPP
-#define ZFP_INDEX_BASED_LIN_ALG
 
 #include <cstddef>
 #include <cstring>
@@ -126,18 +125,11 @@ public:
 
     //allocate an array named sum in the same dimensions as this and a
     array2 sum(nx, ny, rate(), 0, cache.size());
-#if defined(ZFP_INDEX_BASED_LIN_ALG)
     //add the values of this and a and store the result in sum
     for (size_t j = 0; j < ny; j++)
       for (size_t i = 0; i < nx; i++)
         sum(i,j) = (*this)(i,j) + a(i, j);
-#elif defined(ZFP_ITERATOR_BASED_LIN_ALG)
-    //add the values of this and a and store the result in sum using iterators
-    const_iterator it_a = a.cbegin();
-    const_iterator it = this->cbegin();
-    for (iterator it_sum = sum.begin(); it_sum != sum.end(); ++it_sum, ++it, ++it_a)
-      *it_sum = *it + *it_a;
-#endif
+        
     return sum;
   }
 
@@ -150,18 +142,10 @@ public:
 
     //allocate an array named sum in the same dimensions as this and a
     array2 sum(nx, ny, rate(), 0, cache.size());
-#if defined(ZFP_INDEX_BASED_LIN_ALG)
     //add the values of this and a and store the result in sum
     for (size_t j = 0; j < ny; j++)
       for (size_t i = 0; i < nx; i++)
         sum(i,j) = (*this)(i,j) + a(i, j);
-#elif defined(ZFP_ITERATOR_BASED_LIN_ALG)
-    //add the values of this and a and store the result in sum using iterators
-    auto it_a = a.cbegin();
-    const_iterator it = this->cbegin();
-    for (iterator it_sum = sum.begin(); it_sum != sum.end(); ++it_sum, ++it, ++it_a)
-      *it_sum = *it + *it_a;
-#endif
     return sum;
   }
 
@@ -170,17 +154,11 @@ public:
   { 
     //allocate an array named sum in the same dimensions as this
     array2 sum(nx, ny, rate(), 0, cache.size());
-#if defined(ZFP_INDEX_BASED_LIN_ALG)
     //add the constant value to this and store the result in sum
     for (size_t j = 0; j < ny; j++)
       for (size_t i = 0; i < nx; i++)
         sum(i,j) = (*this)(i,j) + val;
-#elif defined(ZFP_ITERATOR_BASED_LIN_ALG)
-    //add the constant value to this and store the result in sum using iterators
-    const_iterator it = this->cbegin();
-    for (iterator it_sum = sum.begin(); it_sum != sum.end(); ++it_sum, ++it)
-      *it_sum = *it + val;
-#endif
+
     return sum;
   }
 
@@ -190,17 +168,11 @@ public:
     // check this and a have same dimensions
     if (nx != a.nx || ny != a.ny)
       throw zfp::exception("dimension mismatch while adding array2s");
-#if defined(ZFP_INDEX_BASED_LIN_ALG)
     //add the values of this and a and store the result in this 
     for (size_t j = 0; j < ny; j++)
       for (size_t i = 0; i < nx; i++)
         (*this)(i,j) += a(i, j);
-#elif defined(ZFP_ITERATOR_BASED_LIN_ALG)
-    //add the values of a to this using iterators
-    const_iterator it_a = a.cbegin();
-    for (iterator it = begin(); it != end(); ++it, ++it_a)
-      *it += *it_a;
-#endif
+
     return *this;
   }
 
@@ -210,49 +182,33 @@ public:
     // check this and a have same dimensions
     if (nx != a.size_x() || ny != a.size_y())
       throw zfp::exception("dimension mismatch while adding array2s");
-#if defined(ZFP_INDEX_BASED_LIN_ALG)
     //add the values of this and a and store the result in this 
     for (size_t j = 0; j < ny; j++)
       for (size_t i = 0; i < nx; i++)
         (*this)(i,j) += a(i, j);
-#elif defined(ZFP_ITERATOR_BASED_LIN_ALG)
-    //add the values of a to this using iterators
-    auto it_a = a.cbegin();
-    for (iterator it = begin(); it != end(); ++it, ++it_a)
-      *it += *it_a;
-#endif
+
     return *this;
   }
 
   //addition assigment operator--adds a constant value to every element of this
   array2& operator+=(const Scalar& val)
   {
-#if defined(ZFP_INDEX_BASED_LIN_ALG)
     //add the constant value to this
     for (size_t j = 0; j < ny; j++)
       for (size_t i = 0; i < nx; i++)
         (*this)(i,j) += val;
-#elif defined(ZFP_ITERATOR_BASED_LIN_ALG)
-    //add the constant value to this using iterators
-    for (iterator it = begin(); it != end(); ++it)
-      *it += val;
-#endif
+
     return *this;
   }
 
   // unary scaling operator--scales the elements of this by a constant factor
   array2& operator*=(const Scalar& val)
   {
-#if defined(ZFP_INDEX_BASED_LIN_ALG)
     //scale the values of this by val
     for (size_t j = 0; j < ny; j++)
       for (size_t i = 0; i < nx; i++)
         (*this)(i,j) *= val;
-#elif defined(ZFP_ITERATOR_BASED_LIN_ALG)
-    //scale the values of this by val using iterators
-    for (iterator it = begin(); it != end(); ++it)
-      *it *= val;
-#endif
+
     return *this;
   }
 
@@ -261,16 +217,10 @@ public:
   {
     //allocate an array named neg with the same dimensions as this
     array2 neg(nx, ny, rate(), 0, cache.size());
-#if defined(ZFP_INDEX_BASED_LIN_ALG)
     for (size_t j = 0; j < ny; j++)
       for (size_t i = 0; i < nx; i++)
         neg(i,j) = -(*this)(i,j);
-#elif defined(ZFP_ITERATOR_BASED_LIN_ALG)
-    //negate the values of this and store the result in neg using iterators
-    const_iterator it = this->cbegin();
-    for (iterator it_neg = neg.begin(); it_neg != neg.end(); ++it_neg, ++it)
-      *it_neg = -(*it);
-#endif
+
     return neg;
   }
 
