@@ -1090,7 +1090,7 @@ inline void
 baseline_add_assign_ind(zfp::array2<Scalar> &a, const zfp::array2<Scalar> &b)
 {
   // check this and a have same dimensions
-  if (nx != a.nx || ny != a.ny)
+  if (a.size_x() != b.size_x() || a.size_y() != b.size_y())
     throw zfp::exception("dimension mismatch while adding array2s");
   for (size_t y = 0; y < a.size_y(); y++)
     for (size_t x = 0; x < a.size_x(); x++)
@@ -1102,7 +1102,7 @@ inline void
 baseline_add_assign_it(zfp::array2<Scalar> &a , const zfp::array2<Scalar> &b)
 {
   // check this and a have same dimensions
-  if (nx != a.nx || ny != a.ny)
+  if (a.size_x() != b.size_x() || a.size_y() != b.size_y())
     throw zfp::exception("dimension mismatch while adding array2s");
   for (auto it = a.begin(); it != a.end(); ++it)
     *it += b(it.i(), it.j());
@@ -1141,16 +1141,19 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
 
   bool pass = true;
   uint failures = 0;
-  
-  // Produce zfp arrays a and b from f and g
+  std::stringstream status;
+  status.precision(3);
+  status <<std::scientific;
   double rate = 16;
+
+  // Produce zfp arrays a and b from f and g
   zfp::array2<Scalar> a(nx, ny, rate, f);
   zfp::array2<Scalar> b(nx, ny, rate, g);
-  zfp::array2<Scalar> c;
+  //zfp::array2<Scalar> c;
 
   // test += op.
   clock_t start = clock();
-  a += b;
+  baseline_add_assign_ind(a, b);
   clock_t end = clock();
   Scalar emax = 0;
   for (size_t i = 0; i < nx; i++)
@@ -1162,12 +1165,11 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
     }
   }
 
-  std::stringstream status;
-  status << "  += op.(" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
+  status << "  += op. baseline ind. (" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
   if (emax <= tolerance)
-    status << "tolerance=" << tolerance << " >= " << emax;
+    status << "bound=" << tolerance << " >= " << emax;
   else {
-    status << "tolerance=" << tolerance << " < " << emax;
+    status << "bound=" << tolerance << " < " << emax;
     pass = false;
     failures++;
   }
@@ -1175,10 +1177,71 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
   std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
   pass = true;
 
+  a.set(f); //reset a
+  start = clock();
+  baseline_add_assign_it(a, b);
+  end = clock();
+
+  status.str("");
+  
+  status << "  += op. baseline it. (" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
+  emax = 0;
+
+  //test if a and h are equal
+  for (size_t i = 0; i < nx; i++)
+  {
+    for (size_t j = 0; j < ny; j++)
+    {
+      auto diff = std::abs(h[i + nx * j] - a(i, j));
+      emax = std::max(emax, diff/(float)h[i + nx * j]); //relative error
+    }
+  }
+
+  if (emax <= tolerance)
+    status << "bound=" << tolerance << " >= " << emax;
+  else {
+    status << "bound=" << tolerance << " < " << emax;
+    pass = false;
+    failures++;
+  }
+
+  std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
+  pass = true;
+
+  a.set(f); //reset a
+  
+  // test += op.
+  start = clock();
+  a += b;
+  end = clock();
+  emax = 0;
+
+  status.str("");
+
+  status << "  += op. (" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
+  for (size_t i = 0; i < nx; i++)
+  {
+    for (size_t j = 0; j < ny; j++)
+    {
+      auto diff = std::abs(h[i + nx * j] - a(i, j));
+      emax = std::max(emax, diff/(float)h[i + nx * j]); //relative error
+    }
+  }
+
+  if (emax <= tolerance)
+    status << "bound=" << tolerance << " >= " << emax;
+  else {
+    status << "bound=" << tolerance << " < " << emax;
+    pass = false;
+    failures++;
+  }
+
+  std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
+
   // Produce gencodec zfp arrays from f and g 
   zfp::array2<Scalar, zfp::codec::zfp2<Scalar>> a_gencodec(nx, ny, rate, f);
   zfp::array2<Scalar, zfp::codec::zfp2<Scalar>> b_gencodec(nx, ny, rate, g);
-  zfp::array2<Scalar, zfp::codec::zfp2<Scalar>> c_gencodec;
+  //zfp::array2<Scalar, zfp::codec::zfp2<Scalar>> c_gencodec;
 
   // test += op.
   start = clock();
@@ -1199,9 +1262,9 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
   }
 
   if (emax <= tolerance)
-    status << "tolerance=" << tolerance << " >= " << emax;
+    status << "bound=" << tolerance << " >= " << emax;
   else {
-    status << "tolerance=" << tolerance << " < " << emax;
+    status << "bound=" << tolerance << " < " << emax;
     pass = false;
     failures++;
   }
@@ -1235,9 +1298,9 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
   }
 
   if (emax <= tolerance)
-    status << "tolerance=" << tolerance << " >= " << emax;
+    status << "bound=" << tolerance << " >= " << emax;
   else {
-    status << "tolerance=" << tolerance << " < " << emax;
+    status << "bound=" << tolerance << " < " << emax;
     pass = false;
     failures++;
   }
@@ -1247,12 +1310,12 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
 
   raw::array2d raw_a;
   raw::array2d raw_b;
-  raw::array2d raw_c;
+  //raw::array2d raw_c;
 
   //set raw_a and raw_b to f and g with for loop
   raw_a.resize(nx, ny);
   raw_b.resize(nx, ny);
-  raw_c.resize(nx, ny);
+  //raw_c.resize(nx, ny);
 
   for (uint i = 0; i < nx; i++)
   {
@@ -1283,9 +1346,9 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
   }
 
   if (emax <= tolerance)
-    status << "tolerance=" << tolerance << " >= " << emax;
+    status << "bound=" << tolerance << " >= " << emax;
   else {
-    status << "tolerance=" << tolerance << " < " << emax;
+    status << "bound=" << tolerance << " < " << emax;
     pass = false;
     failures++;
   }
