@@ -1086,16 +1086,33 @@ common_tests()
 }
 
 template <typename Scalar>
+inline void
+baseline_add_assign_ind(zfp::array2<Scalar> &a, const zfp::array2<Scalar> &b)
+{
+  // check this and a have same dimensions
+  if (nx != a.nx || ny != a.ny)
+    throw zfp::exception("dimension mismatch while adding array2s");
+  for (size_t y = 0; y < a.size_y(); y++)
+    for (size_t x = 0; x < a.size_x(); x++)
+      a(x, y) += b(x, y);
+}
+
+template <typename Scalar>
+inline void
+baseline_add_assign_it(zfp::array2<Scalar> &a , const zfp::array2<Scalar> &b)
+{
+  // check this and a have same dimensions
+  if (nx != a.nx || ny != a.ny)
+    throw zfp::exception("dimension mismatch while adding array2s");
+  for (auto it = a.begin(); it != a.end(); ++it)
+    *it += b(it.i(), it.j());
+}
+
+template <typename Scalar>
 inline uint
 linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
 {
-  std::cout << "testing linear algebra support" << 
-# if defined(ZFP_INDEX_BASED_LIN_ALG)
-    " (index-based)" <<
-# elif defined(ZFP_ITERATOR_BASED_LIN_ALG)
-    " (iterator-based)" <<
-#endif
-  std::endl;
+  std::cout << "testing linear algebra support" << std::endl;
   if(dims != 2)
   {
     std::cout << "linear algebra test only supports 2d arrays" << std::endl;
@@ -1122,50 +1139,20 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
     }
   }
 
+  bool pass = true;
+  uint failures = 0;
+  
   // Produce zfp arrays a and b from f and g
   double rate = 16;
   zfp::array2<Scalar> a(nx, ny, rate, f);
   zfp::array2<Scalar> b(nx, ny, rate, g);
   zfp::array2<Scalar> c;
 
-  //test + op.
-  clock_t start= clock();
-  c = a + b;
-  clock_t end = clock();
-
-  uint failures = 0;
-  std::ostringstream status;
-  status << std::scientific;
-  status.precision(3);
-  status << "  +  op.(" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
-  Scalar emax = 0; 
-  //test if c and h are equal
-  for (size_t i = 0; i < nx; i++)
-  {
-    for (size_t j = 0; j < ny; j++)
-    {
-      auto diff = std::abs(h[i + nx * j] - c(i, j));
-      emax = std::max(emax, diff/(float)h[i + nx * j]); //relative error
-    }
-  }
-
-  bool pass = true;
-  if (emax <= tolerance)
-    status << "tolerance=" << tolerance << " >= "<< emax;
-  else {
-    status << "tolerance=" << tolerance << " < " << emax;
-    pass = false;
-    failures++;
-  }
-
-  std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
-  pass = true;
-
   // test += op.
-  start = clock();
+  clock_t start = clock();
   a += b;
-  end = clock();
-  emax = 0;
+  clock_t end = clock();
+  Scalar emax = 0;
   for (size_t i = 0; i < nx; i++)
   {
     for (size_t j = 0; j < ny; j++)
@@ -1175,7 +1162,7 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
     }
   }
 
-  status.str("");
+  std::stringstream status;
   status << "  += op.(" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
   if (emax <= tolerance)
     status << "tolerance=" << tolerance << " >= " << emax;
@@ -1192,35 +1179,6 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
   zfp::array2<Scalar, zfp::codec::zfp2<Scalar>> a_gencodec(nx, ny, rate, f);
   zfp::array2<Scalar, zfp::codec::zfp2<Scalar>> b_gencodec(nx, ny, rate, g);
   zfp::array2<Scalar, zfp::codec::zfp2<Scalar>> c_gencodec;
-
-  //test + op.
-  start= clock();
-  c_gencodec = a_gencodec + b_gencodec;
-  end = clock();
-
-  status.str("");
-  status << "  +  op. w/ gencodec (" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
-  emax = 0;
-  //test if z and h are equal
-  for (size_t i = 0; i < nx; i++)
-  {
-    for (size_t j = 0; j < ny; j++)
-    {
-      auto diff = std::abs(h[i + nx * j] - c_gencodec(i, j));
-      emax = std::max(emax, diff/(float)h[i + nx * j]); //relative error
-    }
-  }
-
-  if (emax <= tolerance)
-    status << "tolerance=" << tolerance << " >= "<< emax;
-  else {
-    status << "tolerance=" << tolerance << " < " << emax;
-    pass = false;
-    failures++;
-  }
-  
-  std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
-  pass = true;
 
   // test += op.
   start = clock();
@@ -1257,35 +1215,6 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
   a_const.set(f);
   zfp::const_array2<Scalar> b_const(nx, ny, config, 0, 0);
   b_const.set(g);
-
-  //test + op.
-  start= clock();
-  c =  b + a_const;
-  end = clock();
-
-  status.str("");
-  status << "  +  op. w/ const (" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
-  emax = 0;
-  //test if c and h are equal
-  for (size_t i = 0; i < nx; i++)
-  {
-    for (size_t j = 0; j < ny; j++)
-    {
-      auto diff = std::abs(h[i + nx * j] - c(i, j));
-      emax = std::max(emax, diff/(float)h[i + nx * j]); //relative error
-    }
-  }
-
-  if (emax <= tolerance)
-    status << "tolerance=" << tolerance << " >= "<< emax;
-  else {
-    status << "tolerance=" << tolerance << " < " << emax;
-    pass = false;
-    failures++;
-  }
-
-  std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
-  pass = true;
 
   // test += op.
   a.set(f);
@@ -1333,36 +1262,6 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
       raw_b(i, j) = g[i + nx * j];
     }
   }
-
-  //test + op.
-  start= clock();
-  raw_c = raw_a + raw_b;
-  end = clock();
-
-  status.str("");
-  status << "  +  op. w/ raw (" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
-  emax = 0;
-
-  //test if raw_c and h are equal
-  for (size_t i = 0; i < nx; i++)
-  {
-    for (size_t j = 0; j < ny; j++)
-    {
-      auto diff = std::abs(h[i + nx * j] - raw_c(i, j));
-      emax = std::max(emax, diff/(float)h[i + nx * j]); //relative error
-    }
-  }
-
-  if (emax <= tolerance)
-    status << "tolerance=" << tolerance << " >= "<< emax;
-  else {
-    status << "tolerance=" << tolerance << " < " << emax;
-    pass = false;
-    failures++;
-  }
-
-  std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
-  pass = true;
 
   // test += op.
   start = clock();
