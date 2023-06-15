@@ -123,13 +123,11 @@ public:
     if (nx != a.nx || ny != a.ny)
       throw zfp::exception("dimension mismatch while adding array2s");
 
-    //allocate an array named sum in the same dimensions as this and a
+    //allocate an array named sum in the same dimensions as this
     array2 sum(nx, ny, rate(), 0, cache.size());
-    //add the values of this and a and store the result in sum
-    for (size_t j = 0; j < ny; j++)
-      for (size_t i = 0; i < nx; i++)
-        sum(i,j) = (*this)(i,j) + a(i, j);
-        
+    sum = *this;
+    sum += a;
+
     return sum;
   }
 
@@ -142,10 +140,9 @@ public:
 
     //allocate an array named sum in the same dimensions as this and a
     array2 sum(nx, ny, rate(), 0, cache.size());
-    //add the values of this and a and store the result in sum
-    for (size_t j = 0; j < ny; j++)
-      for (size_t i = 0; i < nx; i++)
-        sum(i,j) = (*this)(i,j) + a(i, j);
+    sum = *this;
+    sum += a;
+
     return sum;
   }
 
@@ -153,11 +150,9 @@ public:
   array2 operator+(const Scalar& val) const 
   { 
     //allocate an array named sum in the same dimensions as this
-    array2 sum(nx, ny, rate(), 0, cache.size());
-    //add the constant value to this and store the result in sum
-    for (size_t j = 0; j < ny; j++)
-      for (size_t i = 0; i < nx; i++)
-        sum(i,j) = (*this)(i,j) + val;
+    array2 sum(nx, ny, rate(), 0, cache.size())
+    sum = *this;
+    sum += a;
 
     return sum;
   }
@@ -173,15 +168,15 @@ public:
     const size_t bx = store.block_size_x();
     const size_t by = store.block_size_y();
 
+    value_type block_a[4 * 4] = {};
+    value_type block_this[4 * 4] = {};
     // Iterate over each block
     for (size_t block_index = 0; block_index < bx * by; block_index++)
     {
       // Get the current block from this array
-      value_type block_this[4 * 4] = {};
       cache.get_block(block_index, block_this, 1, 4);
 
       // Get the corresponding block from the array 'a'
-      value_type block_a[4 * 4] = {};
       a.cache.get_block(block_index, block_a, 1, 4);
 
       // Add the corresponding elements of the blocks
@@ -212,10 +207,24 @@ public:
   //addition assigment operator--adds a constant value to every element of this
   array2& operator+=(const Scalar& val)
   {
-    //add the constant value to this
-    for (size_t j = 0; j < ny; j++)
-      for (size_t i = 0; i < nx; i++)
-        (*this)(i,j) += val;
+    // Get the dimensions of the blocks in the array
+    const size_t bx = store.block_size_x();
+    const size_t by = store.block_size_y();
+
+    value_type block_this[4 * 4] = {};
+    // Iterate over each block
+    for (size_t block_index = 0; block_index < bx * by; block_index++)
+    {
+      // Get the current block from this array
+      cache.get_block(block_index, block_this, 1, 4);
+
+      // Add the corresponding elements of the blocks
+      for (size_t i = 0; i < 4 * 4; i++)
+        block_this[i] += val;
+
+      // Store the updated block back in this array
+      cache.put_block(block_index, block_this, 1, 4);
+    }
 
     return *this;
   }
