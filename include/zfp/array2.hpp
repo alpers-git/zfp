@@ -165,13 +165,32 @@ public:
   // addition assignment operator--adds another array of identical dimensions
   array2& operator+=(const array2& a)
   {
-    // check this and a have same dimensions
+    // Check if this and a have the same dimensions
     if (nx != a.nx || ny != a.ny)
       throw zfp::exception("dimension mismatch while adding array2s");
-    //add the values of this and a and store the result in this 
-    for (size_t j = 0; j < ny; j++)
-      for (size_t i = 0; i < nx; i++)
-        (*this)(i,j) += a(i, j);
+
+    // Get the dimensions of the blocks in the array
+    const size_t bx = store.block_size_x();
+    const size_t by = store.block_size_y();
+
+    // Iterate over each block
+    for (size_t block_index = 0; block_index < bx * by; block_index++)
+    {
+      // Get the current block from this array
+      value_type block_this[4 * 4] = {};
+      cache.get_block(block_index, block_this, 1, 4);
+
+      // Get the corresponding block from the array 'a'
+      value_type block_a[4 * 4] = {};
+      a.cache.get_block(block_index, block_a, 1, 4);
+
+      // Add the corresponding elements of the blocks
+      for (size_t i = 0; i < 4 * 4; i++)
+        block_this[i] += block_a[i];
+
+      // Store the updated block back in this array
+      cache.put_block(block_index, block_this, 1, 4);
+    }
 
     return *this;
   }
