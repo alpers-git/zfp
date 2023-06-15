@@ -1128,9 +1128,9 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
   Scalar* g = new Scalar[n];
   Scalar* h = new Scalar[n];
 
-  for (uint i = 0; i < nx; i++)
+  for (uint j = 0; j < ny; j++)
   {
-    for (uint j = 0; j < ny; j++)
+    for (uint i = 0; i < nx; i++)
     {
       f[i + nx * j] = (Scalar)(i + nx * j);
       g[i + nx * j] = (Scalar)(i + nx * j);
@@ -1149,16 +1149,16 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
   // Produce zfp arrays a and b from f and g
   zfp::array2<Scalar> a(nx, ny, rate, f);
   zfp::array2<Scalar> b(nx, ny, rate, g);
-  //zfp::array2<Scalar> c;
+  zfp::array2<Scalar> c;
 
   // test += op.
   clock_t start = clock();
   baseline_add_assign_ind(a, b);
   clock_t end = clock();
   Scalar emax = 0;
-  for (size_t i = 0; i < nx; i++)
+  for (size_t j = 0; j < ny; j++)
   {
-    for (size_t j = 0; j < ny; j++)
+    for (size_t i = 0; i < nx; i++)
     {
       auto diff = std::abs(h[i + nx * j] - a(i, j));
       emax = std::max(emax, diff/(float)h[i + nx * j]); //relative error
@@ -1219,9 +1219,9 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
   status.str("");
 
   status << "  += op. (" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
-  for (size_t i = 0; i < nx; i++)
+  for (size_t j = 0; j < ny; j++)
   {
-    for (size_t j = 0; j < ny; j++)
+    for (size_t i = 0; i < nx; i++)
     {
       auto diff = std::abs(h[i + nx * j] - a(i, j));
       emax = std::max(emax, diff/(float)h[i + nx * j]); //relative error
@@ -1279,7 +1279,7 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
   zfp::const_array2<Scalar> b_const(nx, ny, config, 0, 0);
   b_const.set(g);
 
-  // test += op.
+  //test += op.
   a.set(f);
   start = clock();
   a += b_const;
@@ -1288,9 +1288,9 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
   status.str("");
   status << "  += op. w/ const (" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
   emax = 0;
-  for (size_t i = 0; i < nx; i++)
+  for (size_t j = 0; j < ny; j++)
   {
-    for (size_t j = 0; j < ny; j++)
+   for (size_t i = 0; i < nx; i++)
     {
       auto diff = std::abs(h[i + nx * j] - a(i, j));
       emax = std::max(emax, diff/(float)h[i + nx * j]); //relative error
@@ -1336,9 +1336,9 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
   emax = 0;
 
   //test if raw_a and h are equal
-  for (size_t i = 0; i < nx; i++)
+  for (size_t j = 0; j < ny; j++)
   {
-    for (size_t j = 0; j < ny; j++)
+    for (size_t i = 0; i < nx; i++)
     {
       auto diff = std::abs(h[i + nx * j] - raw_a(i, j));
       emax = std::max(emax, diff/(float)h[i + nx * j]); //relative error
