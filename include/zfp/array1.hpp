@@ -5,6 +5,7 @@
 #include <cstring>
 #include <iterator>
 #include "zfp/array.hpp"
+#include "zfp/constarray1.hpp"
 #include "zfp/index.hpp"
 #include "zfp/codec/zfpcodec.hpp"
 #include "zfp/internal/array/cache1.hpp"
@@ -137,6 +138,43 @@ public:
       // Store the updated block back in this array
       cache.put_block(block_index, block_this, 1);
     }
+
+    return *this;
+  }
+
+  // addition assingment operator--adds a scalar to each value stored in the array
+  array1& operator+=(const value_type val)
+  {
+    // Get the dimensions of the blocks in the array
+    const size_t bx = store.block_size_x();
+
+    value_type block[4] = {};
+    // Iterate over each block
+    for (size_t block_index = 0; block_index < bx; block_index++)
+    {
+      // Get the current block from this array
+      cache.get_block(block_index, block, 1);
+
+      // Add the scalar to each element of the block
+      for (size_t i = 0; i < 4; i++)
+        block[i] += val;
+
+      // Store the updated block back in this array
+      cache.put_block(block_index, block, 1);
+    }
+
+    return *this;
+  }
+
+  // addition assign operator--adds a constant_array to the array
+  array1 &operator+=(const const_array1<Scalar>& a)
+  {
+    // Check if this and a have the same dimensions
+    if (nx != a.size_x())
+      throw zfp::exception("dimension mismatch while adding array1s");
+    // add the values of this and a and store the result in this
+    for (size_t i = 0; i < nx; i++)
+      (*this)(i) += a(i);
 
     return *this;
   }
