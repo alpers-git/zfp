@@ -179,6 +179,57 @@ public:
     return *this;
   }
 
+  // scaling operator--scales the elements of the array by the given constant
+  array1& operator*=(const Scalar& val)
+  {
+    // Get the dimensions of the blocks in the array
+    const size_t bx = store.block_size_x();
+
+    value_type block[4] = {};
+    // Iterate over each block
+    for (size_t block_index = 0; block_index < bx; block_index++)
+    {
+      // Get the current block from this array
+      cache.get_block(block_index, block, 1);
+
+      // Multiply each element of the block by the scalar
+      for (size_t i = 0; i < 4; i++)
+        block[i] *= val;
+
+      // Store the updated block back in this array
+      cache.put_block(block_index, block, 1);
+    }
+
+    return *this;
+  }
+
+  // unary negation operator--negates the elements of the array
+  array1 operator-() const
+  {
+    // allocate an array with the same dimensions as this
+    array1 result(nx, rate());
+
+    // Get the dimensions of the blocks in the array
+    const size_t bx = store.block_size_x():
+
+    value_type block[4] = {};
+    // Iterate over each block
+    for (size_t block_index = 0; block_index < bx; block_index++)
+    {
+      // Get the current block from this array
+      cache.get_block(block_index, block, 1);
+
+      // Negate each element of the block
+      for (size_t i = 0; i < 4; i++)
+        block[i] = -block[i];
+
+      // Store the updated block back in this array
+      result.cache.put_block(block_index, block, 1);
+    }
+
+    return result;
+  }
+
   // total number of elements in array
   size_t size() const { return nx; }
 
