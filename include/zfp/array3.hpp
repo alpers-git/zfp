@@ -5,6 +5,7 @@
 #include <cstring>
 #include <iterator>
 #include "zfp/array.hpp"
+#include "zfp/constarray3.hpp"
 #include "zfp/index.hpp"
 #include "zfp/codec/zfpcodec.hpp"
 #include "zfp/internal/array/cache3.hpp"
@@ -115,6 +116,85 @@ public:
   {
     if (this != &a)
       deep_copy(a);
+    return *this;
+  }
+
+  // addition assignment operator--adds another array of identical dimensions
+  array3& operator+=(const array3& a)
+  {
+    // Check if this and a have the same dimensions
+    if (nx != a.nx || ny != a.ny || nz != a.nz)
+      throw zfp::exception("dimension mismatch while adding array3s");
+    
+    // Get the dimensions of the blocks in the array
+    const size_t bx = store.block_size_x();
+    const size_t by = store.block_size_y();
+    const size_t bz = store.block_size_z();
+
+    value_type block_this[4 * 4 * 4] = {};
+    value_type block_a[4 * 4 * 4] = {};
+    //Iterate over each block
+    for (size_t block_index = 0; block_index < bx * by * bz; block_index++)
+    {
+      // Get the current block from this array
+      cache.get_block(block_index, block_this, 1, 4, 16);
+
+      // Get the corresponding block from the array 'a'
+      a.cache.get_block(block_index, block_a, 1, 4, 16);
+
+      // Add the two blocks together
+      for (size_t i = 0; i < 4 * 4 * 4; i++)
+        block_this[i] += block_a[i];
+
+      // Store the updated block back into this array
+      cache.put_block(block_index, block_this, 1, 4, 16);
+    }
+
+    return *this;
+  }
+
+  // addition assignment operator--adds another array of identical dimensions
+  array3& operator+=(const const_array3<Scalar>& a)
+  {
+    //check this and a have the same dimensions
+    if (nx != a.size_x() || ny != a.size_y() || nz != a.size_z())
+      throw zfp::exception("dimension mismatch while adding array3s");
+    //add the values of this and a store the result in this
+    for (size_t k = 0; k < nz; k++)
+      for (size_t j = 0; j < ny; j++)
+        for (size_t i = 0; i < nx; i++)
+          (*this)(i, j, k) += a(i, j, k);
+
+    return *this;
+  }
+
+  // addition assignment operator--adds a scalar to every value in the array
+  array3& operator+=(const Scalar& val)
+  {
+    // Check if this and a have the same dimensions
+    if (nx != a.nx || ny != a.ny || nz != a.nz)
+      throw zfp::exception("dimension mismatch while adding array3s");
+    
+    // Get the dimensions of the blocks in the array
+    const size_t bx = store.block_size_x();
+    const size_t by = store.block_size_y();
+    const size_t bz = store.block_size_z();
+
+    value_type block_this[4 * 4 * 4] = {};
+    //Iterate over each block
+    for (size_t block_index = 0; block_index < bx * by * bz; block_index++)
+    {
+      // Get the current block from this array
+      cache.get_block(block_index, block_this, 1, 4, 16);
+
+      // Add the two blocks together
+      for (size_t i = 0; i < 4 * 4 * 4; i++)
+        block_this[i] += val;
+
+      // Store the updated block back into this array
+      cache.put_block(block_index, block_this, 1, 4, 16);
+    }
+
     return *this;
   }
 
