@@ -1085,11 +1085,23 @@ common_tests()
   return failures;
 }
 
+template <typename Arraytype>
+inline void
+baseline_add_assign_it(Arraytype &a, const Arraytype &b)
+{
+  // check a and b have same dimensions
+  if (a.size_x() != b.size_x())
+    throw zfp::exception("dimension mismatch while adding array2s");
+  auto it2 = b.cbegin();
+  for (auto it = a.begin(); it != a.end(); ++it, ++it2)
+    *it += *it2;
+}
+
 template <typename Scalar>
 inline void
 baseline_add_assign_ind(zfp::array1<Scalar> &a, const zfp::array1<Scalar> &b)
 {
-  // check this and a have same dimensions
+  // check a and b have same dimensions
   if (a.size_x() != b.size_x())
     throw zfp::exception("dimension mismatch while adding array1s");
   for (size_t x = 0; x < a.size_x(); x++)
@@ -1100,7 +1112,7 @@ template <typename Scalar>
 inline void
 baseline_add_assign_ind(zfp::array2<Scalar> &a, const zfp::array2<Scalar> &b)
 {
-  // check this and a have same dimensions
+  // check a and b have same dimensions
   if (a.size_x() != b.size_x() || a.size_y() != b.size_y())
     throw zfp::exception("dimension mismatch while adding array2s");
   for (size_t y = 0; y < a.size_y(); y++)
@@ -1108,16 +1120,33 @@ baseline_add_assign_ind(zfp::array2<Scalar> &a, const zfp::array2<Scalar> &b)
       a(x, y) += b(x, y);
 }
 
-template <typename Arraytype>
+template <typename Scalar>
 inline void
-baseline_add_assign_it(Arraytype &a, const Arraytype &b)
+baseline_add_assign_ind(zfp::array3<Scalar> &a, const zfp::array3<Scalar> &b)
 {
-  // check this and a have same dimensions
-  if (a.size_x() != b.size_x())
-    throw zfp::exception("dimension mismatch while adding array2s");
-  auto it2 = b.cbegin();
-  for (auto it = a.begin(); it != a.end(); ++it, ++it2)
-    *it += *it2;
+  // check a and b have same dimensions
+  if (a.size_x() != b.size_x() || a.size_y() != b.size_y() || a.size_z() != b.size_z())
+    throw zfp::exception("dimension mismatch while adding array3s");
+
+  for (size_t z = 0; z < a.size_z(); z++)
+    for (size_t y = 0; y < a.size_y(); y++)
+      for (size_t x = 0; x < a.size_x(); x++)
+        a(x, y, z) += b(x, y, z);
+}
+
+template <typename Scalar>
+inline void
+baseline_add_assign_ind(zfp::array4<Scalar> &a, const zfp::array4<Scalar> &b)
+{
+  // check a and b have same dimensions
+  if (a.size_x() != b.size_x() || a.size_y() != b.size_y() || a.size_z() != b.size_z() || a.size_w() != b.size_w())
+    throw zfp::exception("dimension mismatch while adding array4s");
+
+  for (size_t w = 0; w < a.size_w(); w++)
+    for (size_t z = 0; z < a.size_z(); z++)
+      for (size_t y = 0; y < a.size_y(); y++)
+        for (size_t x = 0; x < a.size_x(); x++)
+          a(x, y, z, w) += b(x, y, z, w);
 }
 
 template <typename Scalar>
