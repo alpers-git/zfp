@@ -232,10 +232,28 @@ public:
   // unary scaling operator--scales the elements of this by a constant factor
   array2& operator*=(const Scalar& val)
   {
-    //scale the values of this by val
-    for (size_t j = 0; j < ny; j++)
-      for (size_t i = 0; i < nx; i++)
-        (*this)(i,j) *= val;
+    // scale the values of this by val
+    if (nx != a.nx || ny != a.ny)
+      throw zfp::exception("dimension mismatch while adding array2s");
+
+    // Get the dimensions of the blocks in the array
+    const size_t bx = store.block_size_x();
+    const size_t by = store.block_size_y();
+
+    value_type block_this[4 * 4] = {};
+    // Iterate over each block
+    for (size_t block_index = 0; block_index < bx * by; block_index++)
+    {
+      // Get the current block from this array
+      cache.get_block(block_index, block_this, 1, 4);
+
+      // Add the corresponding elements of the blocks
+      for (size_t i = 0; i < 4 * 4; i++)
+        block_this[i] *= val;
+
+      // Store the updated block back in this array
+      cache.put_block(block_index, block_this, 1, 4);
+    }
 
     return *this;
   }
@@ -243,13 +261,31 @@ public:
   // unary negation operator--returns a deep copy with the sign of each element negated
   array2 operator-() const
   {
-    //allocate an array named neg with the same dimensions as this
+    // allocate an array named neg with the same dimensions as this
     array2 neg(nx, ny, rate(), 0, cache.size());
-    for (size_t j = 0; j < ny; j++)
-      for (size_t i = 0; i < nx; i++)
-        neg(i,j) = -(*this)(i,j);
+    if (nx != a.nx || ny != a.ny)
+      throw zfp::exception("dimension mismatch while adding array2s");
 
-    return neg;
+    // Get the dimensions of the blocks in the array
+    const size_t bx = store.block_size_x();
+    const size_t by = store.block_size_y();
+
+    value_type block_this[4 * 4] = {};
+    // Iterate over each block
+    for (size_t block_index = 0; block_index < bx * by; block_index++)
+    {
+      // Get the current block from this array
+      cache.get_block(block_index, block_this, 1, 4);
+
+      // Add the corresponding elements of the blocks
+      for (size_t i = 0; i < 4 * 4; i++)
+        block_this[i] = -block_this[i];
+
+      // Store the updated block back in this array
+      cache.put_block(block_index, block_this, 1, 4);
+    }
+
+    return *this;
   }
 
   // total number of elements in array
