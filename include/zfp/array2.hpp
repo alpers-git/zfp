@@ -191,6 +191,7 @@ public:
   }
 
   // addition assignment operator--adds another array of identical dimensions
+  // TODO: I cannot access the const_array2.cache from here!
   array2& operator+=(const const_array2<Scalar>& a)
   {
     // check this and a have same dimensions
