@@ -1087,6 +1087,29 @@ common_tests()
 
 template <typename Scalar>
 inline void
+baseline_add_assign_ind(zfp::array1<Scalar> &a, const zfp::array1<Scalar> &b)
+{
+  // check this and a have same dimensions
+  if (a.size_x() != b.size_x())
+    throw zfp::exception("dimension mismatch while adding array1s");
+  for (size_t x = 0; x < a.size_x(); x++)
+    a(x) += b(x);
+}
+
+template <typename Scalar>
+inline void
+baseline_add_assign_it(zfp::array2<Scalar> &a, const zfp::array2<Scalar> &b)
+{
+  // check this and a have same dimensions
+  if (a.size_x() != b.size_x())
+    throw zfp::exception("dimension mismatch while adding array1s");
+  auto it2 = b.cbegin();
+  for (auto it = a.begin(); it != a.end(); ++it, ++it2)
+    *it += *it2;
+}
+
+template <typename Scalar>
+inline void
 baseline_add_assign_ind(zfp::array2<Scalar> &a, const zfp::array2<Scalar> &b)
 {
   // check this and a have same dimensions
@@ -1099,31 +1122,143 @@ baseline_add_assign_ind(zfp::array2<Scalar> &a, const zfp::array2<Scalar> &b)
 
 template <typename Scalar>
 inline void
-baseline_add_assign_it(zfp::array2<Scalar> &a , const zfp::array2<Scalar> &b)
+baseline_add_assign_it(zfp::array1<Scalar> &a, const zfp::array1<Scalar> &b)
 {
   // check this and a have same dimensions
-  if (a.size_x() != b.size_x() || a.size_y() != b.size_y())
+  if (a.size_x() != b.size_x())
     throw zfp::exception("dimension mismatch while adding array2s");
-  for (auto it = a.begin(); it != a.end(); ++it)
-    *it += b(it.i(), it.j());
+  auto it2 = b.cbegin();
+  for (auto it = a.begin(); it != a.end(); ++it, ++it2)
+    *it += *it2;
 }
 
 template <typename Scalar>
 inline uint
-linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
+test_1d_linear_algebra(ArraySize array_size, Scalar tolerance)
 {
-  std::cout << "testing linear algebra support" << std::endl;
-  if(dims != 2)
-  {
-    std::cout << "linear algebra test only supports 2d arrays" << std::endl;
-    return 0;
-  }
-  //Generate c++ arrays with linearly increasing values for ground truth
   uint m = test_size(array_size);
   uint n = m * m * m * m * m * m * m * m * m * m * m * m;
+
+  //Generate c++ arrays with linearly increasing values for ground truth
+  Scalar* f = new Scalar[n];
+  Scalar* g = new Scalar[n];
+  Scalar* h = new Scalar[n];
+
+  for (uint i = 0; i < n; i++)
+  {
+    f[i] = (Scalar)i;
+    g[i] = (Scalar)i;
+    //sum f and g and store in h
+    h[i] = f[i] + g[i];
+  }
+
+  bool pass = true;
+  uint failures = 0;
+  std::stringstream status;
+  status.precision(3);
+  status <<std::scientific;
+  double rate = 16;
+
+  // Produce zfp arrays a and b from f and g
+  zfp::array1<Scalar> a(n, rate, f);
+  zfp::array1<Scalar> b(n, rate, g);
+
+  // test += op.
+  clock_t start = clock();
+  baseline_add_assign_ind(a, b);
+  clock_t end = clock();
+  Scalar emax = 0;
+
+  status << "  += op. baseline ind. (" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
+  for (size_t i = 0; i < n; i++)
+  {
+    Scalar diff = std::abs(h[i] - a[i]);
+    emax = std::max(emax, diff/(float)h[i]); //relative error
+  }
+
+  if (emax <= tolerance)
+    status << "bound=" << tolerance << " >= " << emax;
+  else {
+    status << "bound=" << tolerance << " < " << emax;
+    pass = false;
+    failures++;
+  }
+
+  std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
+  pass = true;
+
+  a.set(f); //reset a
+  start = clock();
+  baseline_add_assign_it(a, b);
+  end = clock();
+
+  status.str("");
+
+  status << "  += op. baseline it. (" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
+  emax = 0;
+
+  //test if a and h are equal
+  for (size_t i = 0; i < n; i++)
+  {
+    Scalar diff = std::abs(h[i] - a[i]);
+    emax = std::max(emax, diff/(float)h[i]); //relative error
+  }
+
+  if (emax <= tolerance)
+    status << "bound=" << tolerance << " >= " << emax;
+  else {
+    status << "bound=" << tolerance << " < " << emax;
+    pass = false;
+    failures++;
+  }
+
+  std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
+  pass = true;
+
+  a.set(f); //reset a
+
+  // test += op.
+  start = clock();
+  a += b;
+  end = clock();
+  emax = 0;
+
+  status.str("");
+
+  status << "  += op. (" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
+
+  for (size_t i = 0; i < n; i++)
+  {
+    Scalar diff = std::abs(h[i] - a[i]);
+    emax = std::max(emax, diff/(float)h[i]); //relative error
+  }
+
+  if (emax <= tolerance)
+    status << "bound=" << tolerance << " >= " << emax;
+  else {
+    status << "bound=" << tolerance << " < " << emax;
+    pass = false;
+    failures++;
+  }
+
+  std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
+  pass = true;
+  
+
+  return 0;
+}
+
+template <typename Scalar>
+inline uint
+test_2d_linear_algebra(ArraySize array_size, Scalar tolerance)
+{
+  uint m = test_size(array_size);
+  uint n = m * m * m * m * m * m * m * m * m * m * m * m;
+
   uint nx, ny;
   nx = ny = m * m * m * m * m * m;
 
+  //Generate c++ arrays with linearly increasing values for ground truth
   Scalar* f = new Scalar[n];
   Scalar* g = new Scalar[n];
   Scalar* h = new Scalar[n];
@@ -1149,7 +1284,7 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
   // Produce zfp arrays a and b from f and g
   zfp::array2<Scalar> a(nx, ny, rate, f);
   zfp::array2<Scalar> b(nx, ny, rate, g);
-  zfp::array2<Scalar> c;
+  //zfp::array2<Scalar> c;
 
   // test += op.
   clock_t start = clock();
@@ -1160,7 +1295,7 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
   {
     for (size_t i = 0; i < nx; i++)
     {
-      auto diff = std::abs(h[i + nx * j] - a(i, j));
+      Scalar diff = std::abs(h[i + nx * j] - a(i, j));
       emax = std::max(emax, diff/(float)h[i + nx * j]); //relative error
     }
   }
@@ -1192,7 +1327,7 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
   {
     for (size_t j = 0; j < ny; j++)
     {
-      auto diff = std::abs(h[i + nx * j] - a(i, j));
+      Scalar diff = std::abs(h[i + nx * j] - a(i, j));
       emax = std::max(emax, diff/(float)h[i + nx * j]); //relative error
     }
   }
@@ -1223,7 +1358,7 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
   {
     for (size_t i = 0; i < nx; i++)
     {
-      auto diff = std::abs(h[i + nx * j] - a(i, j));
+      Scalar diff = std::abs(h[i + nx * j] - a(i, j));
       emax = std::max(emax, diff/(float)h[i + nx * j]); //relative error
     }
   }
@@ -1256,7 +1391,7 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
   {
     for (size_t j = 0; j < ny; j++)
     {
-      auto diff = std::abs(h[i + nx * j] - a_gencodec(i, j));
+      Scalar diff = std::abs(h[i + nx * j] - a_gencodec(i, j));
       emax = std::max(emax, diff/(float)h[i + nx * j]); //relative error
     }
   }
@@ -1292,7 +1427,7 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
   {
    for (size_t i = 0; i < nx; i++)
     {
-      auto diff = std::abs(h[i + nx * j] - a(i, j));
+      Scalar diff = std::abs(h[i + nx * j] - a(i, j));
       emax = std::max(emax, diff/(float)h[i + nx * j]); //relative error
     }
   }
@@ -1340,7 +1475,7 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
   {
     for (size_t i = 0; i < nx; i++)
     {
-      auto diff = std::abs(h[i + nx * j] - raw_a(i, j));
+      Scalar diff = std::abs(h[i + nx * j] - raw_a(i, j));
       emax = std::max(emax, diff/(float)h[i + nx * j]); //relative error
     }
   }
@@ -1358,6 +1493,59 @@ linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
   delete [] f;
   delete [] g;
   delete [] h;
+  return failures;
+
+  return 0;
+}
+
+template <typename Scalar>
+inline uint
+test_3d_linear_algebra(ArraySize array_size, Scalar tolerance)
+{
+  return 0;
+}
+
+template <typename Scalar>
+inline uint
+test_4d_linear_algebra(ArraySize array_size, Scalar tolerance)
+{
+  return 0;
+}
+
+
+template <typename Scalar>
+inline uint
+linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
+{
+  uint m = test_size(array_size);
+  uint n = m * m * m * m * m * m * m * m * m * m * m * m;
+
+  // determine array size
+  uint nx, ny, nz, nw;
+  zfp_field* field = zfp_field_alloc();
+  zfp_field_set_type(field, zfp::internal::trait<Scalar>::type);
+  uint t = (zfp_field_type(field) == zfp_type_float ? 0 : 1);
+  std::cout << "testing linear algebra support " << dims << "D array of " << (t == 0 ? "floats" : "doubles") << std::endl;
+  uint failures = 0;
+  switch (dims) {
+    case 1:
+      failures += test_1d_linear_algebra(array_size, tolerance);
+      break;
+    case 2:
+      failures += test_2d_linear_algebra(array_size, tolerance);
+      break;
+    case 3:
+      nx = ny = nz = m * m * m * m;
+      nw = 0;
+      break;
+    case 4:
+      nx = ny = nz = nw = m * m * m;
+      break;
+    default:
+      std::cout << "invalid dimensions " << dims << std::endl;
+      return 1;
+  }
+
   return failures;
 }
 
@@ -1450,7 +1638,13 @@ int main(int argc, char* argv[])
        }
     }
 
-  failures += linear_algebra_tests<double>(2, Large, 0.0001);
+  for (uint d = 1; d <= 2; d++)
+  {
+    if (types & mask(Float))
+      failures += linear_algebra_tests<float>(d, Large, 0.0001);
+    if (types & mask(Double))
+      failures += linear_algebra_tests<double>(d, Large, 0.0001);
+  }
 
   if (failures)
     std::cout << failures << " test(s) failed" << std::endl;
