@@ -1260,9 +1260,77 @@ test_1d_linear_algebra(ArraySize array_size, Scalar tolerance)
 
   std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
   pass = true;
-  
 
-  return 0;
+  // Produce gencodec zfp arrays from f and g 
+  zfp::array1<Scalar, zfp::codec::zfp1<Scalar>> a_gencodec(n, rate, f);
+  zfp::array1<Scalar, zfp::codec::zfp1<Scalar>> b_gencodec(n, rate, g);
+  //zfp::array1<Scalar, zfp::codec::zfp1<Scalar>> c_gencodec;
+
+  // test += op.
+  start = clock();
+  a_gencodec += b_gencodec;
+  end = clock();
+  emax = 0;
+
+  status.str("");
+
+  status << "  += op. w/ gencodec (" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
+  // test if a and h are equal
+  for (size_t i = 0; i < n; i++)
+  {
+    Scalar diff = std::abs(h[i] - a_gencodec[i]);
+    emax = std::max(emax, diff/(float)h[i]); //relative error
+  }
+
+  if (emax <= tolerance)
+    status << "bound=" << tolerance << " >= " << emax;
+  else {
+    status << "bound=" << tolerance << " < " << emax;
+    pass = false;
+    failures++;
+  }
+
+  std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
+  pass = true;
+  
+  zfp_config config = zfp_config_none();
+  config = zfp_config_rate(rate, false);
+  zfp::const_array1<Scalar> a_const(n, config, 0, 0);
+  a_const.set(f);
+  zfp::const_array1<Scalar> b_const(n, config, 0, 0);
+  b_const.set(g);
+
+  //test += op.
+  a.set(f);
+  start = clock();
+  a += b_const;
+  end = clock();
+
+  status.str("");
+  status << "  += op. w/ const (" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
+  emax = 0;
+  // test if a and h are equal
+  for (size_t i = 0; i < n; i++)
+  {
+    Scalar diff = std::abs(h[i] - a[i]);
+    emax = std::max(emax, diff/(float)h[i]); //relative error
+  }
+
+  if (emax <= tolerance)
+    status << "bound=" << tolerance << " >= " << emax;
+  else {
+    status << "bound=" << tolerance << " < " << emax;
+    pass = false;
+    failures++;
+  }
+
+  std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
+  pass = true;
+
+  delete[] f;
+  delete[] g;
+  delete[] h;
+  return failures;
 }
 
 template <typename Scalar>
