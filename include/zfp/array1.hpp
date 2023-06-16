@@ -109,6 +109,38 @@ public:
     return *this;
   }
 
+  // addition assignment operator--adds another array of identical dimensions
+  array1& operator+=(const array1& a)
+  {
+    // Check if this and a have the same dimensions
+    if (nx != a.nx || ny != a.ny)
+      throw zfp::exception("dimension mismatch while adding array2s");
+
+    // Get the dimensions of the blocks in the array
+    const size_t bx = store.block_size_x();
+
+    value_type block_a[4] = {};
+    value_type block_this[4] = {};
+    // Iterate over each block
+    for (size_t block_index = 0; block_index < bx; block_index++)
+    {
+      // Get the current block from this array
+      cache.get_block(block_index, block_this, 1);
+
+      // Get the corresponding block from the array 'a'
+      a.cache.get_block(block_index, block_a, 1);
+
+      // Add the corresponding elements of the blocks
+      for (size_t i = 0; i < 4; i++)
+        block_this[i] += block_a[i];
+
+      // Store the updated block back in this array
+      cache.put_block(block_index, block_this, 1);
+    }
+
+    return *this;
+  }
+
   // total number of elements in array
   size_t size() const { return nx; }
 
