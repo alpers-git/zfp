@@ -5,6 +5,7 @@
 #include <cstring>
 #include <iterator>
 #include "zfp/array.hpp"
+#include "zfp/constarray4.hpp"
 #include "zfp/index.hpp"
 #include "zfp/codec/zfpcodec.hpp"
 #include "zfp/internal/array/cache4.hpp"
@@ -120,6 +121,84 @@ public:
       deep_copy(a);
     return *this;
   }
+
+  // addition assignment operator--adds another array of identical dimensions
+  array4& operator+=(const array4& a)
+  {
+    // Check if this and a have the same dimensions
+    if (nx != a.nx || ny != a.ny || nz != a.nz || nw != a.nw)
+      throw zfp::exception("dimension mismatch while adding array4s");
+    
+    // Get the dimension of the blocks in the array
+    const size_t bx = store.block_size_x();
+    const size_t by = store.block_size_y();
+    const size_t bz = store.block_size_z();
+    const size_t bw = store.block_size_w();
+
+    value_type block_a[4 * 4 * 4 * 4] = {};
+    value_type block_this[4 * 4 * 4 * 4] = {};
+    // Iterate over each block
+    for (size_t block_index = 0; block_index < bx * by * bz * bw; block_index++) 
+    {
+      // Get the current block from this array
+      cache.get_block(block_index, block_this, 1, 4, 16, 64);
+
+      // Get the corresponding block from the array 'a'
+      a.cache.get_block(block_index, block_a, 1, 4, 16, 64);
+
+      // Add the corresponding elements of the blocks
+      for (size_t i = 0; i < 4 * 4 * 4 * 4; i++)
+        block_this[i] += block_a[i];
+
+      // Store the updated block back in this array
+      cache.put_block(block_index, block_this, 1, 4, 16, 64);
+    }
+
+    return *this;
+  }
+
+  // addition assignment operator--adds another array of identical dimensions
+  array4& operator+=(const const_array4<Scalar>& a)
+  {
+    // Check if this and a have the same dimensions
+    if (nx != a.size_x() || ny != a.size_y() || nz != a.size_z() || nw != a.size_w())
+      throw zfp::exception("dimension mismatch while adding array4s");
+    //add the values of this and a and store the result in this
+    for (size_t l = 0; l < nw; l++)
+      for (size_t k = 0; k < nz; k++)
+        for (size_t j = 0; j < ny; j++)
+          for (size_t i = 0; i < nx; i++)
+            (*this)(i, j, k, l) += a(i, j, k, l);
+    return *this;
+  }
+
+  //addition assigment operator--adds a constant value to every element of this
+  array4& operator+=(const Scalar val)
+  {
+    // Get the dimension of the blocks in the array
+    const size_t bx = store.block_size_x();
+    const size_t by = store.block_size_y();
+    const size_t bz = store.block_size_z();
+    const size_t bw = store.block_size_w();
+
+    value_type block_this[4 * 4 * 4 * 4] = {};
+    // Iterate over each block
+    for (size_t block_index = 0; block_index < bx * by * bz * bw; block_index++)
+    {
+      // Get the current block from this array
+      cache.get_block(block_index, block_this, 1, 4, 16, 64);
+
+      // Add the constant value to each element of the block
+      for (size_t i = 0; i < 4 * 4 * 4 * 4; i++)
+        block_this[i] += val;
+
+      // Store the updated block back in this array
+      cache.put_block(block_index, block_this, 1, 4, 16, 64);
+    }
+    
+    return *this;
+  }
+
 
   // total number of elements in array
   size_t size() const { return nx * ny * nz * nw; }
