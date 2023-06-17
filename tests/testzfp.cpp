@@ -1847,6 +1847,204 @@ test_4d_linear_algebra(ArraySize array_size, Scalar tolerance)
   status.precision(3);
   status <<std::scientific;
   double rate = 16;
+
+  // Produce zfp arrays a and b from f and g
+  zfp::array4<Scalar> a(nx, ny, nz, nw, rate, f);
+  zfp::array4<Scalar> b(nx, ny, nz, nw, rate, g);
+  //zfp::array4<Scalar> c;
+
+  // test += op.
+  clock_t start = clock();
+  baseline_add_assign_ind(a, b);
+  clock_t end = clock();
+
+  status << "  += op. baseline ind. (" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
+  Scalar emax = 0;
+
+  // test if a and h are equal
+  for (size_t l = 0; l < nw; l++)
+  {
+    for (size_t k = 0; k < nz; k++)
+    {
+      for (size_t j = 0; j < ny; j++)
+      {
+        for (size_t i = 0; i < nx; i++)
+        {
+          uint index = i + nx * j + nx * ny * k + nx * ny * nz * l;
+          Scalar diff = std::abs(h[index] - a(i, j, k, l));
+          emax = std::max(emax, diff/(float)h[index]); //relative error
+        }
+      }
+    }
+  }
+
+  if (emax <= tolerance)
+    status << "bound=" << tolerance << " >= " << emax;
+  else {
+    failures++;
+    status << "bound=" << tolerance << " < " << emax;
+    pass = false;
+  }
+
+  std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
+
+  a.set(f); //reset a
+  start = clock();
+  baseline_add_assign_it(a, b);
+  end = clock();
+
+  status.str("");
+  status << "  += op. baseline it. (" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
+  emax = 0;
+
+  //test if a and h are equal
+  for (size_t l = 0; l < nw; l++)
+  {
+    for (size_t k = 0; k < nz; k++)
+    {
+      for (size_t j = 0; j < ny; j++)
+      {
+        for (size_t i = 0; i < nx; i++)
+        {
+          uint index = i + nx * j + nx * ny * k + nx * ny * nz * l;
+          Scalar diff = std::abs(h[index] - a(i, j, k, l));
+          emax = std::max(emax, diff/(float)h[index]); //relative error
+        }
+      }
+    }
+  }
+
+  if (emax <= tolerance)
+    status << "bound=" << tolerance << " >= " << emax;
+  else {
+    failures++;
+    status << "bound=" << tolerance << " < " << emax;
+    pass = false;
+  }
+
+  std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
+
+  a.set(f); //reset a
+  start = clock();
+  a += b;
+  end = clock();
+  emax = 0;
+
+  status.str("");
+  status << "  += op. (" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
+
+  // test if a and h are equal
+  for (size_t l = 0; l < nw; l++)
+  {
+    for (size_t k = 0; k < nz; k++)
+    {
+      for (size_t j = 0; j < ny; j++)
+      {
+        for (size_t i = 0; i < nx; i++)
+        {
+          uint index = i + nx * j + nx * ny * k + nx * ny * nz * l;
+          Scalar diff = std::abs(h[index] - a(i, j, k, l));
+          emax = std::max(emax, diff/(float)h[index]); //relative error
+        }
+      }
+    }
+  }
+
+  if (emax <= tolerance)
+    status << "bound=" << tolerance << " >= " << emax;
+  else {
+    failures++;
+    status << "bound=" << tolerance << " < " << emax;
+    pass = false;
+  }
+
+  std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
+
+  // Produce gencodec zfp arrays from f and g
+  zfp::array4<Scalar, zfp::codec::zfp4<Scalar>> a_gencodec(nx, ny, nz, nw, rate, f);
+  zfp::array4<Scalar, zfp::codec::zfp4<Scalar>> b_gencodec(nx, ny, nz, nw, rate, g);
+  //zfp::array4<Scalar, zfp::codec::zfp4<Scalar>> c_gencodec;
+
+  // test += op.
+  start = clock();
+  a_gencodec += b_gencodec;
+  end = clock();
+
+  status.str("");
+
+  status << "  += op. w/ gencodec (" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
+  emax = 0;
+
+  // test if a and h are equal
+  for (size_t l = 0; l < nw; l++)
+  {
+    for (size_t k = 0; k < nz; k++)
+    {
+      for (size_t j = 0; j < ny; j++)
+      {
+        for (size_t i = 0; i < nx; i++)
+        {
+          uint index = i + nx * j + nx * ny * k + nx * ny * nz * l;
+          Scalar diff = std::abs(h[index] - a_gencodec(i, j, k, l));
+          emax = std::max(emax, diff/(float)h[index]); //relative error
+        }
+      }
+    }
+  }
+
+  if (emax <= tolerance)
+    status << "bound=" << tolerance << " >= " << emax;
+  else {
+    failures++;
+    status << "bound=" << tolerance << " < " << emax;
+    pass = false;
+  }
+
+  std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
+
+  a.set(f); //reset a
+  zfp_config config = zfp_config_none();
+  config = zfp_config_rate(rate, false);
+  zfp::const_array4<Scalar> a_const(nx, ny, nz, nw, config, 0, 0);
+  a_const.set(f);
+  zfp::const_array4<Scalar> b_const(nx, ny, nz, nw, config, 0, 0);
+  b_const.set(g);
+
+  //test += op.
+  start = clock();
+  a += b_const;
+  end = clock();
+
+  status.str("");
+  status << "  += op. w/ const (" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
+  emax = 0;
+
+  // test if a and h are equal
+  for (size_t l = 0; l < nw; l++)
+  {
+    for (size_t k = 0; k < nz; k++)
+    {
+      for (size_t j = 0; j < ny; j++)
+      {
+        for (size_t i = 0; i < nx; i++)
+        {
+          uint index = i + nx * j + nx * ny * k + nx * ny * nz * l;
+          Scalar diff = std::abs(h[index] - a(i, j, k, l));
+          emax = std::max(emax, diff/(float)h[index]); //relative error
+        }
+      }
+    }
+  }
+
+  if (emax <= tolerance)
+    status << "bound=" << tolerance << " >= " << emax;
+  else {
+    failures++;
+    status << "bound=" << tolerance << " < " << emax;
+    pass = false;
+  }
+
+  std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
   
 
   delete [] f;
