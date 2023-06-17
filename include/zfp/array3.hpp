@@ -195,8 +195,64 @@ public:
       cache.put_block(block_index, block_this, 1, 4, 16);
     }
 
+  }
+
+  // scaling operator--scales the elements of this by a constant factor
+  array3& operator*=(const Scalar& val)
+  {
+    // Get the dimensions of the blocks in the array
+    const size_t bx = store.block_size_x();
+    const size_t by = store.block_size_y();
+    const size_t bz = store.block_size_z();
+
+    value_type block_this[4 * 4 * 4] = {};
+    //Iterate over each block
+    for (size_t block_index = 0; block_index < bx * by * bz; block_index++)
+    {
+      // Get the current block from this array
+      cache.get_block(block_index, block_this, 1, 4, 16);
+
+      // Scale the block by the constant factor
+      for (size_t i = 0; i < 4 * 4 * 4; i++)
+        block_this[i] *= val;
+
+      // Store the updated block back into this array
+      cache.put_block(block_index, block_this, 1, 4, 16);
+    }
+
     return *this;
   }
+
+  // unary negation operator--returns a deep copy with the sign of each element negated
+  array3 operator-() const
+  {
+    // allocate an array with the same dimensions as this
+    array3 result(nx, ny, nz, rate(), 0, cache.size());
+
+    // Get the dimensions of the blocks in the array
+    const size_t bx = store.block_size_x();
+    const size_t by = store.block_size_y();
+    const size_t bz = store.block_size_z();
+
+    value_type block[4 * 4 * 4] = {};
+    //Iterate over each block
+    for (size_t block_index = 0; block_index < bx * by * bz; block_index++)
+    {
+      // Get the current block from this array
+      cache.get_block(block_index, block, 1, 4, 16);
+
+      // Negate the block
+      for (size_t i = 0; i < 4 * 4 * 4; i++)
+        block[i] = -block[i];
+
+      // Store the updated block back into this array
+      result.cache.put_block(block_index, block, 1, 4, 16);
+    }
+
+    return result;
+  }
+
+
 
   // total number of elements in array
   size_t size() const { return nx * ny * nz; }

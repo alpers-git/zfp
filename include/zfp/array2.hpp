@@ -244,7 +244,7 @@ public:
       // Get the current block from this array
       cache.get_block(block_index, block_this, 1, 4);
 
-      // Add the corresponding elements of the blocks
+      // Scale the corresponding elements of the blocks
       for (size_t i = 0; i < 4 * 4; i++)
         block_this[i] *= val;
 

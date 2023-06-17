@@ -199,6 +199,64 @@ public:
     return *this;
   }
 
+  // scaling operator--scales the elements of this by a constant factor
+  array4& operator*=(const Scalar& val)
+  {
+    // Get the dimensions of the blocks in the array
+    const size_t bx = store.block_size_x();
+    const size_t by = store.block_size_y();
+    const size_t bz = store.block_size_z();
+    const size_t bw = store.block_size_w();
+
+    value_type block_this[4 * 4 * 4 * 4] = {};
+    // Iterate over each block
+    for (size_t block_index = 0; block_index < bx * by * bz * bw; block_index++)
+    {
+      // Get the current block from this array
+      cache.get_block(block_index, block_this, 1, 4, 16, 64);
+
+      // Scale each element of the block by the constant value
+      for (size_t i = 0; i < 4 * 4 * 4 * 4; i++)
+        block_this[i] *= val;
+
+      // Store the updated block back in this array
+      cache.put_block(block_index, block_this, 1, 4, 16, 64);
+    }
+
+    return *this;
+  }
+
+
+  // unary negation operator--returns a deep copy with the sign of each element negated
+  array4 operator-() const
+  {
+    // allocate an array with the same dimensions as this
+    array4 result(nx, ny, nz, nw, rate(), 0, cache_size());
+
+    // Get the dimensions of the blocks in the array
+    const size_t bx = store.block_size_x();
+    const size_t by = store.block_size_y();
+    const size_t bz = store.block_size_z();
+    const size_t bw = store.block_size_w();
+
+    value_type block[4 * 4 * 4 * 4] = {};
+    // Iterate over each block
+    for (size_t block_index = 0; block_index < bx * by * bz * bw; block_index++)
+    {
+      // Get the current block from this array
+      cache.get_block(block_index, block, 1, 4, 16, 64);
+
+      // Negate each element of the block
+      for (size_t i = 0; i < 4 * 4 * 4 * 4; i++)
+        block[i] = -block[i];
+
+      // Store the updated block back in the result array
+      result.cache.put_block(block_index, block, 1, 4, 16, 64);
+    }
+
+    return result;
+  }
+    
 
   // total number of elements in array
   size_t size() const { return nx * ny * nz * nw; }
