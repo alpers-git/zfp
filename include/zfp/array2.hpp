@@ -116,41 +116,16 @@ public:
     return *this;
   }
 
-  // addition operator--adds two arrays of identical dimensions
-  array2 operator+(const array2& a) const 
-  { 
-    // check this and a have same dimensions
-    if (nx != a.nx || ny != a.ny)
-      throw zfp::exception("dimension mismatch while adding array2s");
-
-    //allocate an array named sum in the same dimensions as this
-    array2 sum(nx, ny, rate(), 0, cache.size());
-    sum = *this;
-    sum += a;
-
-    return sum;
-  }
-
-  // addition operator--adds one const_array to another array of identical dimensions
-  array2 operator+(const const_array2<Scalar>& a) const 
+  // addition operator--adds another array of identical dimensions
+  template <typename other_type>
+  array2 operator+(const other_type& a) const 
   { 
     // check this and a have same dimensions
     if (nx != a.size_x() || ny != a.size_y())
       throw zfp::exception("dimension mismatch while adding array2s");
 
-    //allocate an array named sum in the same dimensions as this and a
-    array2 sum(nx, ny, rate(), 0, cache.size());
-    sum = *this;
-    sum += a;
-
-    return sum;
-  }
-
-  // addition operator--adds a constant value to every element of this
-  array2 operator+(const Scalar& val) const 
-  { 
     //allocate an array named sum in the same dimensions as this
-    array2 sum(nx, ny, rate(), 0, cache.size())
+    array2 sum(nx, ny, rate(), 0, cache.size());
     sum = *this;
     sum += a;
 

@@ -122,6 +122,22 @@ public:
     return *this;
   }
 
+  // addition operator--adds another array of identical dimensions
+  template <typename other_type>
+  array4 operator+(const other_type& a) const
+  {
+    // check this and a have the same dimensions
+    if (nx != a.size_x() || ny != a.size_y() || nz != a.size_z() || nw != a.size_w())
+      throw zfp::exception("dimension mismatch while adding array4s");
+    
+    //allocate an array named sum in the same dimensions as this
+    array3 sum(nx, ny, nz, nw, rate(), 0, cache.size());
+    sum += *this;
+    sum += a;
+
+    return sum;
+  }
+
   // addition assignment operator--adds another array of identical dimensions
   array4& operator+=(const array4& a)
   {
