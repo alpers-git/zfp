@@ -129,7 +129,7 @@ public:
     
     //allocate an array named sum in the same dimensions as this
     array3 sum(nx, ny, nz, rate(),0, cache.size());
-    sum += *this;
+    sum = *this;
     sum += a;
 
     return sum;
