@@ -114,6 +114,72 @@ public:
   // virtual destructor
   virtual ~array4() {}
 
+  // Gets a functor and calls it on each element of this and 'a' and puts the result in 'res'
+  template<class F>
+  inline array4& gen_binary_operator(const F& f, array4& res, const array4& a)
+  {
+    // Check if this and a have the same dimensions
+    if (nx != a.nx || ny != a.ny || nz != a.nz || nw != a.nw)
+      throw zfp::exception("dimension mismatch between array4s");
+
+    // Get the dimensions of the blocks in the array
+    const size_t bx = store.block_size_x();
+    const size_t by = store.block_size_y();
+    const size_t bz = store.block_size_z();
+    const size_t bw = store.block_size_w();
+
+    value_type block_a[4 * 4 * 4 * 4] = {};
+    value_type block_this[4 * 4 * 4 * 4] = {};
+    value_type block_res[4 * 4 * 4 * 4] = {};
+    // Iterate over each block
+    for (size_t block_index = 0; block_index < bx * by * bz * bw; block_index++)
+    {
+      // Get the current block from this array
+      cache.get_block(block_index, block_this, 1, 4, 16, 64);
+
+      // Get the corresponding block from the array 'a'
+      a.cache.get_block(block_index, block_a, 1, 4, 16, 64);
+
+      // Apply operator to the corresponding elements of the blocks
+      for (size_t i = 0; i < 4 * 4 * 4 * 4; i++)
+        block_res[i] = f(block_this[i], block_a[i]);
+
+      // Store the updated block back in this array
+      res.cache.put_block(block_index, block_res, 1, 4, 16, 64);
+    }
+
+    return res;
+  }
+
+  // Gets a functor and calls it on each element of this and a scalar and puts the result in 'res'
+  template<class F>
+  inline array4& gen_binary_operator(const F& f, array4& res, const Scalar& a)
+  {
+    // Get the dimensions of the blocks in the array
+    const size_t bx = store.block_size_x();
+    const size_t by = store.block_size_y();
+    const size_t bz = store.block_size_z();
+    const size_t bw = store.block_size_w();
+
+    value_type block_this[4 * 4 * 4 * 4] = {};
+    value_type block_res[4 * 4 * 4 * 4] = {};
+    // Iterate over each block
+    for (size_t block_index = 0; block_index < bx * by; block_index++)
+    {
+      // Get the current block from this array
+      cache.get_block(block_index, block_this, 1, 4, 16, 64);
+
+      // Apply operator to the corresponding elements of the blocks
+      for (size_t i = 0; i < 4 * 4 * 4 * 4; i++)
+        block_res[i] = f(block_this[i], a);
+
+      // Store the updated block back in this array
+      res.cache.put_block(block_index, block_res, 1, 4, 16, 64);
+    }
+
+    return res;
+  }
+
   // assignment operator--performs a deep copy
   array4& operator=(const array4& a)
   {
@@ -128,10 +194,10 @@ public:
   {
     // check this and a have the same dimensions
     if (nx != a.size_x() || ny != a.size_y() || nz != a.size_z() || nw != a.size_w())
-      throw zfp::exception("dimension mismatch while adding array4s");
+      throw zfp::exception("dimension mismatch between array4s");
     
     //allocate an array named sum in the same dimensions as this
-    array3 sum(nx, ny, nz, nw, rate(), 0, cache.size());
+    array4 sum(nx, ny, nz, nw, rate(), 0, cache.size());
     sum = *this;
     sum += a;
 
@@ -141,36 +207,7 @@ public:
   // addition assignment operator--adds another array of identical dimensions
   array4& operator+=(const array4& a)
   {
-    // Check if this and a have the same dimensions
-    if (nx != a.nx || ny != a.ny || nz != a.nz || nw != a.nw)
-      throw zfp::exception("dimension mismatch while adding array4s");
-    
-    // Get the dimension of the blocks in the array
-    const size_t bx = store.block_size_x();
-    const size_t by = store.block_size_y();
-    const size_t bz = store.block_size_z();
-    const size_t bw = store.block_size_w();
-
-    value_type block_a[4 * 4 * 4 * 4] = {};
-    value_type block_this[4 * 4 * 4 * 4] = {};
-    // Iterate over each block
-    for (size_t block_index = 0; block_index < bx * by * bz * bw; block_index++) 
-    {
-      // Get the current block from this array
-      cache.get_block(block_index, block_this, 1, 4, 16, 64);
-
-      // Get the corresponding block from the array 'a'
-      a.cache.get_block(block_index, block_a, 1, 4, 16, 64);
-
-      // Add the corresponding elements of the blocks
-      for (size_t i = 0; i < 4 * 4 * 4 * 4; i++)
-        block_this[i] += block_a[i];
-
-      // Store the updated block back in this array
-      cache.put_block(block_index, block_this, 1, 4, 16, 64);
-    }
-
-    return *this;
+    return gen_binary_operator(std::plus<value_type>(), *this, a);
   }
 
   // addition assignment operator--adds another array of identical dimensions
@@ -178,7 +215,7 @@ public:
   {
     // Check if this and a have the same dimensions
     if (nx != a.size_x() || ny != a.size_y() || nz != a.size_z() || nw != a.size_w())
-      throw zfp::exception("dimension mismatch while adding array4s");
+      throw zfp::exception("dimension mismatch between array4s");
     //add the values of this and a and store the result in this
     for (size_t l = 0; l < nw; l++)
       for (size_t k = 0; k < nz; k++)
@@ -191,55 +228,13 @@ public:
   //addition assigment operator--adds a constant value to every element of this
   array4& operator+=(const Scalar val)
   {
-    // Get the dimension of the blocks in the array
-    const size_t bx = store.block_size_x();
-    const size_t by = store.block_size_y();
-    const size_t bz = store.block_size_z();
-    const size_t bw = store.block_size_w();
-
-    value_type block_this[4 * 4 * 4 * 4] = {};
-    // Iterate over each block
-    for (size_t block_index = 0; block_index < bx * by * bz * bw; block_index++)
-    {
-      // Get the current block from this array
-      cache.get_block(block_index, block_this, 1, 4, 16, 64);
-
-      // Add the constant value to each element of the block
-      for (size_t i = 0; i < 4 * 4 * 4 * 4; i++)
-        block_this[i] += val;
-
-      // Store the updated block back in this array
-      cache.put_block(block_index, block_this, 1, 4, 16, 64);
-    }
-    
-    return *this;
+    return gen_binary_operator(std::plus<value_type>(), *this, val);
   }
 
   // scaling operator--scales the elements of this by a constant factor
   array4& operator*=(const Scalar& val)
   {
-    // Get the dimensions of the blocks in the array
-    const size_t bx = store.block_size_x();
-    const size_t by = store.block_size_y();
-    const size_t bz = store.block_size_z();
-    const size_t bw = store.block_size_w();
-
-    value_type block_this[4 * 4 * 4 * 4] = {};
-    // Iterate over each block
-    for (size_t block_index = 0; block_index < bx * by * bz * bw; block_index++)
-    {
-      // Get the current block from this array
-      cache.get_block(block_index, block_this, 1, 4, 16, 64);
-
-      // Scale each element of the block by the constant value
-      for (size_t i = 0; i < 4 * 4 * 4 * 4; i++)
-        block_this[i] *= val;
-
-      // Store the updated block back in this array
-      cache.put_block(block_index, block_this, 1, 4, 16, 64);
-    }
-
-    return *this;
+    return gen_binary_operator(std::multiplies<value_type>(), *this, val);
   }
 
 
@@ -248,29 +243,7 @@ public:
   {
     // allocate an array with the same dimensions as this
     array4 result(nx, ny, nz, nw, rate(), 0, cache_size());
-
-    // Get the dimensions of the blocks in the array
-    const size_t bx = store.block_size_x();
-    const size_t by = store.block_size_y();
-    const size_t bz = store.block_size_z();
-    const size_t bw = store.block_size_w();
-
-    value_type block[4 * 4 * 4 * 4] = {};
-    // Iterate over each block
-    for (size_t block_index = 0; block_index < bx * by * bz * bw; block_index++)
-    {
-      // Get the current block from this array
-      cache.get_block(block_index, block, 1, 4, 16, 64);
-
-      // Negate each element of the block
-      for (size_t i = 0; i < 4 * 4 * 4 * 4; i++)
-        block[i] = -block[i];
-
-      // Store the updated block back in the result array
-      result.cache.put_block(block_index, block, 1, 4, 16, 64);
-    }
-
-    return result;
+    return gen_unary_operator(std::negate<value_type>(), result);
   }
     
 

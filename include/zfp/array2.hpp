@@ -144,7 +144,7 @@ public:
     return res;
   }
 
-  // Gets a functor and calls it on each element of this and 'a' and puts the result in 'res'
+  // Gets a functor and calls it on each element of this and a scalar and puts the result in 'res'
   template<class F>
   inline array2& gen_binary_operator(const F& f, array2& res, const Scalar& a)
   {
@@ -247,26 +247,7 @@ public:
   //addition assigment operator--adds a constant value to every element of this
   array2& operator+=(const Scalar& val)
   {
-    // Get the dimensions of the blocks in the array
-    const size_t bx = store.block_size_x();
-    const size_t by = store.block_size_y();
-
-    value_type block_this[4 * 4] = {};
-    // Iterate over each block
-    for (size_t block_index = 0; block_index < bx * by; block_index++)
-    {
-      // Get the current block from this array
-      cache.get_block(block_index, block_this, 1, 4);
-
-      // Add the corresponding elements of the blocks
-      for (size_t i = 0; i < 4 * 4; i++)
-        block_this[i] += val;
-
-      // Store the updated block back in this array
-      cache.put_block(block_index, block_this, 1, 4);
-    }
-
-    return *this;
+    gen_binary_operator(std::plus<value_type>(), *this, val);
   }
 
   // scaling operator--scales the elements of this by a constant factor
@@ -280,7 +261,6 @@ public:
   {
     // allocate an array with the same dimensions as this
     array2 result(nx, ny, rate(), 0, cache.size());
-
     return gen_unary_operator(std::negate<value_type>(), result);
   }
 

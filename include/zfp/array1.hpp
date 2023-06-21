@@ -102,6 +102,92 @@ public:
   // virtual destructor
   virtual ~array1() {}
 
+  // Gets a functor and calls it on each element of this and 'a' and puts the result in 'res'
+  template<class F>
+  inline array1& gen_binary_operator(const F& f, array1& res, const array1& a)
+  {
+    // Check if this and a have the same dimensions
+    if (nx != a.nx)
+      throw zfp::exception("dimension mismatch between array1s");
+
+    // Get the dimensions of the blocks in the array
+    const size_t bx = store.block_size_x();
+
+    value_type block_a[4] = {};
+    value_type block_this[4] = {};
+    value_type block_res[4] = {};
+    // Iterate over each block
+    for (size_t block_index = 0; block_index < bx; block_index++)
+    {
+      // Get the current block from this array
+      cache.get_block(block_index, block_this, 1);
+
+      // Get the corresponding block from the array 'a'
+      a.cache.get_block(block_index, block_a, 1);
+
+      // Apply operator to the corresponding elements of the blocks
+      for (size_t i = 0; i < 4; i++)
+        block_res[i] = f(block_this[i], block_a[i]);
+
+      // Store the updated block back in this array
+      res.cache.put_block(block_index, block_res, 1);
+    }
+
+    return res;
+  }
+
+   // Gets a functor and calls it on each element of this and a scalar and puts the result in 'res'
+  template<class F>
+  inline array1& gen_binary_operator(const F& f, array1& res, const Scalar& a)
+  {
+    // Get the dimensions of the blocks in the array
+    const size_t bx = store.block_size_x();
+
+    value_type block_this[4] = {};
+    value_type block_res[4] = {};
+    // Iterate over each block
+    for (size_t block_index = 0; block_index < bx; block_index++)
+    {
+      // Get the current block from this array
+      cache.get_block(block_index, block_this, 1);
+
+      // Apply operator to the corresponding elements of the blocks
+      for (size_t i = 0; i < 4; i++)
+        block_res[i] = f(block_this[i], a);
+
+      // Store the updated block back in this array
+      res.cache.put_block(block_index, block_res, 1);
+    }
+
+    return res;
+  }
+
+  // Gets a functor and calls it on each element of this and puts the result in 'res'
+  template<class F>
+  inline array1& gen_unary_operator(const F& f, array1& res) const
+  {
+    // Get the dimensions of the blocks in the array
+    const size_t bx = store.block_size_x();
+   
+    value_type block_this[4] = {};
+    value_type block_res[4] = {};
+    // Iterate over each block
+    for (size_t block_index = 0; block_index < bx; block_index++)
+    {
+      // Get the current block from this array
+      cache.get_block(block_index, block_this, 1);
+
+      // Apply operator to the corresponding elements of the blocks
+      for (size_t i = 0; i < 4; i++)
+        block_res[i] = f(block_this[i]);
+      
+      // Store the updated block back in this array
+      res.cache.put_block(block_index, block_res, 1);
+    }
+
+    return res;
+  }
+
   // assignment operator--performs a deep copy
   array1& operator=(const array1& a)
   {
@@ -129,57 +215,13 @@ public:
   // addition assignment operator--adds another array of identical dimensions
   array1& operator+=(const array1& a)
   {
-    // Check if this and a have the same dimensions
-    if (nx != a.nx || ny != a.ny)
-      throw zfp::exception("dimension mismatch while adding array2s");
-
-    // Get the dimensions of the blocks in the array
-    const size_t bx = store.block_size_x();
-
-    value_type block_a[4] = {};
-    value_type block_this[4] = {};
-    // Iterate over each block
-    for (size_t block_index = 0; block_index < bx; block_index++)
-    {
-      // Get the current block from this array
-      cache.get_block(block_index, block_this, 1);
-
-      // Get the corresponding block from the array 'a'
-      a.cache.get_block(block_index, block_a, 1);
-
-      // Add the corresponding elements of the blocks
-      for (size_t i = 0; i < 4; i++)
-        block_this[i] += block_a[i];
-
-      // Store the updated block back in this array
-      cache.put_block(block_index, block_this, 1);
-    }
-
-    return *this;
+    return gen_binary_operator(std::plus<value_type>(), *this, a);
   }
 
   // addition assingment operator--adds a scalar to each value stored in the array
   array1& operator+=(const value_type val)
   {
-    // Get the dimensions of the blocks in the array
-    const size_t bx = store.block_size_x();
-
-    value_type block[4] = {};
-    // Iterate over each block
-    for (size_t block_index = 0; block_index < bx; block_index++)
-    {
-      // Get the current block from this array
-      cache.get_block(block_index, block, 1);
-
-      // Add the scalar to each element of the block
-      for (size_t i = 0; i < 4; i++)
-        block[i] += val;
-
-      // Store the updated block back in this array
-      cache.put_block(block_index, block, 1);
-    }
-
-    return *this;
+    return gen_binary_operator(std::plus<value_type>(), *this, val);
   }
 
   // addition assign operator--adds a constant_array to the array
@@ -187,7 +229,8 @@ public:
   {
     // Check if this and a have the same dimensions
     if (nx != a.size_x())
-      throw zfp::exception("dimension mismatch while adding array1s");
+      throw zfp::exception("dimension mismatch between array1s");
+
     // add the values of this and a and store the result in this
     for (size_t i = 0; i < nx; i++)
       (*this)(i) += a(i);
@@ -198,52 +241,14 @@ public:
   // scaling operator--scales the elements of the array by the given constant
   array1& operator*=(const Scalar& val)
   {
-    // Get the dimensions of the blocks in the array
-    const size_t bx = store.block_size_x();
-
-    value_type block[4] = {};
-    // Iterate over each block
-    for (size_t block_index = 0; block_index < bx; block_index++)
-    {
-      // Get the current block from this array
-      cache.get_block(block_index, block, 1);
-
-      // Multiply each element of the block by the scalar
-      for (size_t i = 0; i < 4; i++)
-        block[i] *= val;
-
-      // Store the updated block back in this array
-      cache.put_block(block_index, block, 1);
-    }
-
-    return *this;
+    gen_binary_operator(std::bind2nd(std::multiplies<value_type>(), val), *this);
   }
 
   // unary negation operator--negates the elements of the array
   array1 operator-() const
   {
-    // allocate an array with the same dimensions as this
-    array1 result(nx, rate());
-
-    // Get the dimensions of the blocks in the array
-    const size_t bx = store.block_size_x():
-
-    value_type block[4] = {};
-    // Iterate over each block
-    for (size_t block_index = 0; block_index < bx; block_index++)
-    {
-      // Get the current block from this array
-      cache.get_block(block_index, block, 1);
-
-      // Negate each element of the block
-      for (size_t i = 0; i < 4; i++)
-        block[i] = -block[i];
-
-      // Store the updated block back in this array
-      result.cache.put_block(block_index, block, 1);
-    }
-
-    return result;
+    array1 result(nx, rate(), 0, cache.size());
+    return gen_unary_operator(std::negate<value_type>(), result);
   }
 
   // total number of elements in array
