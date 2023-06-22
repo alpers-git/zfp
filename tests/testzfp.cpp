@@ -16,7 +16,10 @@
 #include "zfp/array3.hpp"
 #include "zfp/array4.hpp"
 #include "zfp/codec/gencodec.hpp"
+#include "../examples/array1d.hpp"
 #include "../examples/array2d.hpp"
+#include "../examples/array3d.hpp"
+#include "../examples/array4d.hpp"
 
 enum ArraySize {
   Small  = 0, // 2^12 = 4096 scalars (2^12 = (2^6)^2 = (2^4)^3 = (2^3)^4)
@@ -1328,6 +1331,48 @@ test_1d_linear_algebra(ArraySize array_size, Scalar tolerance)
   std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
   pass = true;
 
+  raw::array1d raw_a;
+  raw::array1d raw_b;
+  //raw::array1d raw_c;
+
+  //set raw_a and raw_b to f and g with for loop
+  raw_a.resize(n);
+  raw_b.resize(n);
+  //raw_c.resize(nx);
+
+  for (uint i = 0; i < n; i++)
+  {
+    raw_a(i) = f[i];
+    raw_b(i) = g[i];
+  }
+
+  // test += op.
+  start = clock();
+  raw_a += raw_b;
+  end = clock();
+
+  status.str("");
+  status << "  += op. w/ raw (" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
+  emax = 0;
+
+  //test if raw_a and h are equal
+  for (size_t i = 0; i < n; i++)
+  {
+    Scalar diff = std::abs(h[i] - raw_a(i));
+    emax = std::max(emax, diff/(float)h[i]); //relative error
+  }
+
+  if (emax <= tolerance)
+    status << "bound=" << tolerance << " >= " << emax;
+  else {
+    status << "bound=" << tolerance << " < " << emax;
+    pass = false;
+    failures++;
+  }
+
+  std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
+
+
   delete[] f;
   delete[] g;
   delete[] h;
@@ -1803,6 +1848,59 @@ test_3d_linear_algebra(ArraySize array_size, Scalar tolerance)
 
   std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
 
+  raw::array3d raw_a;
+  raw::array3d raw_b;
+
+  //set raw_a and raw_b to f and g with for loop
+  raw_a.resize(nx, ny, nz);
+  raw_b.resize(nx, ny, nz);
+
+  for (uint k = 0; k < nz; k++)
+  {
+    for (uint j = 0; j < ny; j++)
+    {
+      for (uint i = 0; i < nx; i++)
+      {
+        uint index = i + nx * j + nx * ny * k;
+        raw_a(i, j, k) = f[index];
+        raw_b(i, j, k) = g[index];
+      }
+    }
+  }
+
+  // test += op.
+  start = clock();
+  raw_a += raw_b;
+  end = clock();
+
+  status.str("");
+  status << "  += op. w/ raw (" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
+  emax = 0;
+
+  //test if raw_a and h are equal
+  for (size_t k = 0; k < nz; k++)
+  {
+    for (size_t j = 0; j < ny; j++)
+    {
+     for (size_t i = 0; i < nx; i++)
+      {
+        uint index = i + nx * j + nx * ny * k;
+        Scalar diff = std::abs(h[index] - raw_a(i, j, k));
+        emax = std::max(emax, diff/(float)h[index]); //relative error
+      }
+    }
+  }
+
+  if (emax <= tolerance)
+    status << "bound=" << tolerance << " >= " << emax;
+  else {
+    failures++;
+    status << "bound=" << tolerance << " < " << emax;
+    pass = false;
+  }
+
+  std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
+
   delete [] f;
   delete [] g;
   delete [] h;
@@ -2047,6 +2145,65 @@ test_4d_linear_algebra(ArraySize array_size, Scalar tolerance)
 
   std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
   
+  raw::array4d raw_a;
+  raw::array4d raw_b;
+
+  //set raw_a and raw_b to f and g with for loop
+  raw_a.resize(nx, ny, nz, nw);
+  raw_b.resize(nx, ny, nz, nw);
+
+  for (uint l = 0; l < nw; l++)
+  {
+    for (uint k = 0; k < nz; k++)
+    {
+      for (uint j = 0; j < ny; j++)
+      {
+        for (uint i = 0; i < nx; i++)
+        {
+          uint index = i + nx * j + nx * ny * k + nx * ny * nz * l;
+          raw_a(i, j, k, l) = f[index];
+          raw_b(i, j, k, l) = g[index];
+        }
+      }
+    }
+  }
+
+  // test += op.
+  start = clock();
+  raw_a += raw_b;
+  end = clock();
+
+  status.str("");
+
+  status << "  += op. w/ raw (" << (double)(end - start)/CLOCKS_PER_SEC << " secs): ";
+  emax = 0;
+
+  //test if raw_a and h are equal
+  for (size_t l = 0; l < nw; l++)
+  {
+    for (size_t k = 0; k < nz; k++)
+    {
+      for (size_t j = 0; j < ny; j++)
+      {
+       for (size_t i = 0; i < nx; i++)
+        {
+          uint index = i + nx * j + nx * ny * k + nx * ny * nz * l;
+          Scalar diff = std::abs(h[index] - raw_a(i, j, k, l));
+          emax = std::max(emax, diff/(float)h[index]); //relative error
+        }
+      }
+    }
+  }
+
+  if (emax <= tolerance)
+    status << "bound=" << tolerance << " >= " << emax << std::endl;
+  else {
+    failures++;
+    status << "bound=" << tolerance << " < " << emax << std::endl;
+    pass = false;
+  }
+
+  std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
 
   delete [] f;
   delete [] g;
