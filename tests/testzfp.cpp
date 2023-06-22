@@ -1370,7 +1370,7 @@ test_1d_linear_algebra(ArraySize array_size, Scalar tolerance)
     failures++;
   }
 
-  std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
+   std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
 
 
   delete[] f;
@@ -2196,10 +2196,10 @@ test_4d_linear_algebra(ArraySize array_size, Scalar tolerance)
   }
 
   if (emax <= tolerance)
-    status << "bound=" << tolerance << " >= " << emax << std::endl;
+    status << "bound=" << tolerance << " >= " << emax;
   else {
     failures++;
-    status << "bound=" << tolerance << " < " << emax << std::endl;
+    status << "bound=" << tolerance << " < " << emax;
     pass = false;
   }
 
