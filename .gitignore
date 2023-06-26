@@ -7,3 +7,5 @@ dist
 wheelhouse
 zfpy.egg-info
 modules
+
+build_vs/
