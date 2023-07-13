@@ -149,7 +149,7 @@ protected:
   }
 
   // store full contiguous block to memory
-  size_t encode_block(bitstream_offset offset, const ExternalType* block) const
+  size_t encode_block(bitstream_offset offset, const ExternalType* block, void* stream = nullptr) const
   {
     InternalType* ptr = begin(offset);
     for (size_t n = block_size; n--;)
@@ -158,7 +158,7 @@ protected:
   }
 
   // load full contiguous block from memory
-  size_t decode_block(bitstream_offset offset, ExternalType* block) const
+  size_t decode_block(bitstream_offset offset, ExternalType* block, void* stream = nullptr) const
   {
     const InternalType* ptr = begin(offset);
     for (size_t n = block_size; n--;)
@@ -180,14 +180,14 @@ template <typename ExternalType, typename InternalType = ExternalType>
 class generic1 : public generic_base<1, ExternalType, InternalType> {
 public:
   // encode contiguous 1D block
-  size_t encode_block(bitstream_offset offset, uint shape, const ExternalType* block) const
+  size_t encode_block(bitstream_offset offset, uint shape, const ExternalType* block, void* stream = nullptr) const
   {
     return shape ? encode_block_strided(offset, shape, block, 1)
                  : encode_block(offset, block);
   }
 
   // decode contiguous 1D block
-  size_t decode_block(bitstream_offset offset, uint shape, ExternalType* block) const
+  size_t decode_block(bitstream_offset offset, uint shape, ExternalType* block, void* stream = nullptr) const
   {
     return shape ? decode_block_strided(offset, shape, block, 1)
                  : decode_block(offset, block);
@@ -231,14 +231,14 @@ template <typename ExternalType, typename InternalType = ExternalType>
 class generic2 : public generic_base<2, ExternalType, InternalType> {
 public:
   // encode contiguous 2D block
-  size_t encode_block(bitstream_offset offset, uint shape, const ExternalType* block) const
+  size_t encode_block(bitstream_offset offset, uint shape, const ExternalType* block, void* stream = nullptr) const
   {
     return shape ? encode_block_strided(offset, shape, block, 1, 4)
                  : encode_block(offset, block);
   }
 
   // decode contiguous 2D block
-  size_t decode_block(bitstream_offset offset, uint shape, ExternalType* block) const
+  size_t decode_block(bitstream_offset offset, uint shape, ExternalType* block, void* stream = nullptr) const
   {
     return shape ? decode_block_strided(offset, shape, block, 1, 4)
                  : decode_block(offset, block);
@@ -288,14 +288,14 @@ template <typename ExternalType, typename InternalType = ExternalType>
 class generic3 : public generic_base<3, ExternalType, InternalType> {
 public:
   // encode contiguous 3D block
-  size_t encode_block(bitstream_offset offset, uint shape, const ExternalType* block) const
+  size_t encode_block(bitstream_offset offset, uint shape, const ExternalType* block, void* stream = nullptr) const
   {
     return shape ? encode_block_strided(offset, shape, block, 1, 4, 16)
                  : encode_block(offset, block);
   }
 
   // decode contiguous 3D block
-  size_t decode_block(bitstream_offset offset, uint shape, ExternalType* block) const
+  size_t decode_block(bitstream_offset offset, uint shape, ExternalType* block, void* stream = nullptr) const
   {
     return shape ? decode_block_strided(offset, shape, block, 1, 4, 16)
                  : decode_block(offset, block);
@@ -351,14 +351,14 @@ template <typename ExternalType, typename InternalType = ExternalType>
 class generic4 : public generic_base<4, ExternalType, InternalType> {
 public:
   // encode contiguous 4D block
-  size_t encode_block(bitstream_offset offset, uint shape, const ExternalType* block) const
+  size_t encode_block(bitstream_offset offset, uint shape, const ExternalType* block, void* stream = nullptr) const
   {
     return shape ? encode_block_strided(offset, shape, block, 1, 4, 16, 64)
                  : encode_block(offset, block);
   }
 
   // decode contiguous 4D block
-  size_t decode_block(bitstream_offset offset, uint shape, ExternalType* block) const
+  size_t decode_block(bitstream_offset offset, uint shape, ExternalType* block, void* stream = nullptr) const
   {
     return shape ? decode_block_strided(offset, shape, block, 1, 4, 16, 64)
                  : decode_block(offset, block);

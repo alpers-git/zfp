@@ -100,6 +100,21 @@ public:
   // set thread safety mode
 #ifdef _OPENMP
   void set_thread_safety(bool safety) { thread_safety = safety; }
+  // make a thread-local copy of zfp stream and bit stream and return pointer to it
+  zfp_stream* clone_stream_ptr()
+  {
+      zfp_stream* zfp = new zfp_stream;
+      *zfp = clone_stream();
+      return zfp;
+  }
+
+  // close thread-local copy of zfp stream and bit stream
+  void close_stream_ptr(void* zfp)
+  {
+      zfp_stream* zfp_ptr = (zfp_stream*)zfp;
+      stream_close(zfp_ptr->stream);
+      delete zfp_ptr;
+  }
 #else
   void set_thread_safety(bool) {}
 #endif
@@ -144,13 +159,13 @@ protected:
   }
 
   // encode full contiguous block
-  size_t encode_block(bitstream_offset offset, const Scalar* block) const
+  size_t encode_block(bitstream_offset offset, const Scalar* block, zfp_stream* zfp = nullptr) const
   {
-    if (thread_safety) {
+    if (thread_safety && zfp) {
       // make a thread-local copy of zfp stream and bit stream
-      zfp_stream zfp = clone_stream();
-      size_t size = encode_block(&zfp, offset, block);
-      stream_close(zfp.stream);
+      //zfp_stream zfp = clone_stream();
+      size_t size = encode_block(zfp, offset, block);
+      //stream_close(zfp.stream);
       return size;
     }
     else
@@ -158,13 +173,13 @@ protected:
   }
 
   // decode full contiguous block
-  size_t decode_block(bitstream_offset offset, Scalar* block) const
+  size_t decode_block(bitstream_offset offset, Scalar* block, zfp_stream* zfp = nullptr) const
   {
-    if (thread_safety) {
+    if (thread_safety && zfp) {
       // make a thread-local copy of zfp stream and bit stream
-      zfp_stream zfp = clone_stream();
-      size_t size = decode_block(&zfp, offset, block);
-      stream_close(zfp.stream);
+      //zfp_stream zfp = clone_stream();
+      size_t size = decode_block(zfp, offset, block);
+      //stream_close(zfp.stream);
       return size;
     }
     else
@@ -202,17 +217,17 @@ template <typename Scalar>
 class zfp1 : public zfp_base<1, Scalar> {
 public:
   // encode contiguous 1D block
-  size_t encode_block(bitstream_offset offset, uint shape, const Scalar* block) const
+  size_t encode_block(bitstream_offset offset, uint shape, const Scalar* block, void* stream = nullptr) const
   {
     return shape ? encode_block_strided(offset, shape, block, 1)
-                 : encode_block(offset, block);
+                 : encode_block(offset, block, (zfp_stream*)stream);
   }
 
   // decode contiguous 1D block
-  size_t decode_block(bitstream_offset offset, uint shape, Scalar* block) const
+  size_t decode_block(bitstream_offset offset, uint shape, Scalar* block, void* stream = nullptr) const
   {
     return shape ? decode_block_strided(offset, shape, block, 1)
-                 : decode_block(offset, block);
+                 : decode_block(offset, block, (zfp_stream*)stream);
   }
 
   // encode 1D block from strided storage
@@ -286,17 +301,17 @@ template <typename Scalar>
 class zfp2 : public zfp_base<2, Scalar> {
 public:
   // encode contiguous 2D block
-  size_t encode_block(bitstream_offset offset, uint shape, const Scalar* block) const
+  size_t encode_block(bitstream_offset offset, uint shape, const Scalar* block, void* stream = nullptr) const
   {
     return shape ? encode_block_strided(offset, shape, block, 1, 4)
-                 : encode_block(offset, block);
+                 : encode_block(offset, block, (zfp_stream*)stream);
   }
 
   // decode contiguous 2D block
-  size_t decode_block(bitstream_offset offset, uint shape, Scalar* block) const
+  size_t decode_block(bitstream_offset offset, uint shape, Scalar* block, void* stream = nullptr) const
   {
     return shape ? decode_block_strided(offset, shape, block, 1, 4)
-                 : decode_block(offset, block);
+                 : decode_block(offset, block, (zfp_stream*)stream);
   }
 
   // encode 2D block from strided storage
@@ -372,17 +387,17 @@ template <typename Scalar>
 class zfp3 : public zfp_base<3, Scalar> {
 public:
   // encode contiguous 3D block
-  size_t encode_block(bitstream_offset offset, uint shape, const Scalar* block) const
+  size_t encode_block(bitstream_offset offset, uint shape, const Scalar* block, void* stream = nullptr) const
   {
     return shape ? encode_block_strided(offset, shape, block, 1, 4, 16)
-                 : encode_block(offset, block);
+                 : encode_block(offset, block, (zfp_stream*)stream);
   }
 
   // decode contiguous 3D block
-  size_t decode_block(bitstream_offset offset, uint shape, Scalar* block) const
+  size_t decode_block(bitstream_offset offset, uint shape, Scalar* block, void* stream = nullptr) const
   {
     return shape ? decode_block_strided(offset, shape, block, 1, 4, 16)
-                 : decode_block(offset, block);
+                 : decode_block(offset, block, (zfp_stream*)stream);
   }
 
   // encode 3D block from strided storage
@@ -460,17 +475,17 @@ template <typename Scalar>
 class zfp4 : public zfp_base<4, Scalar> {
 public:
   // encode contiguous 4D block
-  size_t encode_block(bitstream_offset offset, uint shape, const Scalar* block) const
+  size_t encode_block(bitstream_offset offset, uint shape, const Scalar* block, void* stream = nullptr) const
   {
     return shape ? encode_block_strided(offset, shape, block, 1, 4, 16, 64)
-                 : encode_block(offset, block);
+                 : encode_block(offset, block, (zfp_stream*)stream);
   }
 
   // decode contiguous 4D block
-  size_t decode_block(bitstream_offset offset, uint shape, Scalar* block) const
+  size_t decode_block(bitstream_offset offset, uint shape, Scalar* block, void* stream = nullptr) const
   {
     return shape ? decode_block_strided(offset, shape, block, 1, 4, 16, 64)
-                 : decode_block(offset, block);
+                 : decode_block(offset, block, (zfp_stream*)stream);
   }
 
   // encode 4D block from strided storage

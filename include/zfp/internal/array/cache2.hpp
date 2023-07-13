@@ -39,12 +39,12 @@ public:
   void clear() const { cache.clear(); }
 
   // flush cache by compressing all modified cached blocks
-  void flush() const
+  void flush(void* stream = nullptr) const
   {
     for (typename zfp::internal::Cache<CacheLine>::const_iterator p = cache.first(); p; p++) {
       if (p->tag.dirty()) {
         size_t block_index = p->tag.index() - 1;
-        store.encode(block_index, p->line->data());
+        store.encode(block_index, p->line->data(), stream);
       }
       cache.flush(p->line);
     }
@@ -54,16 +54,16 @@ public:
   void deep_copy(const BlockCache2& c) { cache = c.cache; }
 
   // inspector
-  Scalar get(size_t i, size_t j) const
+  Scalar get(size_t i, size_t j, void* stream = nullptr) const
   {
-    const CacheLine* p = line(i, j, false);
+    const CacheLine* p = line(i, j, false, stream);
     return (*p)(i, j);
   }
 
   // mutator
-  void set(size_t i, size_t j, Scalar val)
+  void set(size_t i, size_t j, Scalar val, void* stream = nullptr)
   {
-    CacheLine* p = line(i, j, true);
+    CacheLine* p = line(i, j, true, stream);
     (*p)(i, j) = val;
   }
 
@@ -162,7 +162,7 @@ protected:
   };
 
   // return cache line for (i, j); may require write-back and fetch
-  CacheLine* line(size_t i, size_t j, bool write) const
+  CacheLine* line(size_t i, size_t j, bool write, void* stream = nullptr) const
   {
     CacheLine* p = 0;
     size_t block_index = store.block_index(i, j);
@@ -171,9 +171,9 @@ protected:
     if (stored_block_index != block_index) {
       // write back occupied cache line if it is dirty
       if (tag.dirty())
-        store.encode(stored_block_index, p->data());
+        store.encode(stored_block_index, p->data(), stream);
       // fetch cache line
-      store.decode(block_index, p->data());
+      store.decode(block_index, p->data(), stream);
     }
     return p;
   }

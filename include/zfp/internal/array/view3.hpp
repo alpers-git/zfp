@@ -424,19 +424,20 @@ public:
     preview<Container>(array),
     cache(array->store, cache_size ? cache_size : array->cache.size())
   {
-    array->store.reference();
+    stream = array->store.reference();
   }
   private_const_view(container_type* array, size_t x, size_t y, size_t z, size_t nx, size_t ny, size_t nz, size_t cache_size = 0) :
     preview<Container>(array, x, y, z, nx, ny, nz),
     cache(array->store, cache_size ? cache_size : array->cache.size())
   {
-    array->store.reference();
+    stream = array->store.reference();
   }
 
   // destructor
   ~private_const_view()
   {
-    array->store.unreference();
+    array->store.unreference(stream);
+    stream = nullptr;
   }
 
   // dimensions of (sub)array
@@ -482,9 +483,10 @@ protected:
   using preview<Container>::nz;
 
   // inspector
-  value_type get(size_t x, size_t y, size_t z) const { return cache.get(x, y, z); }
+  value_type get(size_t x, size_t y, size_t z) const { return cache.get(x, y, z, stream); }
 
   BlockCache3<value_type, store_type> cache; // cache of decompressed blocks
+  void* stream = nullptr;// stream for compressed data
 };
 
 // thread-safe read-write view of private 3D (sub)array
@@ -516,7 +518,7 @@ public:
   }
 
   // flush cache by compressing all modified cached blocks
-  void flush_cache() const { cache.flush(); }
+  void flush_cache() const { cache.flush(stream); }
 
   // (i, j, k) inspector
   const_reference operator()(size_t i, size_t j, size_t k) const { return const_reference(this, x + i, y + j, z + k); }
@@ -568,7 +570,7 @@ protected:
   }
 
   // mutator
-  void set(size_t x, size_t y, size_t z, value_type val) { cache.set(x, y, z, val); }
+  void set(size_t x, size_t y, size_t z, value_type val) { cache.set(x, y, z, val, stream); }
 
   // in-place updates
   void add(size_t x, size_t y, size_t z, value_type val) { cache.ref(x, y, z) += val; }

@@ -124,25 +124,30 @@ public:
   }
 
   // increment private view reference count (for thread safety)
-  void reference()
+  void* reference()
   {
+    void* stream = 0;
 #ifdef _OPENMP
     #pragma omp critical(references)
     {
       references++;
       codec.set_thread_safety(references > 1);
+      stream = codec.clone_stream_ptr();
     }
 #endif
+    return stream;
   }
 
   // decrement private view reference count (for thread safety)
-  void unreference()
+  void unreference(void* stream = 0)
   {
 #ifdef _OPENMP
     #pragma omp critical(references)
     {
       references--;
       codec.set_thread_safety(references > 1);
+      if(stream)
+        codec.close_stream_ptr(stream);
     }
 #endif
   }

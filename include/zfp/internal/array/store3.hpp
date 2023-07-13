@@ -91,9 +91,9 @@ public:
   }
 
   // encode contiguous block with given index
-  size_t encode(size_t block_index, const Scalar* block)
+  size_t encode(size_t block_index, const Scalar* block, void* stream = nullptr)
   {
-    size_t size = codec.encode_block(offset(block_index), block_shape(block_index), block);
+    size_t size = codec.encode_block(offset(block_index), block_shape(block_index), block, stream);
     index.set_block_size(block_index, size);
     return size;
   }
@@ -107,9 +107,9 @@ public:
   }
 
   // decode contiguous block with given index
-  size_t decode(size_t block_index, Scalar* block) const
+  size_t decode(size_t block_index, Scalar* block, void* stream = nullptr) const
   {
-    return codec.decode_block(offset(block_index), block_shape(block_index), block);
+    return codec.decode_block(offset(block_index), block_shape(block_index), block, stream);
   }
 
   // decode block with given index to strided array
