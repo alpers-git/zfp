@@ -517,7 +517,7 @@ public:
   ~private_const_view()
   {
     array->store.unreference(stream);
-    stream = nullptr;
+    stream = 0;
   }
 
   // dimensions of (sub)array
@@ -571,7 +571,7 @@ protected:
   value_type get(size_t x, size_t y, size_t z, size_t w) const { return cache.get(x, y, z, w, stream); }
 
   BlockCache4<value_type, store_type> cache; // cache of decompressed blocks
-  void* stream = nullptr;// stream for compressed data
+  void* stream = 0;// stream for compressed data
 };
 
 // thread-safe read-write view of private 4D (sub)array

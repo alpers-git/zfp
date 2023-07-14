@@ -96,7 +96,7 @@ public:
   }
 
   // encode contiguous block with given index
-  size_t encode(size_t block_index, const Scalar* block, void* stream = nullptr)
+  size_t encode(size_t block_index, const Scalar* block, void* stream = 0)
   {
     size_t size = codec.encode_block(offset(block_index), block_shape(block_index), block);
     index.set_block_size(block_index, size);
@@ -112,7 +112,7 @@ public:
   }
 
   // decode contiguous block with given index
-  size_t decode(size_t block_index, Scalar* block, void* stream = nullptr) const
+  size_t decode(size_t block_index, Scalar* block, void* stream = 0) const
   {
     return codec.decode_block(offset(block_index), block_shape(block_index), block);
   }
