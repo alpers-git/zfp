@@ -504,20 +504,20 @@ public:
     preview<Container>(array),
     cache(array->store, cache_size ? cache_size : array->cache.size())
   {
-    stream = array->store.reference();
+    this->stream = array->store.reference();
   }
   private_const_view(container_type* array, size_t x, size_t y, size_t z, size_t w, size_t nx, size_t ny, size_t nz, size_t nw, size_t cache_size = 0) :
     preview<Container>(array, x, y, z, w, nx, ny, nz, nw),
     cache(array->store, cache_size ? cache_size : array->cache.size())
   {
-    stream = array->store.reference();
+    this->stream = array->store.reference();
   }
 
   // destructor
   ~private_const_view()
   {
-    array->store.unreference(stream);
-    stream = 0;
+    array->store.unreference(this->stream);
+    this->stream = 0;
   }
 
   // dimensions of (sub)array
@@ -568,10 +568,10 @@ protected:
   using preview<Container>::nw;
 
   // inspector
-  value_type get(size_t x, size_t y, size_t z, size_t w) const { return cache.get(x, y, z, w, stream); }
+  value_type get(size_t x, size_t y, size_t z, size_t w) const { return cache.get(x, y, z, w, this->stream); }
 
   BlockCache4<value_type, store_type> cache; // cache of decompressed blocks
-  void* stream = 0;// stream for compressed data
+  void* stream = 0;// this->stream for compressed data
 };
 
 // thread-safe read-write view of private 4D (sub)array
@@ -609,7 +609,7 @@ public:
   }
 
   // flush cache by compressing all modified cached blocks
-  void flush_cache() const { cache.flush(stream); }
+  void flush_cache() const { cache.flush(this->stream); }
 
   // (i, j, k, l) inspector
   const_reference operator()(size_t i, size_t j, size_t k, size_t l) const { return const_reference(this, x + i, y + j, z + k, w + l); }
@@ -665,7 +665,7 @@ protected:
   }
 
   // mutator
-  void set(size_t x, size_t y, size_t z, size_t w, value_type val) { cache.set(x, y, z, w, val, stream); }
+  void set(size_t x, size_t y, size_t z, size_t w, value_type val) { cache.set(x, y, z, w, val, this->stream); }
 
   // in-place updates
   void add(size_t x, size_t y, size_t z, size_t w, value_type val) { cache.ref(x, y, z, w) += val; }
