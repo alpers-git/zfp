@@ -1096,8 +1096,8 @@ baseline_add_assign_it(Arraytype &a, const Arraytype &b)
   // check a and b have same dimensions
   if (a.size_x() != b.size_x())
     throw zfp::exception("dimension mismatch while adding array2s");
-  auto it2 = b.cbegin();
-  for (auto it = a.begin(); it != a.end(); ++it, ++it2)
+  Arraytype::const_iterator it2 = b.cbegin();
+  for (Arraytype::iterator it = a.begin(); it != a.end(); ++it, ++it2)
     *it += *it2;
 }
 
