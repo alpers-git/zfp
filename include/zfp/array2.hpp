@@ -246,7 +246,7 @@ public:
   //addition assigment operator--adds a constant value to every element of this
   array2& operator+=(const Scalar& val)
   {
-    gen_binary_operator(functor::plus<Scalar>, *this, val);
+    gen_binary_operator(functor::plus<Scalar>(), *this, val);
   }
 
   // scaling operator--scales the elements of this by a constant factor
