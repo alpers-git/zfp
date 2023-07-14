@@ -218,7 +218,7 @@ protected:
   value_type get(size_t x) const { return cache.get(x, stream); }
 
   BlockCache1<value_type, store_type> cache; // cache of decompressed blocks
-  void* stream = nullptr;// stream for compressed data
+  void* stream = 0;// stream for compressed data
 };
 
 // thread-safe read-write view of private 1D (sub)array
