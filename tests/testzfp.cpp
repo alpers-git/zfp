@@ -2216,11 +2216,6 @@ template <typename Scalar>
 inline uint
 linear_algebra_tests(uint dims, ArraySize array_size, Scalar tolerance)
 {
-  uint m = test_size(array_size);
-  uint n = m * m * m * m * m * m * m * m * m * m * m * m;
-
-  // determine array size
-  uint nx, ny, nz, nw;
   zfp_field* field = zfp_field_alloc();
   zfp_field_set_type(field, zfp::internal::trait<Scalar>::type);
   uint t = (zfp_field_type(field) == zfp_type_float ? 0 : 1);
