@@ -179,7 +179,7 @@ public:
   ~private_const_view()
   {
     array->store.unreference(this->stream);
-    this->stream = nullptr;
+    this->stream = 0;
   }
 
   // dimensions of (sub)array
