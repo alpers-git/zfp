@@ -1266,9 +1266,9 @@ test_1d_linear_algebra(ArraySize array_size, Scalar tolerance)
   pass = true;
 
   // Produce gencodec zfp arrays from f and g 
-  zfp::array1<Scalar, zfp::codec::generic1<Scalar>> a_gencodec(n, sizeof(Scalar) * 8, f);
-  zfp::array1<Scalar, zfp::codec::generic1<Scalar>> b_gencodec(n, sizeof(Scalar) * 8, g);
-  //zfp::array1<Scalar, zfp::codec::generic1<Scalar>> c_gencodec;
+  zfp::array1<Scalar, zfp::codec::generic1<Scalar> > a_gencodec(n, sizeof(Scalar) * 8, f);
+  zfp::array1<Scalar, zfp::codec::generic1<Scalar> > b_gencodec(n, sizeof(Scalar) * 8, g);
+  //zfp::array1<Scalar, zfp::codec::generic1<Scalar> > c_gencodec;
 
   // test += op.
   start = clock();
@@ -1505,9 +1505,9 @@ test_2d_linear_algebra(ArraySize array_size, Scalar tolerance)
   std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
 
   // Produce gencodec zfp arrays from f and g 
-  zfp::array2<Scalar, zfp::codec::generic2<Scalar>> a_gencodec(nx, ny, sizeof(Scalar) * 8, f);
-  zfp::array2<Scalar, zfp::codec::generic2<Scalar>> b_gencodec(nx, ny, sizeof(Scalar) * 8, g);
-  //zfp::array2<Scalar, zfp::codec::generic2<Scalar>> c_gencodec;
+  zfp::array2<Scalar, zfp::codec::generic2<Scalar> > a_gencodec(nx, ny, sizeof(Scalar) * 8, f);
+  zfp::array2<Scalar, zfp::codec::generic2<Scalar> > b_gencodec(nx, ny, sizeof(Scalar) * 8, g);
+  //zfp::array2<Scalar, zfp::codec::generic2<Scalar> > c_gencodec;
 
   // test += op.
   start = clock();
@@ -1770,9 +1770,9 @@ test_3d_linear_algebra(ArraySize array_size, Scalar tolerance)
   std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
 
   // Produce gencodec zfp arrays from f and g
-  zfp::array3<Scalar, zfp::codec::generic3<Scalar>> a_gencodec(nx, ny, nz, sizeof(Scalar) * 8, f);
-  zfp::array3<Scalar, zfp::codec::generic3<Scalar>> b_gencodec(nx, ny, nz, sizeof(Scalar) * 8, g);
-  //zfp::array3<Scalar, zfp::codec::generic3<Scalar>> c_gencodec;
+  zfp::array3<Scalar, zfp::codec::generic3<Scalar> > a_gencodec(nx, ny, nz, sizeof(Scalar) * 8, f);
+  zfp::array3<Scalar, zfp::codec::generic3<Scalar> > b_gencodec(nx, ny, nz, sizeof(Scalar) * 8, g);
+  //zfp::array3<Scalar, zfp::codec::generic3<Scalar> > c_gencodec;
 
   // test += op.
   start = clock();
@@ -2060,9 +2060,9 @@ test_4d_linear_algebra(ArraySize array_size, Scalar tolerance)
   std::cout << std::setw(width) << status.str() << (pass ? " OK " : "FAIL") << std::endl;
 
   // Produce gencodec zfp arrays from f and g
-  zfp::array4<Scalar, zfp::codec::generic4<Scalar>> a_gencodec(nx, ny, nz, nw, sizeof(Scalar) * 8, f);
-  zfp::array4<Scalar, zfp::codec::generic4<Scalar>> b_gencodec(nx, ny, nz, nw, sizeof(Scalar) * 8, g);
-  //zfp::array4<Scalar, zfp::codec::generic4<Scalar>> c_gencodec;
+  zfp::array4<Scalar, zfp::codec::generic4<Scalar> > a_gencodec(nx, ny, nz, nw, sizeof(Scalar) * 8, f);
+  zfp::array4<Scalar, zfp::codec::generic4<Scalar> > b_gencodec(nx, ny, nz, nw, sizeof(Scalar) * 8, g);
+  //zfp::array4<Scalar, zfp::codec::generic4<Scalar> > c_gencodec;
 
   // test += op.
   start = clock();
