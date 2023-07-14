@@ -230,7 +230,7 @@ public:
   // addition assignment operator--adds another array of identical dimensions
   array3& operator+=(const array3& a)
   {
-    return gen_binary_operator(std::plus<value_type>(), *this, a);
+    return gen_binary_operator(functor::plus<value_type>(), *this, a);
   }
 
   // addition assignment operator--adds another array of identical dimensions
@@ -251,20 +251,20 @@ public:
   // addition assignment operator--adds a scalar to every value in the array
   array3& operator+=(const Scalar& val)
   {
-    return gen_binary_operator(std::plus<value_type>(), *this, val);
+    return gen_binary_operator(functor::plus<value_type>(), *this, val);
   }
 
   // scaling operator--scales the elements of this by a constant factor
   array3& operator*=(const Scalar& val)
   {
-    return gen_binary_operator(std::multiplies<value_type>(), *this, val);
+    return gen_binary_operator(functor::multiplies<value_type>(), *this, val);
   }
 
   // unary negation operator--returns a deep copy with the sign of each element negated
   array3 operator-() const
   {
     array3 res(nx, ny, nz, rate(), 0, cache.size());
-    return gen_unary_operator(std::negate<value_type>(), res);
+    return gen_unary_operator(functor::negate<value_type>(), res);
   }
 
   // total number of elements in array

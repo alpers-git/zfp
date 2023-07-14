@@ -207,7 +207,7 @@ public:
   // addition assignment operator--adds another array of identical dimensions
   array4& operator+=(const array4& a)
   {
-    return gen_binary_operator(std::plus<value_type>(), *this, a);
+    return gen_binary_operator(functor::plus<value_type>(), *this, a);
   }
 
   // addition assignment operator--adds another array of identical dimensions
@@ -228,13 +228,13 @@ public:
   //addition assigment operator--adds a constant value to every element of this
   array4& operator+=(const Scalar val)
   {
-    return gen_binary_operator(std::plus<value_type>(), *this, val);
+    return gen_binary_operator(functor::plus<value_type>(), *this, val);
   }
 
   // scaling operator--scales the elements of this by a constant factor
   array4& operator*=(const Scalar& val)
   {
-    return gen_binary_operator(std::multiplies<value_type>(), *this, val);
+    return gen_binary_operator(functor::multiplies<value_type>(), *this, val);
   }
 
 
@@ -243,7 +243,7 @@ public:
   {
     // allocate an array with the same dimensions as this
     array4 result(nx, ny, nz, nw, rate(), 0, cache_size());
-    return gen_unary_operator(std::negate<value_type>(), result);
+    return gen_unary_operator(functor::negate<value_type>(), result);
   }
     
 

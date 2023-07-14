@@ -3,7 +3,6 @@
 
 #include <cstddef>
 #include <cstring>
-#include <functional>
 #include <iterator>
 #include "zfp/array.hpp"
 #include "zfp/constarray2.hpp"
@@ -226,7 +225,7 @@ public:
   // addition assignment operator--adds another array of identical dimensions
   array2& operator+=(const array2& a)
   {
-    return gen_binary_operator(std::plus<value_type>(), *this, a);
+    return gen_binary_operator(functor::plus<value_type>(), *this, a);
   }
 
   // addition assignment operator--adds another array of identical dimensions
@@ -247,13 +246,13 @@ public:
   //addition assigment operator--adds a constant value to every element of this
   array2& operator+=(const Scalar& val)
   {
-    gen_binary_operator(std::plus<value_type>(), *this, val);
+    gen_binary_operator(functor::plus<scalar_type>, *this, val);
   }
 
   // scaling operator--scales the elements of this by a constant factor
   array2& operator*=(const Scalar& val)
   {
-    return gen_binary_operator(std::multiplies<value_type>(), *this, val);
+    return gen_binary_operator(functor::multiplies<value_type>(), *this, val);
   }
 
   // unary negation operator--returns a deep copy with the sign of each element negated
@@ -261,7 +260,7 @@ public:
   {
     // allocate an array with the same dimensions as this
     array2 result(nx, ny, rate(), 0, cache.size());
-    return gen_unary_operator(std::negate<value_type>(), result);
+    return gen_unary_operator(functor::negate<value_type>(), result);
   }
 
   // total number of elements in array

@@ -90,6 +90,76 @@ protected:
   size_t nx, ny, nz, nw; // array dimensions
 };
 
+// Functor definitions for array elements since we can't use std functors
+namespace functor {
+
+  //implemetaion of plus functor
+  template <typename Scalar>
+  struct plus {
+    Scalar operator()(const Scalar& a, const Scalar& b) const { return a + b; }
+  };
+
+  //implemetaion of minus functor
+  template <typename Scalar>
+  struct minus {
+    Scalar operator()(const Scalar& a, const Scalar& b) const { return a - b; }
+  };
+
+  //implemetaion of multiplies functor
+  template <typename Scalar>
+  struct multiplies {
+    Scalar operator()(const Scalar& a, const Scalar& b) const { return a * b; }
+  };
+
+  //implemetaion of divides functor
+  template <typename Scalar>
+  struct divides {
+    Scalar operator()(const Scalar& a, const Scalar& b) const { return a / b; }
+  };
+
+  //implemetaion of negate functor
+  template <typename Scalar>
+  struct negate {
+    Scalar operator()(const Scalar& a) const { return -a; }
+  };
+
+  //implemetaion of less functor
+  template <typename Scalar>
+  struct less {
+    bool operator()(const Scalar& a, const Scalar& b) const { return a < b; }
+  };
+
+  //implemetaion of less_equal functor
+  template <typename Scalar>
+  struct less_equal {
+    bool operator()(const Scalar& a, const Scalar& b) const { return a <= b; }
+  };
+
+  //implemetaion of greater functor
+  template <typename Scalar>
+  struct greater {
+    bool operator()(const Scalar& a, const Scalar& b) const { return a > b; }
+  };
+
+  //implemetaion of greater_equal functor
+  template <typename Scalar>
+  struct greater_equal {
+    bool operator()(const Scalar& a, const Scalar& b) const { return a >= b; }
+  };
+
+  //implemetaion of equal_to functor
+  template <typename Scalar>
+  struct equal_to {
+    bool operator()(const Scalar& a, const Scalar& b) const { return a == b; }
+  };
+
+  //implemetaion of not_equal_to functor
+  template <typename Scalar>
+  struct not_equal_to {
+    bool operator()(const Scalar& a, const Scalar& b) const { return a != b; }
+  };
+}
+
 }
 
 #endif

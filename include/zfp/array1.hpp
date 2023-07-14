@@ -215,13 +215,13 @@ public:
   // addition assignment operator--adds another array of identical dimensions
   array1& operator+=(const array1& a)
   {
-    return gen_binary_operator(std::plus<value_type>(), *this, a);
+    return gen_binary_operator(functor::plus<value_type>(), *this, a);
   }
 
   // addition assingment operator--adds a scalar to each value stored in the array
   array1& operator+=(const value_type val)
   {
-    return gen_binary_operator(std::plus<value_type>(), *this, val);
+    return gen_binary_operator(functor::plus<value_type>(), *this, val);
   }
 
   // addition assign operator--adds a constant_array to the array
@@ -241,14 +241,14 @@ public:
   // scaling operator--scales the elements of the array by the given constant
   array1& operator*=(const Scalar& val)
   {
-    gen_binary_operator(std::bind2nd(std::multiplies<value_type>(), val), *this);
+    return gen_binary_operator(functor::multiplies<value_type>(), *this, val);
   }
 
   // unary negation operator--negates the elements of the array
   array1 operator-() const
   {
     array1 result(nx, rate(), 0, cache.size());
-    return gen_unary_operator(std::negate<value_type>(), result);
+    return gen_unary_operator(functor::negate<value_type>(), result);
   }
 
   // total number of elements in array
