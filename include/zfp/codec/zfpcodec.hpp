@@ -103,7 +103,7 @@ public:
   // make a thread-local copy of zfp stream and bit stream and return pointer to it
   zfp_stream* clone_stream_ptr()
   {
-      zfp_stream* zfp = 0;
+      zfp_stream* zfp = new zfp_stream;
       *zfp = clone_stream();
       return zfp;
   }
