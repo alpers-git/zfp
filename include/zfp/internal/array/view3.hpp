@@ -435,7 +435,7 @@ public:
 
   //deep-copy constructor
   private_const_view(const private_const_view& v) :
-    preview<Container>(v.array, v.x, v.y, v.z, v.nx, v.ny, v.nz),
+    preview<Container>(v.array, v.x, v.y, v.z, v.nx, v.ny, v.nz)
   {
     this->stream = v.array->store.reference();
   }
