@@ -434,11 +434,9 @@ public:
   }
 
   //deep-copy constructor
-  private_const_view(const private_const_view& v) :
-    preview<Container>(v.array, v.x, v.y, v.z, v.nx, v.ny, v.nz),
-    cache(v.array->store, v.cache.size())
+  private_const_view(const private_const_view& v)
   {
-    this->stream = v.array->store.reference();
+    deep_copy(v);
   }
 
   // destructor
@@ -472,6 +470,30 @@ public:
   const_iterator end() const { return cend(); }
 
 protected:
+  //perform a deep copy
+  void deep_copy(const private_const_view& v)
+  {
+    //copy the cache
+    cache.deep_copy(v.cache);
+    //copy the stream
+    this->stream = v.array->store.reference();
+    //copy the preview
+    this->array = v.array;
+    this->x = v.x;
+    this->y = v.y;
+    this->z = v.z;
+    this->nx = v.nx;
+    this->ny = v.ny;
+    this->nz = v.nz;
+  }
+
+  //assingment operator
+  private_const_view& operator=(const private_const_view& v)
+  {
+    deep_copy(v);
+    return *this;
+  }
+
   friend class zfp::internal::dim3::const_handle<private_const_view>;
   friend class zfp::internal::dim3::const_pointer<private_const_view>;
   friend class zfp::internal::dim3::const_iterator<private_const_view>;
