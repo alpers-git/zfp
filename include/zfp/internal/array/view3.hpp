@@ -457,6 +457,7 @@ public:
   private_const_view(const private_const_view& v)
     : preview<Container>(v.array), cache(v.array->store)
   {
+    printf("private_const_view(const private_const_view& v)\n");
     cache.resize(0);
     deep_copy(v);
   }
@@ -488,6 +489,7 @@ public:
   //assingment operator
   private_const_view& operator=(const private_const_view& v)
   {
+    printf("private_const_view& operator=(const private_const_view& v)\n");
     if (this != &v)
       deep_copy(v);
     return *this;
