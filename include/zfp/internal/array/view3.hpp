@@ -447,7 +447,7 @@ public:
 
   //deep-copy constructor
   private_const_view(const private_const_view& v)
-    : preview<Container>(v.array), cache(0)
+    : preview<Container>(v.array), cache(v.cache.store)
   {
     cache.resize(0);
     deep_copy(v);
