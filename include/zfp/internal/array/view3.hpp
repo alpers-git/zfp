@@ -29,6 +29,18 @@ protected:
   // construction and assignment--perform shallow copy of (sub)array
   explicit preview(container_type* array) : array(array), x(0), y(0), z(0), nx(array->size_x()), ny(array->size_y()), nz(array->size_z()) {}
   explicit preview(container_type* array, size_t x, size_t y, size_t z, size_t nx, size_t ny, size_t nz) : array(array), x(x), y(y), z(z), nx(nx), ny(ny), nz(nz) {}
+  preview& operator=(preview& r)
+  {
+    array = r.array;
+    x = r.x;
+    y = r.y;
+    z = r.z;
+    nx = r.nx;
+    ny = r.ny;
+    nz = r.nz;
+    return *this;
+  }
+
   preview& operator=(container_type* a)
   {
     array = a;
@@ -435,8 +447,9 @@ public:
 
   //deep-copy constructor
   private_const_view(const private_const_view& v)
-    : preview<Container>(v.array), cache(v.array->store)
+    : preview<Container>(v.array), cache(0)
   {
+    cache.resize(0);
     deep_copy(v);
   }
 
@@ -470,30 +483,25 @@ public:
   const_iterator begin() const { return cbegin(); }
   const_iterator end() const { return cend(); }
 
+  //assingment operator
+  private_const_view& operator=(const private_const_view& v)
+  {
+    if (this != &v)
+      deep_copy(v);
+    return *this;
+  }
 protected:
   //perform a deep copy
   void deep_copy(const private_const_view& v)
   {
+    //copy the preview using assignment operator
+    *this = v;
     //copy the cache
     cache.deep_copy(v.cache);
     //copy the stream
     this->stream = v.array->store.reference();
-    //copy the preview
-    this->array = v.array;
-    this->x = v.x;
-    this->y = v.y;
-    this->z = v.z;
-    this->nx = v.nx;
-    this->ny = v.ny;
-    this->nz = v.nz;
   }
 
-  //assingment operator
-  private_const_view& operator=(const private_const_view& v)
-  {
-    deep_copy(v);
-    return *this;
-  }
 
   friend class zfp::internal::dim3::const_handle<private_const_view>;
   friend class zfp::internal::dim3::const_pointer<private_const_view>;
