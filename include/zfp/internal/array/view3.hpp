@@ -25,20 +25,28 @@ public:
   size_t global_y(size_t j) const { return y + j; }
   size_t global_z(size_t k) const { return z + k; }
 
+  preview& operator=(preview& r)
+  {
+    if (this != &r)
+      deep_copy(r);
+    return *this;
+  }
+
 protected:
   // construction and assignment--perform shallow copy of (sub)array
   explicit preview(container_type* array) : array(array), x(0), y(0), z(0), nx(array->size_x()), ny(array->size_y()), nz(array->size_z()) {}
   explicit preview(container_type* array, size_t x, size_t y, size_t z, size_t nx, size_t ny, size_t nz) : array(array), x(x), y(y), z(z), nx(nx), ny(ny), nz(nz) {}
-  preview& operator=(preview& r)
+  //perform a deep copy
+  void deep_copy(const preview& v)
   {
-    array = r.array;
-    x = r.x;
-    y = r.y;
-    z = r.z;
-    nx = r.nx;
-    ny = r.ny;
-    nz = r.nz;
-    return *this;
+    //copy the preview
+    this->array = v.array;
+    this->x = v.x;
+    this->y = v.y;
+    this->z = v.z;
+    this->nx = v.nx;
+    this->ny = v.ny;
+    this->nz = v.nz;
   }
 
   preview& operator=(container_type* a)
@@ -496,13 +504,7 @@ protected:
   void deep_copy(const private_const_view& v)
   {
     //copy the preview
-    this->array = v.array;
-    this->x = v.x;
-    this->y = v.y;
-    this->z = v.z;
-    this->nx = v.nx;
-    this->ny = v.ny;
-    this->nz = v.nz;
+    preview<Container>::deep_copy(v);
     //copy the cache
     cache.deep_copy(v.cache);
     //copy the stream
