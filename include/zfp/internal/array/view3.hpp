@@ -1,5 +1,6 @@
 #ifndef ZFP_VIEW3_HPP
 #define ZFP_VIEW3_HPP
+#include <cstdio>
 
 // 3D array views
 
