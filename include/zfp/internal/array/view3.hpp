@@ -535,9 +535,7 @@ protected:
   using preview<Container>::nz;
 
   // inspector
-  value_type get(size_t x, size_t y, size_t z) const {
-    printf("private_const_view::get(%d, %d, %d)\n", x, y, z);
-   return cache.get(x, y, z, this->stream); }
+  value_type get(size_t x, size_t y, size_t z) const {return cache.get(x, y, z, this->stream); }
 
   BlockCache3<value_type, store_type> cache; // cache of decompressed blocks
   void* stream = 0;// stream for compressed data
