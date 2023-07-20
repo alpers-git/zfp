@@ -495,8 +495,14 @@ protected:
   //perform a deep copy
   void deep_copy(const private_const_view& v)
   {
-    //copy the preview using assignment operator
-    preview<Container>::operator=(v);
+    //copy the preview
+    this->array = v.array;
+    this->x = v.x;
+    this->y = v.y;
+    this->z = v.z;
+    this->nx = v.nx;
+    this->ny = v.ny;
+    this->nz = v.nz;
     //copy the cache
     cache.deep_copy(v.cache);
     //copy the stream
