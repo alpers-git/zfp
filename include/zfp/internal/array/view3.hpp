@@ -477,12 +477,6 @@ public:
   // (i, j, k) inspector
   const_reference operator()(size_t i, size_t j, size_t k) const { return const_reference(this, x + i, y + j, z + k); }
 
-  // random access iterators
-  const_iterator cbegin() const { return const_iterator(this, x, y, z); }
-  const_iterator cend() const { return const_iterator(this, x, y, z + nz); }
-  const_iterator begin() const { return cbegin(); }
-  const_iterator end() const { return cend(); }
-
   //assingment operator
   private_const_view& operator=(const private_const_view& v)
   {
@@ -490,12 +484,19 @@ public:
       deep_copy(v);
     return *this;
   }
+
+  // random access iterators
+  const_iterator cbegin() const { return const_iterator(this, x, y, z); }
+  const_iterator cend() const { return const_iterator(this, x, y, z + nz); }
+  const_iterator begin() const { return cbegin(); }
+  const_iterator end() const { return cend(); }
+
 protected:
   //perform a deep copy
   void deep_copy(const private_const_view& v)
   {
     //copy the preview using assignment operator
-    *this = v;
+    preview<Container>::operator=(v);
     //copy the cache
     cache.deep_copy(v.cache);
     //copy the stream
