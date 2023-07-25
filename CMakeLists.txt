@@ -145,6 +145,7 @@ option(ZFP_WITH_DAZ "Treat subnormals as zero to avoid overflow" OFF)
 
 option(ZFP_WITH_CUDA "Enable CUDA parallel compression" OFF)
 option(ZFP_WITH_HIP "Enable HIP parallel compression" OFF)
+option(ZFP_WITH_SYCL "Enable SYCL parallel compression" OFF)
 
 # Advanced options
 
