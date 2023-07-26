@@ -19,6 +19,15 @@ if(ZFP_WITH_HIP)
   set_source_files_properties(${ZFP_HIP_SOURCE} PROPERTIES LANGUAGE HIP)
 endif()
 
+if(ZFP_WITH_SYCL)
+  set(ZFP_SYCL_SOURCE sycl/interface.cpp)
+  #set_source_files_properties(${ZFP_SYCL_SOURCE} PROPERTIES LANGUAGE SYCL)
+  #set(CMAKE_CXX_FLAGS_PREVIOUS "${CMAKE_CXX_FLAGS} -fsycl")
+
+  add_subdirectory(sycl)
+  add_definitions(-DZFP_WITH_SYCL)
+endif()
+
 set(zfp_source
   zfp.c
   bitstream.c

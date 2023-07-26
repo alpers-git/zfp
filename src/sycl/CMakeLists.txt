@@ -6,4 +6,5 @@
 
 set(zfp_sycl_sources)
 
-set(zfp_sycl_headers)
+set(zfp_sycl_headers
+    interface.h)

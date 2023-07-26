@@ -167,6 +167,9 @@ int main(int argc, char* argv[])
 #if ZFP_WITH_HIP
     zfp_exec_hip,
 #endif
+#if ZFP_WITH_SYCL
+    zfp_exec_sycl,
+#endif
   };
   const size_t exec_modes = sizeof(exec) / sizeof(exec[0]);
 
@@ -224,6 +227,7 @@ int main(int argc, char* argv[])
   for (size_t i = 0; i < exec_modes; i++)
     fprintf(stderr, "%s%s", exec_string(exec[i]), i == exec_modes - 1 ? "}" : ", ");
   fprintf(stderr, "\n\n");
+  fprintf(stderr, "%d\n", exec_modes);
 
   uint tests[exec_modes] = {};
   uint failures[exec_modes] = {};

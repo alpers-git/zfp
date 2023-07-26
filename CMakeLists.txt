@@ -3,6 +3,10 @@ if(ZFP_WITH_HIP)
   cmake_minimum_required(VERSION 3.21)
 endif()
 
+if(ZFP_WITH_SYCL)
+  cmake_minimum_required(VERSION 3.22)
+endif()
+
 # Enable MACOSX_RPATH by default
 cmake_policy(SET CMP0042 NEW)
 
@@ -35,6 +39,11 @@ else()
 endif()
 
 project(ZFP VERSION ${ZFP_VERSION})
+
+if(ZFP_WITH_SYCL)
+  add_definitions(-DZFP_WITH_SYCL)
+  find_package(IntelSYCL REQUIRED)
+endif()
 
 #------------------------------------------------------------------------------#
 # Some boilerplate to setup nice output directories
