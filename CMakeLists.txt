@@ -4,7 +4,15 @@ if(ZFP_WITH_HIP)
 endif()
 
 if(ZFP_WITH_SYCL)
-  cmake_minimum_required(VERSION 3.22)
+  #set(CMAKE_CXX_COMPILER "icpx" )
+
+  if (CMAKE_HOST_WIN32)
+      # need at least CMake 3.23 for IntelLLVM support of IntelDPCPP package on Windows
+      cmake_minimum_required(VERSION 3.23)
+  else()
+      # CMake 3.20.5 is the minimum recommended for IntelLLVM on Linux
+      cmake_minimum_required(VERSION 3.20.5)
+  endif()
 endif()
 
 # Enable MACOSX_RPATH by default
@@ -43,6 +51,7 @@ project(ZFP VERSION ${ZFP_VERSION})
 if(ZFP_WITH_SYCL)
   add_definitions(-DZFP_WITH_SYCL)
   find_package(IntelSYCL REQUIRED)
+  set (CMAKE_CXX_FLAGS "-fsycl")
 endif()
 
 #------------------------------------------------------------------------------#
@@ -98,6 +107,9 @@ if(NOT CMAKE_CXX_STANDARD)
 endif()
 if(ZFP_WITH_HIP)
   set(CMAKE_CXX_STANDARD 14)
+endif()
+if(ZFP_WITH_SYCL)
+  set(CMAKE_CXX_STANDARD 17)
 endif()
 message(STATUS "Compiling with C++ standard: ${CMAKE_CXX_STANDARD}")
 

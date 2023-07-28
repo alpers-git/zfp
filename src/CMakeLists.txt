@@ -20,12 +20,10 @@ if(ZFP_WITH_HIP)
 endif()
 
 if(ZFP_WITH_SYCL)
-  set(ZFP_SYCL_SOURCE sycl/interface.cpp)
-  #set_source_files_properties(${ZFP_SYCL_SOURCE} PROPERTIES LANGUAGE SYCL)
-  #set(CMAKE_CXX_FLAGS_PREVIOUS "${CMAKE_CXX_FLAGS} -fsycl")
-
-  add_subdirectory(sycl)
   add_definitions(-DZFP_WITH_SYCL)
+  set(ZFP_SYCL_SOURCE sycl/interface.cpp)
+  set_source_files_properties(${ZFP_SYCL_SOURCE} PROPERTIES LANGUAGE CXX)
+  add_subdirectory(sycl)
 endif()
 
 set(zfp_source
@@ -39,7 +37,8 @@ set(zfp_source
   decode3f.c decode3d.c decode3i.c decode3l.c
   encode4f.c encode4d.c encode4i.c encode4l.c
   decode4f.c decode4d.c decode4i.c decode4l.c
-  ${ZFP_HIP_SOURCE})
+  ${ZFP_HIP_SOURCE}
+  ${ZFP_SYCL_SOURCE})
 
 if(ZFP_WITH_CUDA)
   add_library(zfp ${zfp_source}

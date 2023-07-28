@@ -4,7 +4,9 @@
 #
 ###############################################################################
 
-set(zfp_sycl_sources)
+set(zfp_sycl_sources
+    interface.cpp       # main entry point
+    )
 
 set(zfp_sycl_headers
     interface.h)

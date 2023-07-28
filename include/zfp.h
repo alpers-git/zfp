@@ -73,7 +73,7 @@ typedef enum {
   zfp_exec_serial = 0, /* serial execution (default) */
   zfp_exec_omp    = 1, /* OpenMP multi-threaded execution */
   zfp_exec_cuda   = 2, /* CUDA parallel execution */
-  zfp_exec_hip    = 3,  /* HIP parallel execution */
+  zfp_exec_hip    = 3, /* HIP parallel execution */
   zfp_exec_sycl   = 4  /* SYCL parallel execution */
 } zfp_exec_policy;
 
@@ -99,6 +99,7 @@ typedef struct {
 typedef struct {
   int processors;   /* number of SYCL multiprocessors */
   int grid_size[3]; /* maximum SYCL grid dimensions (read only) */
+  int device;       /* SYCL device type */
 } zfp_exec_params_sycl;
 
 typedef struct {
