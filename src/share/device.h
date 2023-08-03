@@ -102,6 +102,42 @@
   } // namespace internal
   } // namespace hip
   } // namespace zfp
+#elif defined(__SYCL_DEVICE_ONLY__)
+  // SYCL specializations
+  #include <CL/sycl.hpp>
+
+  // warp shuffle
+
+  namespace zfp {
+  namespace sycl {
+  namespace internal {
+    // determine whether ptr points to device memory
+    inline bool is_gpu_ptr(const void* ptr)
+    {
+      bool status = false;
+      // hipPointerAttribute_t atts;
+      // if (hipPointerGetAttributes(&atts, ptr) == hipSuccess)
+      //   status = (atts.memoryType == hipMemoryTypeDevice);
+      // // clear last error so other error checking does not pick it up
+      // (void)hipGetLastError();
+      return status;
+    }
+
+    // memory allocation
+    template <typename T>
+    inline bool malloc_async(T** d_pointer, size_t size)
+    {
+      //return hipMalloc(d_pointer, size) == hipSuccess;
+    }
+
+    // memory deallocation
+    inline void free_async(void* d_pointer)
+    {
+      //hipFree(d_pointer);
+    }
+  } // namespace internal
+  } // namespace sycl
+  } // namespace zfp
 #else
   #error "unknown GPU back-end"
 #endif
