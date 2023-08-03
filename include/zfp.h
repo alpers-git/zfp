@@ -95,11 +95,17 @@ typedef struct {
   int grid_size[3]; /* maximum HIP grid dimensions (read only) */
 } zfp_exec_params_hip;
 
+typedef enum {
+  zfp_sycl_default = 0, /* default SYCL device */
+  zfp_sycl_cpu = 1,     /* SYCL CPU device */
+  zfp_sycl_gpu = 2      /* SYCL GPU device */
+} zfp_sycl_device;
+
 /* SYCL execution parameters */
 typedef struct {
-  int processors;   /* number of SYCL multiprocessors */
-  int grid_size[3]; /* maximum SYCL grid dimensions (read only) */
-  int device;       /* SYCL device type */
+  int processors;            /* number of SYCL multiprocessors */
+  int grid_size[3];          /* maximum SYCL grid dimensions (read only) */
+  zfp_sycl_device device;    /* SYCL device selector */
 } zfp_exec_params_sycl;
 
 typedef struct {

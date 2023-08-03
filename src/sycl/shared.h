@@ -1,9 +1,6 @@
 #ifndef ZFP_SYCL_SHARED_H
 #define ZFP_SYCL_SHARED_H
 
-// report throughput; set via CMake
-// #define ZFP_WITH_HIP_PROFILE 1
-
 #include <cmath>
 #include <cstdio>
 #include "zfp.h"
@@ -32,6 +29,10 @@ namespace zfp {
 namespace sycl {
 namespace internal {
 
+  // typedef ulonglong2 size2;
+  // typedef ulonglong3 size3;
+  // typedef longlong2 ptrdiff2;
+  // typedef longlong3 ptrdiff3;
 
 } // namespace internal
 } // namespace sycl
