@@ -4,47 +4,50 @@
 
 #define ZFP_MAGIC 0x7a667000u
 
+#define SYCL_ERR(function_call, custom_msg, return_value) \
+try { \
+    function_call; \
+} catch (const cl::sycl::exception& e) { \
+    std::cerr << "zfp_sycl : " << custom_msg << e.what() << std::endl; \
+    return return_value; \
+} 
+
 namespace zfp {
 namespace sycl {
 namespace internal {
 
-    // Device init kernel in SYCL
-class device_init_kernel;
+using namespace ::sycl;
 
 bool device_init()
 {
-    // Get a SYCL device queue
-    sycl::queue deviceQueue;
+    bool success = true;
+    try{
+        // Get a SYCL device queue
+        //TODO: how to get the preferred device type?
+        queue device_q(cpu_selector_v);
+    
+        // allocate a buffer to store the magic number on the device
+        buffer<unsigned int, 1> d_word_buf(NULL, 1);
 
-    // Allocate device memory
-    sycl::buffer<unsigned int, 1> d_word(sycl::range<1>(1));
-
-    // Submit a command group to the device queue
-    deviceQueue.submit([&](sycl::handler& cgh) {
-        auto d_word_ptr = d_word.get_access<sycl::access::mode::write>(cgh);
-
-        // Launch a dummy kernel
-        cgh.parallel_for(sycl::range<1>(1), [=](sycl::item<1> item) {
-            *d_word_ptr.get_pointer() = ZFP_MAGIC;
+        //launch a kernel to initialize the magic number
+        device_q.submit([&](handler& cgh) {
+            auto d_word = d_word_buf.get_access<access::mode::write>(cgh);
+            cgh.single_task<class device_init_kernel>([=]() {
+                d_word[0] = ZFP_MAGIC;
+            });
         });
-    });
+        device_q.wait();
 
-    // Allocate host memory
-    unsigned int* h_word = static_cast<unsigned int*>(malloc(sizeof(*h_word)));
+        //copy the magic number back to the host
+        unsigned int h_word = d_word_buf.get_access<access::mode::read>()[0];
+        if (h_word != ZFP_MAGIC) {
+            std::cerr<<"zfp_sycl : zfp device init failed"<<std::endl;
+            success = false;
+        }
+    }catch (cl::sycl::exception const &e) {
+        std::cerr<<"zfp_sycl : zfp device init "<< e.what() << std::endl;
+        success = false;}
 
-    // Copy from device to host
-    deviceQueue.submit([&](sycl::handler& cgh) {
-        auto d_word_ptr = d_word.get_access<sycl::access::mode::read>(cgh);
-        sycl::accessor h_word_accessor(h_word, cgh);
-
-        cgh.copy(d_word_ptr, h_word_ptr);
-    });
-
-    // Check the result
-    bool success = (*h_word == ZFP_MAGIC);
-
-    // Free host memory
-    free(h_word);
 
     return success;
 }

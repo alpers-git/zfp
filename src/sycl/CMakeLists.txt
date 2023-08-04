@@ -18,7 +18,7 @@ set(zfp_sycl_sources
     # writer.h
     # constants.h
     device.h
-    # error.h
+    error.h
     shared.h
     # timer.h
     # traits.h

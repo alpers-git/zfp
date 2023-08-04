@@ -1,7 +1,7 @@
 #include <iostream>
 #include "interface.h"
 #include "shared.h"
-//#include "device.h"
+#include "device.h"
 
 #include <CL/sycl.hpp>
 
@@ -37,7 +37,7 @@ zfp_internal_sycl_init(zfp_exec_params_sycl* params)
   params->grid_size[2] = grid_sizes[2];
 
 
-  //return (zfp_bool)zfp::sycl::internal::device_init();
+  return (zfp_bool)zfp::sycl::internal::device_init();
 }
 
 size_t
