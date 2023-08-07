@@ -10,7 +10,7 @@ inline const char*
 exec_string(zfp_exec_policy exec)
 {
   static const char* string[] = {
-    "serial", "OpenMP", "CUDA", "HIP",
+    "serial", "OpenMP", "CUDA", "HIP", "SYCL"
   };
   return string[exec];
 }
@@ -227,7 +227,6 @@ int main(int argc, char* argv[])
   for (size_t i = 0; i < exec_modes; i++)
     fprintf(stderr, "%s%s", exec_string(exec[i]), i == exec_modes - 1 ? "}" : ", ");
   fprintf(stderr, "\n\n");
-  fprintf(stderr, "%d\n", exec_modes);
 
   uint tests[exec_modes] = {};
   uint failures[exec_modes] = {};
