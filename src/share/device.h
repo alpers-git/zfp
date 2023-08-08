@@ -102,7 +102,8 @@
   } // namespace internal
   } // namespace hip
   } // namespace zfp
-#elif defined(__SYCL_DEVICE_ONLY__)
+// #elif defined(__SYCL_DEVICE_ONLY__)
+#elif defined(ZFP_WITH_SYCL)
   // SYCL specializations
   #include <CL/sycl.hpp>
 
