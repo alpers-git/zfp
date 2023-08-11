@@ -102,40 +102,67 @@
   } // namespace internal
   } // namespace hip
   } // namespace zfp
-// #elif defined(__SYCL_DEVICE_ONLY__)
-#elif defined(ZFP_WITH_SYCL)
+#elif(SYCL_LANGUAGE_VERSION)
   // SYCL specializations
-  #include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
+#include <dpct/dpct.hpp>
 
-  // warp shuffle
+ /*DPCT1023:10: The SYCL sub-group does not support mask options for
+dpct::permute_sub_group_by_xor. You can specify
+"--use-experimental-features=masked-sub-group-operation" to use the experimental
+helper function to migrate __shfl_xor_sync.
+*/
+#define SHFL_XOR(var, lane_mask)                                               \
+  dpct::permute_sub_group_by_xor(item_ct1.get_sub_group(), var, lane_mask)
 
   namespace zfp {
   namespace sycl {
   namespace internal {
-    // determine whether ptr points to device memory
-    inline bool is_gpu_ptr(const void* ptr)
-    {
-      bool status = false;
-      // hipPointerAttribute_t atts;
-      // if (hipPointerGetAttributes(&atts, ptr) == hipSuccess)
-      //   status = (atts.memoryType == hipMemoryTypeDevice);
-      // // clear last error so other error checking does not pick it up
-      // (void)hipGetLastError();
-      return status;
-    }
 
-    // memory allocation
-    template <typename T>
-    inline bool malloc_async(T** d_pointer, size_t size)
-    {
-      //return hipMalloc(d_pointer, size) == hipSuccess;
-    }
+  // determine whether ptr points to device memory
+  inline bool is_gpu_ptr(const void *ptr) try {
+    bool status = false;
+    dpct::pointer_attributes atts;
+    if ((atts.init(ptr),0) == 0)
+      switch (atts.get_memory_type()) {
+        case ::sycl::usm::alloc::device:
+#if (SYCL_LANGUAGE_VERSION >= 202000)
+        case ::sycl::usm::alloc::shared:
+#endif
+          status = true;
+          break;
+      }
+    // clear last error so other error checking does not pick it up
+    /*
+    DPCT1010:24: SYCL uses exceptions to report errors and does not use the
+    error codes. The call was replaced with 0. You need to rewrite this code.
+    */
+    (void)0;
+    return status;
+  }
+  catch (::sycl::exception const &exc) {
+    std::cerr << exc.what() << "Exception caught at file:" << __FILE__
+              << ", line:" << __LINE__ << std::endl;
+    std::exit(1);
+  }
 
-    // memory deallocation
-    inline void free_async(void* d_pointer)
-    {
-      //hipFree(d_pointer);
-    }
+  // asynchronous memory allocation (when supported)
+  template <typename T> inline bool malloc_async(T **d_pointer, size_t size) try {
+    return ((*d_pointer = (T *)::sycl::malloc_device(
+                                size, dpct::get_default_queue())),0) == 0;//TODO
+  }
+  catch (::sycl::exception const &exc) {
+    std::cerr << exc.what() << "Exception caught at file:" << __FILE__
+              << ", line:" << __LINE__ << std::endl;
+    std::exit(1);
+  }
+
+  // asynchronous memory deallocation (when supported)
+  inline void free_async(void* d_pointer)
+  {
+    ::sycl::free(d_pointer, dpct::get_default_queue());
+  }
+
   } // namespace internal
   } // namespace sycl
   } // namespace zfp

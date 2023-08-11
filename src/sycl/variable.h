@@ -38,7 +38,7 @@ namespace internal {
     {
         ::sycl::range<3> blocks(1, 1, (nstreams_chunk - 1) / 1024 + 1);
         /*
-        DPCT1049:4: The work-group size passed to the SYCL kernel may exceed the
+        DPCT1049:8: The work-group size passed to the SYCL kernel may exceed the
         limit. To get the device limit, query info::device::max_work_group_size.
         Adjust the work-group size if needed.
         */
@@ -73,7 +73,7 @@ namespace internal {
             if ((i + 1) * 32 < misaligned + length_bits)
                 high = streams[offset_32 + i + 1];
             /*
-            DPCT1098:27: The ((upsample(hi, lo) >> (shift & 31)) & 0xFFFFFFFF)
+            DPCT1098:33: The ((upsample(hi, lo) >> (shift & 31)) & 0xFFFFFFFF)
             expression is used instead of the __funnelshift_r call. These two
             expressions do not provide the exact same functionality. Check the
             generated code for potential precision and/or performance issues.
@@ -119,7 +119,7 @@ namespace internal {
                 uint v0 = i > 0 ? sm_in[off_smin + i - 1] : 0;
                 uint v1 = sm_in[off_smin + i];
                 /*
-                DPCT1098:28: The ((upsample(hi, lo) << (shift & 31)) >> 32)
+                DPCT1098:34: The ((upsample(hi, lo) << (shift & 31)) >> 32)
                 expression is used instead of the __funnelshift_l call. These
                 two expressions do not provide the exact same functionality.
                 Check the generated code for potential precision and/or
@@ -148,7 +148,7 @@ namespace internal {
 
         // This synchthreads protects sm_out and sm_length.
         /*
-        DPCT1065:5: Consider replacing ::sycl::nd_item::barrier() with
+        DPCT1065:9: Consider replacing ::sycl::nd_item::barrier() with
         ::sycl::nd_item::barrier(::sycl::access::fence_space::local_space) for
         better performance if there is no access to global memory.
         */
@@ -160,7 +160,7 @@ namespace internal {
             total_length += sm_length[i];
         for (int i = 1; i < 32; i *= 2)
             /*
-            DPCT1096:40: The right-most dimension of the work-group used in the
+            DPCT1096:42: The right-most dimension of the work-group used in the
             SYCL kernel that calls this function may be less than "32". The
             function "dpct::permute_sub_group_by_xor" may return an unexpected
             result on the CPU device. Modify the size of the work-group to
@@ -219,15 +219,10 @@ namespace internal {
                                                 int maxbits,
                                                 int maxpad32,
                                                 const ::sycl::nd_item<3> &item_ct1,
+                                                ::sycl::atomic_ref<unsigned int, ::sycl::memory_order::seq_cst, ::sycl::memory_scope::device, ::sycl::access::address_space::global_space> &sync_ct1,
                                                 uint8_t *dpct_local,
                                                 uint *sm_length)
     {
-        /*
-        DPCT1087:7: SYCL currently does not support cross group synchronization.
-        You can specify "--use-experimental-features=nd_range_barrier" to use
-        the dpct helper function nd_range_barrier to migrate this_grid().
-        */
-        cg::grid_group grid = cg::this_grid();
 
         auto sm_in = (uint *)dpct_local; // sm_in[num_tiles * maxpad32]
         uint *sm_out = sm_in + num_tiles * maxpad32; // sm_out[num_tiles * maxpad32 + 2]
@@ -271,20 +266,14 @@ namespace internal {
             // Check if there is overlap between input and output at the grid level.
             // Grid sync if needed, otherwise just syncthreads to protect the shared memory.
             // All the threads launched must participate in a grid::sync
-            int last_stream = ::sycl::min(nstreams_chunk, (int)(i + grid_stride));
+            int last_stream = ::sycl::min(nstreams_chunk, i + grid_stride);
             unsigned long long writing_to = (offsets[last_stream] + 31) / 32;
             unsigned long long reading_from = (first_stream_chunk + i) * maxbits;
             if (writing_to >= reading_from)
-                /*
-                DPCT1087:8: SYCL currently does not support cross group
-                synchronization. You can specify
-                "--use-experimental-features=nd_range_barrier" to use the dpct
-                helper function nd_range_barrier to migrate grid.sync().
-                */
-                grid.sync();
+                dpct::experimental::nd_range_barrier(item_ct1, sync_ct1);
             else
                 /*
-                DPCT1065:9: Consider replacing ::sycl::nd_item::barrier() with
+                DPCT1065:11: Consider replacing ::sycl::nd_item::barrier() with
                 ::sycl::nd_item::barrier(::sycl::access::fence_space::local_space)
                 for better performance if there is no access to global memory.
                 */
@@ -333,107 +322,11 @@ namespace internal {
             constexpr int tile_size = 1;
             constexpr int num_tiles = 512;
             size_t shmem = (2 * num_tiles * maxpad32 + 2) * sizeof(uint);
-            /*
-            DPCT1007:29: Migration of
-            cudaOccupancyMaxActiveBlocksPerMultiprocessor is not supported.
-            */
-            cudaOccupancyMaxActiveBlocksPerMultiprocessor(
-                &max_blocks, concat_bitstreams_chunk<tile_size, num_tiles>,
-                tile_size * num_tiles, shmem);
-            max_blocks *= num_sm;
-            max_blocks = std::min(nstream_chunk, max_blocks);
-            ::sycl::range<3> threads(1, num_tiles, tile_size);
-            /*
-            DPCT1049:10: The work-group size passed to the SYCL kernel may
-            exceed the limit. To get the device limit, query
-            info::device::max_work_group_size. Adjust the work-group size if
-            needed.
-            */
-    q_ct1.submit([&](::sycl::handler &cgh) {
-      ::sycl::local_accessor<uint8_t, 1> dpct_local_acc_ct1(::sycl::range<1>(shmem),
-                                                          cgh);
-      ::sycl::local_accessor<uint, 1> sm_length_acc_ct1(::sycl::range<1>(num_tiles),
-                                                      cgh);
-
-      auto streams_ct0 = *(uint *__restrict *)kernelArgs[0];
-      auto offsets_ct1 = *(unsigned long long *__restrict *)kernelArgs[1];
-      auto first_stream_chunk_ct2 = *(unsigned long long *)kernelArgs[2];
-      auto nstreams_chunk_ct3 = *(int *)kernelArgs[3];
-      auto last_chunk_ct4 = *(bool *)kernelArgs[4];
-      auto maxbits_ct5 = *(int *)kernelArgs[5];
-      auto maxpad32_ct6 = *(int *)kernelArgs[6];
-
-      cgh.parallel_for(
-          ::sycl::nd_range<3>(::sycl::range<3>(1, 1, max_blocks) * threads,
-                            threads),
-          [=](::sycl::nd_item<3> item_ct1) [[intel::reqd_sub_group_size(32)]] {
-            concat_bitstreams_chunk<tile_size, num_tiles>(
-                streams_ct0, offsets_ct1, first_stream_chunk_ct2,
-                nstreams_chunk_ct3, last_chunk_ct4, maxbits_ct5, maxpad32_ct6,
-                item_ct1, dpct_local_acc_ct1.get_pointer(),
-                sm_length_acc_ct1.get_pointer());
-          });
-    });
-        }
-        else if (nbitsmax <= 1504)
-        {
-            constexpr int tile_size = 4;
-            constexpr int num_tiles = 128;
-            size_t shmem = (2 * num_tiles * maxpad32 + 2) * sizeof(uint);
-            /*
-            DPCT1007:30: Migration of
-            cudaOccupancyMaxActiveBlocksPerMultiprocessor is not supported.
-            */
-            cudaOccupancyMaxActiveBlocksPerMultiprocessor(
-                &max_blocks, concat_bitstreams_chunk<tile_size, num_tiles>,
-                tile_size * num_tiles, shmem);
-            max_blocks *= num_sm;
-            max_blocks = std::min(nstream_chunk, max_blocks);
-            ::sycl::range<3> threads(1, num_tiles, tile_size);
-            /*
-            DPCT1049:11: The work-group size passed to the SYCL kernel may
-            exceed the limit. To get the device limit, query
-            info::device::max_work_group_size. Adjust the work-group size if
-            needed.
-            */
-    q_ct1.submit([&](::sycl::handler &cgh) {
-      ::sycl::local_accessor<uint8_t, 1> dpct_local_acc_ct1(::sycl::range<1>(shmem),
-                                                          cgh);
-      ::sycl::local_accessor<uint, 1> sm_length_acc_ct1(::sycl::range<1>(num_tiles),
-                                                      cgh);
-
-      auto streams_ct0 = *(uint *__restrict *)kernelArgs[0];
-      auto offsets_ct1 = *(unsigned long long *__restrict *)kernelArgs[1];
-      auto first_stream_chunk_ct2 = *(unsigned long long *)kernelArgs[2];
-      auto nstreams_chunk_ct3 = *(int *)kernelArgs[3];
-      auto last_chunk_ct4 = *(bool *)kernelArgs[4];
-      auto maxbits_ct5 = *(int *)kernelArgs[5];
-      auto maxpad32_ct6 = *(int *)kernelArgs[6];
-
-      cgh.parallel_for(
-          ::sycl::nd_range<3>(::sycl::range<3>(1, 1, max_blocks) * threads,
-                            threads),
-          [=](::sycl::nd_item<3> item_ct1) [[intel::reqd_sub_group_size(32)]] {
-            concat_bitstreams_chunk<tile_size, num_tiles>(
-                streams_ct0, offsets_ct1, first_stream_chunk_ct2,
-                nstreams_chunk_ct3, last_chunk_ct4, maxbits_ct5, maxpad32_ct6,
-                item_ct1, dpct_local_acc_ct1.get_pointer(),
-                sm_length_acc_ct1.get_pointer());
-          });
-    });
-        }
-        else if (nbitsmax <= 6112)
-        {
-            constexpr int tile_size = 16;
-            constexpr int num_tiles = 32;
-            size_t shmem = (2 * num_tiles * maxpad32 + 2) * sizeof(uint);
-            /*
-            DPCT1007:31: Migration of
-            cudaOccupancyMaxActiveBlocksPerMultiprocessor is not supported.
-            */
-            cudaOccupancyMaxActiveBlocksPerMultiprocessor(
-                &max_blocks, concat_bitstreams_chunk<tile_size, num_tiles>,
-                tile_size * num_tiles, shmem);
+            // NOTE: Adding num_tiles * sizeof(uint) to account for locally allocated shared memory in in kernel "concat_bitstreams_chunk".
+            // See https://oneapi-src.github.io/SYCLomatic/dev_guide/diagnostic_ref/dpct1111.html
+            dpct::experimental::calculate_max_active_wg_per_xecore(
+                &max_blocks, tile_size * num_tiles,
+                shmem + num_tiles * sizeof(uint));
             max_blocks *= num_sm;
             max_blocks = std::min(nstream_chunk, max_blocks);
             ::sycl::range<3> threads(1, num_tiles, tile_size);
@@ -443,44 +336,56 @@ namespace internal {
             info::device::max_work_group_size. Adjust the work-group size if
             needed.
             */
-    q_ct1.submit([&](::sycl::handler &cgh) {
-      ::sycl::local_accessor<uint8_t, 1> dpct_local_acc_ct1(::sycl::range<1>(shmem),
-                                                          cgh);
-      ::sycl::local_accessor<uint, 1> sm_length_acc_ct1(::sycl::range<1>(num_tiles),
-                                                      cgh);
+    {
+      dpct::global_memory<unsigned int, 0> d_sync_ct1(0);
+      unsigned *sync_ct1 = d_sync_ct1.get_ptr(dpct::get_default_queue());
+      dpct::get_default_queue().memset(sync_ct1, 0, sizeof(int)).wait();
+      q_ct1
+          .submit([&](::sycl::handler &cgh) {
+            ::sycl::local_accessor<uint8_t, 1> dpct_local_acc_ct1(
+                ::sycl::range<1>(shmem), cgh);
+            ::sycl::local_accessor<uint, 1> sm_length_acc_ct1(
+                ::sycl::range<1>(num_tiles), cgh);
 
-      auto streams_ct0 = *(uint *__restrict *)kernelArgs[0];
-      auto offsets_ct1 = *(unsigned long long *__restrict *)kernelArgs[1];
-      auto first_stream_chunk_ct2 = *(unsigned long long *)kernelArgs[2];
-      auto nstreams_chunk_ct3 = *(int *)kernelArgs[3];
-      auto last_chunk_ct4 = *(bool *)kernelArgs[4];
-      auto maxbits_ct5 = *(int *)kernelArgs[5];
-      auto maxpad32_ct6 = *(int *)kernelArgs[6];
+            auto streams_ct0 = *(uint *__restrict *)kernelArgs[0];
+            auto offsets_ct1 = *(unsigned long long *__restrict *)kernelArgs[1];
+            auto first_stream_chunk_ct2 = *(unsigned long long *)kernelArgs[2];
+            auto nstreams_chunk_ct3 = *(int *)kernelArgs[3];
+            auto last_chunk_ct4 = *(bool *)kernelArgs[4];
+            auto maxbits_ct5 = *(int *)kernelArgs[5];
+            auto maxpad32_ct6 = *(int *)kernelArgs[6];
 
-      cgh.parallel_for(
-          ::sycl::nd_range<3>(::sycl::range<3>(1, 1, max_blocks) * threads,
-                            threads),
-          [=](::sycl::nd_item<3> item_ct1) [[intel::reqd_sub_group_size(32)]] {
-            concat_bitstreams_chunk<tile_size, num_tiles>(
-                streams_ct0, offsets_ct1, first_stream_chunk_ct2,
-                nstreams_chunk_ct3, last_chunk_ct4, maxbits_ct5, maxpad32_ct6,
-                item_ct1, dpct_local_acc_ct1.get_pointer(),
-                sm_length_acc_ct1.get_pointer());
-          });
-    });
+            cgh.parallel_for(
+                ::sycl::nd_range<3>(::sycl::range<3>(1, 1, max_blocks) * threads,
+                                  threads),
+                [=](::sycl::nd_item<3> item_ct1)
+                    [[intel::reqd_sub_group_size(32)]] {
+                      auto atm_sync_ct1 = ::sycl::atomic_ref<
+                          unsigned int, ::sycl::memory_order::seq_cst,
+                          ::sycl::memory_scope::device,
+                          ::sycl::access::address_space::global_space>(
+                          sync_ct1[0]);
+                      concat_bitstreams_chunk<tile_size, num_tiles>(
+                          streams_ct0, offsets_ct1, first_stream_chunk_ct2,
+                          nstreams_chunk_ct3, last_chunk_ct4, maxbits_ct5,
+                          maxpad32_ct6, item_ct1, atm_sync_ct1,
+                          dpct_local_acc_ct1.get_pointer(),
+                          sm_length_acc_ct1.get_pointer());
+                    });
+          })
+          .wait();
+    }
         }
-        else // Up to 24512 bits, so works even for largest 4D.
+        else if (nbitsmax <= 1504)
         {
-            constexpr int tile_size = 64;
-            constexpr int num_tiles = 8;
+            constexpr int tile_size = 4;
+            constexpr int num_tiles = 128;
             size_t shmem = (2 * num_tiles * maxpad32 + 2) * sizeof(uint);
-            /*
-            DPCT1007:32: Migration of
-            cudaOccupancyMaxActiveBlocksPerMultiprocessor is not supported.
-            */
-            cudaOccupancyMaxActiveBlocksPerMultiprocessor(
-                &max_blocks, concat_bitstreams_chunk<tile_size, num_tiles>,
-                tile_size * num_tiles, shmem);
+            // NOTE: Adding num_tiles * sizeof(uint) to account for locally allocated shared memory in in kernel "concat_bitstreams_chunk".
+            // See https://oneapi-src.github.io/SYCLomatic/dev_guide/diagnostic_ref/dpct1111.html
+            dpct::experimental::calculate_max_active_wg_per_xecore(
+                &max_blocks, tile_size * num_tiles,
+                shmem + num_tiles * sizeof(uint));
             max_blocks *= num_sm;
             max_blocks = std::min(nstream_chunk, max_blocks);
             ::sycl::range<3> threads(1, num_tiles, tile_size);
@@ -490,31 +395,162 @@ namespace internal {
             info::device::max_work_group_size. Adjust the work-group size if
             needed.
             */
-    q_ct1.submit([&](::sycl::handler &cgh) {
-      ::sycl::local_accessor<uint8_t, 1> dpct_local_acc_ct1(::sycl::range<1>(shmem),
-                                                          cgh);
-      ::sycl::local_accessor<uint, 1> sm_length_acc_ct1(::sycl::range<1>(num_tiles),
-                                                      cgh);
+    {
+      dpct::global_memory<unsigned int, 0> d_sync_ct1(0);
+      unsigned *sync_ct1 = d_sync_ct1.get_ptr(dpct::get_default_queue());
+      dpct::get_default_queue().memset(sync_ct1, 0, sizeof(int)).wait();
+      q_ct1
+          .submit([&](::sycl::handler &cgh) {
+            ::sycl::local_accessor<uint8_t, 1> dpct_local_acc_ct1(
+                ::sycl::range<1>(shmem), cgh);
+            ::sycl::local_accessor<uint, 1> sm_length_acc_ct1(
+                ::sycl::range<1>(num_tiles), cgh);
 
-      auto streams_ct0 = *(uint *__restrict *)kernelArgs[0];
-      auto offsets_ct1 = *(unsigned long long *__restrict *)kernelArgs[1];
-      auto first_stream_chunk_ct2 = *(unsigned long long *)kernelArgs[2];
-      auto nstreams_chunk_ct3 = *(int *)kernelArgs[3];
-      auto last_chunk_ct4 = *(bool *)kernelArgs[4];
-      auto maxbits_ct5 = *(int *)kernelArgs[5];
-      auto maxpad32_ct6 = *(int *)kernelArgs[6];
+            auto streams_ct0 = *(uint *__restrict *)kernelArgs[0];
+            auto offsets_ct1 = *(unsigned long long *__restrict *)kernelArgs[1];
+            auto first_stream_chunk_ct2 = *(unsigned long long *)kernelArgs[2];
+            auto nstreams_chunk_ct3 = *(int *)kernelArgs[3];
+            auto last_chunk_ct4 = *(bool *)kernelArgs[4];
+            auto maxbits_ct5 = *(int *)kernelArgs[5];
+            auto maxpad32_ct6 = *(int *)kernelArgs[6];
 
-      cgh.parallel_for(
-          ::sycl::nd_range<3>(::sycl::range<3>(1, 1, max_blocks) * threads,
-                            threads),
-          [=](::sycl::nd_item<3> item_ct1) [[intel::reqd_sub_group_size(32)]] {
-            concat_bitstreams_chunk<tile_size, num_tiles>(
-                streams_ct0, offsets_ct1, first_stream_chunk_ct2,
-                nstreams_chunk_ct3, last_chunk_ct4, maxbits_ct5, maxpad32_ct6,
-                item_ct1, dpct_local_acc_ct1.get_pointer(),
-                sm_length_acc_ct1.get_pointer());
-          });
-    });
+            cgh.parallel_for(
+                ::sycl::nd_range<3>(::sycl::range<3>(1, 1, max_blocks) * threads,
+                                  threads),
+                [=](::sycl::nd_item<3> item_ct1)
+                    [[intel::reqd_sub_group_size(32)]] {
+                      auto atm_sync_ct1 = ::sycl::atomic_ref<
+                          unsigned int, ::sycl::memory_order::seq_cst,
+                          ::sycl::memory_scope::device,
+                          ::sycl::access::address_space::global_space>(
+                          sync_ct1[0]);
+                      concat_bitstreams_chunk<tile_size, num_tiles>(
+                          streams_ct0, offsets_ct1, first_stream_chunk_ct2,
+                          nstreams_chunk_ct3, last_chunk_ct4, maxbits_ct5,
+                          maxpad32_ct6, item_ct1, atm_sync_ct1,
+                          dpct_local_acc_ct1.get_pointer(),
+                          sm_length_acc_ct1.get_pointer());
+                    });
+          })
+          .wait();
+    }
+        }
+        else if (nbitsmax <= 6112)
+        {
+            constexpr int tile_size = 16;
+            constexpr int num_tiles = 32;
+            size_t shmem = (2 * num_tiles * maxpad32 + 2) * sizeof(uint);
+            // NOTE: Adding num_tiles * sizeof(uint) to account for locally allocated shared memory in in kernel "concat_bitstreams_chunk".
+            // See https://oneapi-src.github.io/SYCLomatic/dev_guide/diagnostic_ref/dpct1111.html
+            dpct::experimental::calculate_max_active_wg_per_xecore(
+                &max_blocks, tile_size * num_tiles,
+                shmem + num_tiles * sizeof(uint));
+            max_blocks = std::min(nstream_chunk, max_blocks);
+            ::sycl::range<3> threads(1, num_tiles, tile_size);
+            /*
+            DPCT1049:14: The work-group size passed to the SYCL kernel may
+            exceed the limit. To get the device limit, query
+            info::device::max_work_group_size. Adjust the work-group size if
+            needed.
+            */
+    {
+      dpct::global_memory<unsigned int, 0> d_sync_ct1(0);
+      unsigned *sync_ct1 = d_sync_ct1.get_ptr(dpct::get_default_queue());
+      dpct::get_default_queue().memset(sync_ct1, 0, sizeof(int)).wait();
+      q_ct1
+          .submit([&](::sycl::handler &cgh) {
+            ::sycl::local_accessor<uint8_t, 1> dpct_local_acc_ct1(
+                ::sycl::range<1>(shmem), cgh);
+            ::sycl::local_accessor<uint, 1> sm_length_acc_ct1(
+                ::sycl::range<1>(num_tiles), cgh);
+
+            auto streams_ct0 = *(uint *__restrict *)kernelArgs[0];
+            auto offsets_ct1 = *(unsigned long long *__restrict *)kernelArgs[1];
+            auto first_stream_chunk_ct2 = *(unsigned long long *)kernelArgs[2];
+            auto nstreams_chunk_ct3 = *(int *)kernelArgs[3];
+            auto last_chunk_ct4 = *(bool *)kernelArgs[4];
+            auto maxbits_ct5 = *(int *)kernelArgs[5];
+            auto maxpad32_ct6 = *(int *)kernelArgs[6];
+
+            cgh.parallel_for(
+                ::sycl::nd_range<3>(::sycl::range<3>(1, 1, max_blocks) * threads,
+                                  threads),
+                [=](::sycl::nd_item<3> item_ct1)
+                    [[intel::reqd_sub_group_size(32)]] {
+                      auto atm_sync_ct1 = ::sycl::atomic_ref<
+                          unsigned int, ::sycl::memory_order::seq_cst,
+                          ::sycl::memory_scope::device,
+                          ::sycl::access::address_space::global_space>(
+                          sync_ct1[0]);
+                      concat_bitstreams_chunk<tile_size, num_tiles>(
+                          streams_ct0, offsets_ct1, first_stream_chunk_ct2,
+                          nstreams_chunk_ct3, last_chunk_ct4, maxbits_ct5,
+                          maxpad32_ct6, item_ct1, atm_sync_ct1,
+                          dpct_local_acc_ct1.get_pointer(),
+                          sm_length_acc_ct1.get_pointer());
+                    });
+          })
+          .wait();
+    }
+        }
+        else // Up to 24512 bits, so works even for largest 4D.
+        {
+            constexpr int tile_size = 64;
+            constexpr int num_tiles = 8;
+            size_t shmem = (2 * num_tiles * maxpad32 + 2) * sizeof(uint);
+            // NOTE: Adding num_tiles * sizeof(uint) to account for locally allocated shared memory in in kernel "concat_bitstreams_chunk".
+            // See https://oneapi-src.github.io/SYCLomatic/dev_guide/diagnostic_ref/dpct1111.html
+            dpct::experimental::calculate_max_active_wg_per_xecore(
+                &max_blocks, tile_size * num_tiles,
+                shmem + num_tiles * sizeof(uint));
+            max_blocks *= num_sm;
+            max_blocks = std::min(nstream_chunk, max_blocks);
+            ::sycl::range<3> threads(1, num_tiles, tile_size);
+            /*
+            DPCT1049:15: The work-group size passed to the SYCL kernel may
+            exceed the limit. To get the device limit, query
+            info::device::max_work_group_size. Adjust the work-group size if
+            needed.
+            */
+    {
+      dpct::global_memory<unsigned int, 0> d_sync_ct1(0);
+      unsigned *sync_ct1 = d_sync_ct1.get_ptr(dpct::get_default_queue());
+      dpct::get_default_queue().memset(sync_ct1, 0, sizeof(int)).wait();
+      q_ct1
+          .submit([&](::sycl::handler &cgh) {
+            ::sycl::local_accessor<uint8_t, 1> dpct_local_acc_ct1(
+                ::sycl::range<1>(shmem), cgh);
+            ::sycl::local_accessor<uint, 1> sm_length_acc_ct1(
+                ::sycl::range<1>(num_tiles), cgh);
+
+            auto streams_ct0 = *(uint *__restrict *)kernelArgs[0];
+            auto offsets_ct1 = *(unsigned long long *__restrict *)kernelArgs[1];
+            auto first_stream_chunk_ct2 = *(unsigned long long *)kernelArgs[2];
+            auto nstreams_chunk_ct3 = *(int *)kernelArgs[3];
+            auto last_chunk_ct4 = *(bool *)kernelArgs[4];
+            auto maxbits_ct5 = *(int *)kernelArgs[5];
+            auto maxpad32_ct6 = *(int *)kernelArgs[6];
+
+            cgh.parallel_for(
+                ::sycl::nd_range<3>(::sycl::range<3>(1, 1, max_blocks) * threads,
+                                  threads),
+                [=](::sycl::nd_item<3> item_ct1)
+                    [[intel::reqd_sub_group_size(32)]] {
+                      auto atm_sync_ct1 = ::sycl::atomic_ref<
+                          unsigned int, ::sycl::memory_order::seq_cst,
+                          ::sycl::memory_scope::device,
+                          ::sycl::access::address_space::global_space>(
+                          sync_ct1[0]);
+                      concat_bitstreams_chunk<tile_size, num_tiles>(
+                          streams_ct0, offsets_ct1, first_stream_chunk_ct2,
+                          nstreams_chunk_ct3, last_chunk_ct4, maxbits_ct5,
+                          maxpad32_ct6, item_ct1, atm_sync_ct1,
+                          dpct_local_acc_ct1.get_pointer(),
+                          sm_length_acc_ct1.get_pointer());
+                    });
+          })
+          .wait();
+    }
         }
     }
 
@@ -570,7 +606,7 @@ namespace internal {
     }
 
 } // namespace internal
-} // namespace hip
+} // namespace sycl
 } // namespace zfp
 
 #endif
