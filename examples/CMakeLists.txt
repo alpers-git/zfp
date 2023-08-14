@@ -10,6 +10,11 @@ else()
   target_link_libraries(diffusion zfp)
 endif()
 
+if(ZFP_WITH_SYCL)
+  add_executable(syclTest syclTest.cpp)
+  target_link_libraries(syclTest zfp)
+endif()
+
 if(BUILD_CFP)
   add_executable(diffusionC diffusionC.c)
   target_link_libraries(diffusionC cfp)
