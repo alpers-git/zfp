@@ -39,7 +39,15 @@ int main(int argc, char const *argv[])
         fprintf(stderr, "execution not available\n");
         return EXIT_FAILURE;
     }
-
+    zfp_stream_set_rate(zfp, rate, zfp_field_type(field), zfp_field_dimensionality(field), zfp_false);
+    zfp_stream_rewind(zfp);
+    size_t zsize = zfp_compress(zfp, field);
+    //print the compressed size and the stream between begin and end
+    printf("zfp compressed size: %zu\n", zsize);
+    printf("zfp compressed stream: ");
+    for (size_t i = 0; i < zsize; i++) {
+        printf("%02x", ((uint8*)buffer)[i]);
+    }
 
     return 0;
 }
