@@ -208,6 +208,8 @@ encode_index(zfp_stream* zfp)
 #include "template/cudadecompress.c"
 #include "template/hipcompress.c"
 #include "template/hipdecompress.c"
+#include "template/syclcompress.c"
+#include "template/sycldecompress.c"
 #undef Scalar
 
 #define Scalar int64
@@ -219,6 +221,8 @@ encode_index(zfp_stream* zfp)
 #include "template/cudadecompress.c"
 #include "template/hipcompress.c"
 #include "template/hipdecompress.c"
+#include "template/syclcompress.c"
+#include "template/sycldecompress.c"
 #undef Scalar
 
 #define Scalar float
@@ -230,6 +234,8 @@ encode_index(zfp_stream* zfp)
 #include "template/cudadecompress.c"
 #include "template/hipcompress.c"
 #include "template/hipdecompress.c"
+#include "template/syclcompress.c"
+#include "template/sycldecompress.c"
 #undef Scalar
 
 #define Scalar double
@@ -241,6 +247,8 @@ encode_index(zfp_stream* zfp)
 #include "template/cudadecompress.c"
 #include "template/hipcompress.c"
 #include "template/hipdecompress.c"
+#include "template/syclcompress.c"
+#include "template/sycldecompress.c"
 #undef Scalar
 
 /* public functions: miscellaneous ----------------------------------------- */
@@ -1373,6 +1381,20 @@ zfp_compress(zfp_stream* zfp, const zfp_field* field)
 #else
     {{{ NULL }}},
 #endif
+
+    /* SYCL */
+#ifdef ZFP_WITH_SYCL
+    {{{ compress_sycl_int32_1,         compress_sycl_int64_1,         compress_sycl_float_1,         compress_sycl_double_1 },
+      { compress_strided_sycl_int32_2, compress_strided_sycl_int64_2, compress_strided_sycl_float_2, compress_strided_sycl_double_2 },
+      { compress_strided_sycl_int32_3, compress_strided_sycl_int64_3, compress_strided_sycl_float_3, compress_strided_sycl_double_3 },
+      { NULL,                            NULL,                            NULL,                            NULL }},
+     {{ compress_strided_sycl_int32_1, compress_strided_sycl_int64_1, compress_strided_sycl_float_1, compress_strided_sycl_double_1 },
+      { compress_strided_sycl_int32_2, compress_strided_sycl_int64_2, compress_strided_sycl_float_2, compress_strided_sycl_double_2 },
+      { compress_strided_sycl_int32_3, compress_strided_sycl_int64_3, compress_strided_sycl_float_3, compress_strided_sycl_double_3 },
+      { NULL,                            NULL,                            NULL,                            NULL }}},
+#else
+    {{{ NULL }}},
+#endif
   };
   uint exec = zfp->exec.policy;
   uint strided = (uint)zfp_field_stride(field, NULL);
@@ -1473,6 +1495,20 @@ zfp_decompress(zfp_stream* zfp, zfp_field* field)
      {{ decompress_strided_hip_int32_1, decompress_strided_hip_int64_1, decompress_strided_hip_float_1, decompress_strided_hip_double_1 },
       { decompress_strided_hip_int32_2, decompress_strided_hip_int64_2, decompress_strided_hip_float_2, decompress_strided_hip_double_2 },
       { decompress_strided_hip_int32_3, decompress_strided_hip_int64_3, decompress_strided_hip_float_3, decompress_strided_hip_double_3 },
+      { NULL,                            NULL,                            NULL,                            NULL }}},
+#else
+    {{{ NULL }}},
+#endif
+
+    /* SYCL */
+#ifdef ZFP_WITH_SYCL
+    {{{ decompress_sycl_int32_1,         decompress_sycl_int64_1,         decompress_sycl_float_1,         decompress_sycl_double_1 },
+      { decompress_strided_sycl_int32_2, decompress_strided_sycl_int64_2, decompress_strided_sycl_float_2, decompress_strided_sycl_double_2 },
+      { decompress_strided_sycl_int32_3, decompress_strided_sycl_int64_3, decompress_strided_sycl_float_3, decompress_strided_sycl_double_3 },
+      { NULL,                            NULL,                            NULL,                            NULL }},
+     {{ decompress_strided_sycl_int32_1, decompress_strided_sycl_int64_1, decompress_strided_sycl_float_1, decompress_strided_sycl_double_1 },
+      { decompress_strided_sycl_int32_2, decompress_strided_sycl_int64_2, decompress_strided_sycl_float_2, decompress_strided_sycl_double_2 },
+      { decompress_strided_sycl_int32_3, decompress_strided_sycl_int64_3, decompress_strided_sycl_float_3, decompress_strided_sycl_double_3 },
       { NULL,                            NULL,                            NULL,                            NULL }}},
 #else
     {{{ NULL }}},
