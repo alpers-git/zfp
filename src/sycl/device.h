@@ -23,7 +23,6 @@ bool device_init()
     bool success = true;
     try{
         // Get a SYCL device queue
-        //TODO: how to get the preferred device type?
         queue device_q(cpu_selector_v);
     
         // allocate a buffer to store the magic number on the device
