@@ -120,32 +120,23 @@ helper function to migrate __shfl_xor_sync.
   namespace internal {
 
   // determine whether ptr points to device memory
-  inline bool is_gpu_ptr(const void *ptr) try {
-    bool status = false;
+  inline bool is_gpu_ptr(const void *ptr){
     dpct::pointer_attributes atts;
-    if ((atts.init(ptr),0) == 0)
+    try {
+      atts.init(ptr);
       switch (atts.get_memory_type()) {
         case ::sycl::usm::alloc::device:
-#if (SYCL_LANGUAGE_VERSION >= 202000)
+        /* FALL THROUGH */
         case ::sycl::usm::alloc::shared:
-#endif
-          status = true;
-          break;
+          return true;
+        default:
+          return false;
       }
-    // clear last error so other error checking does not pick it up
-    /*
-    DPCT1010:24: SYCL uses exceptions to report errors and does not use the
-    error codes. The call was replaced with 0. You need to rewrite this code.
-    */
-    (void)0;
-    return status;
+    } catch (::sycl::exception const &exc) {
+      return false;
+    }
+    return false;
   }
-  catch (::sycl::exception const &exc) {
-    std::cerr << exc.what() << "Exception caught at file:" << __FILE__
-              << ", line:" << __LINE__ << std::endl;
-    std::exit(1);
-  }
-
   // asynchronous memory allocation (when supported)
   template <typename T> inline bool malloc_async(T **d_pointer, size_t size) try {
     return ((*d_pointer = (T *)::sycl::malloc_device(
