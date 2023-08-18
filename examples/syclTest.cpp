@@ -41,6 +41,8 @@ int main(int argc, char const *argv[])
     bitstream* s = stream_open(buffer, bufsize);
     zfp_stream_set_bit_stream(zfp, s);
 
+    stream_rewind(s); //enter to readmode
+
     printf("=====Serial execution=====\n");
 
     printf("----bitream before compression----\n");
@@ -59,11 +61,11 @@ int main(int argc, char const *argv[])
     zfp_stream_rewind(zfp);
     stream_close(s);
     zfp_stream_close(zfp);
-    delete[] buffer;
+    //delete[] buffer;
 
     //create a new bitstream and zfp stream
-    buffer = new uchar[bufsize];
-    s = stream_open(buffer, bufsize);
+    uchar* buffer_sycl = new uchar[bufsize];
+    s = stream_open(buffer_sycl, bufsize);
     zfp = zfp_stream_open(s);
     zfp_stream_set_rate(zfp, rate, type, 2, zfp_false);
     
@@ -73,6 +75,20 @@ int main(int argc, char const *argv[])
         return EXIT_FAILURE;
     }
 
+    printf("\n=====SYCL execution=====\n");
+
+    printf("----bitream before compression----\n");
+    //print the bitstream before compression
+    for (size_t i = 0; i < bufsize; i++)
+        printf("%02x", buffer_sycl[i]);
+
+    //compress the data
+    zfp_stream_rewind(zfp);
+    outsize = zfp_compress(zfp, field);
+    printf("\n----bitream after compression----\n");
+    //print the bitstream after compression
+    for (size_t i = 0; i < bufsize; i++)
+        printf("%02x", buffer_sycl[i]);
 
     return 0;
 }
