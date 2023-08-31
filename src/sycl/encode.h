@@ -38,14 +38,9 @@ inline
 int get_exponent(float x)
 {
   int e;
-  /*
-  DPCT1017:24: The ::sycl::frexp call is used instead of the frexpf call. These
-  two calls do not provide exactly the same functionality. Check the potential
-  precision and/or performance issues for the generated code.
-  */
+  //DPCT1017:24:Resolved. Removed weird address operations
   ::sycl::frexp(
-      x, ::sycl::address_space_cast<::sycl::access::address_space::private_space,
-                                  ::sycl::access::decorated::yes, int>(&e));
+      x, &e);
   return e;
 }
 
@@ -54,14 +49,9 @@ inline
 int get_exponent(double x)
 {
   int e;
-  /*
-  DPCT1017:25: The ::sycl::frexp call is used instead of the frexp call. These two
-  calls do not provide exactly the same functionality. Check the potential
-  precision and/or performance issues for the generated code.
-  */
+  //DPCT1017:25:Resolved. Removed weird address operations
   ::sycl::frexp(
-      x, ::sycl::address_space_cast<::sycl::access::address_space::private_space,
-                                  ::sycl::access::decorated::yes, int>(&e));
+      x, e);
   return e;
 }
 
@@ -90,11 +80,7 @@ int max_exponent(const Scalar* p)
 {
   Scalar max_val = 0;
   for (int i = 0; i < BlockSize; i++) {
-    /*
-    DPCT1064:26: Migrated fabs call is used in a macro definition and is not
-    valid for all macro uses. Adjust the code.
-    */
-    Scalar f = ::sycl::fabs((double)(p[i]));
+    Scalar f = ::sycl::fabs((Scalar)(p[i]));
     max_val = ::sycl::max(max_val, f);
   }
   return exponent<Scalar>(max_val);

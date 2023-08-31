@@ -415,6 +415,7 @@ decode3(
 );
 
 // compute bit offset to compressed block
+//TODO: this function seems very optimized for CUDA consider refactoring
 SYCL_EXTERNAL inline unsigned long long
 block_offset(const Word *d_index, zfp_index_type index_type, size_t chunk_idx,
              const ::sycl::nd_item<3> &item_ct1, ::uint64 *offset)
@@ -429,19 +430,13 @@ block_offset(const Word *d_index, zfp_index_type index_type, size_t chunk_idx,
     // warp operates on 32 blocks indexed by one 64-bit offset, 32 16-bit sizes
     const ::uint64* data64 = (const ::uint64*)d_index + warp_idx * 9;
     const ::uint16* data16 = (const ::uint16*)data64 + 3;
-    // TODO: use warp shuffle instead of shared memory
 
     offset[thread_idx] = thread_idx ? data16[thread_idx] : *data64;
     // compute prefix sum in parallel
     for (uint i = 1u; i < 32u; i <<= 1) {
       if (thread_idx + i < 32u)
         offset[thread_idx + i] += offset[thread_idx];
-      /*
-      DPCT1065:14: Consider replacing sycl::nd_item::barrier() with
-      sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better
-      performance if there is no access to global memory.
-      */
-      item_ct1.barrier();
+      item_ct1.barrier(::sycl::access::fence_space::local_space);
     }
     return offset[thread_idx];
   }
