@@ -130,14 +130,14 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
 
   // storage for maximum bit offset; needed to position stream
   unsigned long long int* d_offset;
-  /*
-  DPCT1003:33: Migrated API does not return error code. (*, 0) is inserted. You
-  may need to rewrite this code.
-  */
-  if ((d_offset =
-           (unsigned long long *)::sycl::malloc_device(sizeof(*d_offset), q_ct1),
-       0) != 0)
-    return 0;
+  try {
+    d_offset = (unsigned long long int*)::sycl::malloc_device(
+        sizeof(*d_offset), q_ct1);
+  } catch (::sycl::exception const& e) {
+    std::cerr << "Caught synchronous SYCL exception during malloc_device:\n"
+              << e.what() << std::endl;
+    std::exit(1);
+  }
   q_ct1.memset(d_offset, 0, sizeof(*d_offset)).wait();
 
 #ifdef ZFP_WITH_SYCL_PROFILE
@@ -149,7 +149,9 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   /*
   DPCT1049:15: The work-group size passed to the SYCL kernel may exceed the
   limit. To get the device limit, query info::device::max_work_group_size.
-  Adjust the work-group size if needed.
+  Adjust the work-group size if needed. 
+  
+  TODO: ask Nate about this... Looks correct to me.
   */
   q_ct1.submit([&](::sycl::handler &cgh) {
     extern dpct::global_memory<const unsigned char, 1> perm_1;
