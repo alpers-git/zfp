@@ -39,8 +39,7 @@ int get_exponent(float x)
 {
   int e;
   //DPCT1017:24:Resolved. Removed weird address operations
-  ::sycl::frexp(
-      x, &e);
+  ::sycl::frexp(x, &e);
   return e;
 }
 
@@ -50,8 +49,7 @@ int get_exponent(double x)
 {
   int e;
   //DPCT1017:25:Resolved. Removed weird address operations
-  ::sycl::frexp(
-      x, e);
+  ::sycl::frexp(x, &e);
   return e;
 }
 
