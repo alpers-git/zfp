@@ -29,37 +29,37 @@ zfp_internal_sycl_init(zfp_exec_params_sycl* params) try {
   if (sizeof(Word) != sizeof(bitstream_word))
     return false;
 
-  params->device = zfp_sycl_cpu;
-  dpct::dev_mgr::instance().select_device(0);
+  params->device = zfp_sycl_gpu;
+  dpct::dev_mgr::instance().select_device(0);// Not selecting GPU device
 
 
   // perform expensive query of device properties only once
   static bool initialized = false;
   static dpct::device_info prop;
-  /*
-  DPCT1003:36: Migrated API does not return error code. (*, 0) is inserted. You
-  may need to rewrite this code.
-  */
-  if (!initialized &&
-      (dpct::get_current_device().get_device_info(prop), 0) != 0)
-    return zfp_false;
+
+  if (!initialized)
+  {
+    try {
+      dpct::get_current_device().get_device_info(prop);
+    }catch (::sycl::exception const &e) {
+      std::cerr<<"zfp_sycl : zfp internal sycl init "<< e.what() << std::endl;
+      return zfp_false;
+    }
+  }
   initialized = true;
 
   // cache device properties
   params->processors = prop.get_max_compute_units();
   /*
-  DPCT1022:37: There is no exact match between the maxGridSize and the
-  max_nd_range size. Verify the correctness of the code.
+  DPCT1022:37: Resolved
   */
   params->grid_size[0] = prop.get_max_nd_range_size<int *>()[0];
   /*
-  DPCT1022:38: There is no exact match between the maxGridSize and the
-  max_nd_range size. Verify the correctness of the code.
+  DPCT1022:38: Resolved
   */
   params->grid_size[1] = prop.get_max_nd_range_size<int *>()[1];
   /*
-  DPCT1022:39: There is no exact match between the maxGridSize and the
-  max_nd_range size. Verify the correctness of the code.
+  DPCT1022:39: Resolved
   */
   params->grid_size[2] = prop.get_max_nd_range_size<int *>()[2];
 
