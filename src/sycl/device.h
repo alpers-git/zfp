@@ -1,4 +1,5 @@
 #include <CL/sycl.hpp>
+#include <oneapi/tbb.h>
 #ifndef ZFP_SYCL_DEVICE_H
 #define ZFP_SYCL_DEVICE_H
 

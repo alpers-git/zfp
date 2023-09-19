@@ -20,6 +20,7 @@ if(ZFP_WITH_HIP)
 endif()
 
 if(ZFP_WITH_SYCL)
+  find_package(TBB REQUIRED)
   add_definitions(-DZFP_WITH_SYCL)
   set(ZFP_SYCL_SOURCE sycl/interface.cpp)
   set_source_files_properties(${ZFP_SYCL_SOURCE} PROPERTIES LANGUAGE CXX)
@@ -72,6 +73,10 @@ if(ZFP_WITH_HIP)
   # For debugging: if use HIP on NVIDIA systems
   #find_package(CUDA)
   #target_link_libraries(zfp PRIVATE ${CUDA_CUDART_LIBRARY} stdc++)
+endif()
+
+if(ZFP_WITH_SYCL)
+  target_link_libraries(zfp PRIVATE TBB::tbb)
 endif()
 
 target_compile_definitions(zfp
