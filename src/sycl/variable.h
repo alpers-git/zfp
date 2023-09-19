@@ -37,17 +37,12 @@ namespace internal {
                             int nstreams_chunk)
     {
         ::sycl::range<3> blocks(1, 1, (nstreams_chunk - 1) / 1024 + 1);
-        /*
-        DPCT1049:8: The work-group size passed to the SYCL kernel may exceed the
-        limit. To get the device limit, query info::device::max_work_group_size.
-        Adjust the work-group size if needed.
-        */
-  dpct::get_default_queue().parallel_for(
-      ::sycl::nd_range<3>(blocks * ::sycl::range<3>(1, 1, 1024),
+        dpct::get_default_queue().parallel_for(
+        ::sycl::nd_range<3>(blocks * ::sycl::range<3>(1, 1, 1024),
                         ::sycl::range<3>(1, 1, 1024)),
-      [=](::sycl::nd_item<3> item_ct1) {
-        copy_length(bitlengths, chunk_offsets, first, nstreams_chunk, item_ct1);
-      });
+        [=](::sycl::nd_item<3> item_ct1) {
+            copy_length(bitlengths, chunk_offsets, first, nstreams_chunk, item_ct1);
+        });
     }
 
     // *******************************************************************************

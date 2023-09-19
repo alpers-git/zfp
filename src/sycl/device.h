@@ -35,9 +35,9 @@ bool device_init()
                 d_word[0] = ZFP_MAGIC;
             });
             //enable if unsure about device
-            // std::cout << "Running on: "
-            //   << device_q.get_device().get_info<info::device::name>()
-            //   << std::endl;
+            std::cout << "Running on: "
+              << device_q.get_device().get_info<info::device::name>()
+              << std::endl;
         });
         device_q.wait();
 
@@ -99,21 +99,19 @@ bool device_copy_from_host(T **d_pointer, size_t size, void *h_pointer,
   queue &q_ct1 = dev_ct1.default_queue();
   if (!device_malloc(d_pointer, size, what))
     return false;
-  /*
-  DPCT1003:23: Migrated API does not return error code. (*, 0) is inserted. You
-  may need to rewrite this code.
-  */
-  if ((q_ct1.memcpy(*d_pointer, h_pointer, size).wait(), 0) != 0) {
+  
+  try{
+    q_ct1.memcpy(*d_pointer, h_pointer, size).wait();
+    return true;
+  } catch (exception const &exc) {
 #ifdef ZFP_DEBUG
-    std::cerr << "zfp_cuda : failed to copy " << (what ? what : "data") << " from host to device" << std::endl;
+    std::cerr << "zfp_sycl : failed to copy " << (what ? what : "data") << " from host to device" << std::endl;
 #endif
     free(*d_pointer, q_ct1);
     *d_pointer = NULL;
     return false;
   }
-  return true;
-}
-catch (exception const &exc) {
+} catch (exception const &exc) {
   std::cerr << exc.what() << "Exception caught at file:" << __FILE__
             << ", line:" << __LINE__ << std::endl;
   std::exit(1);
