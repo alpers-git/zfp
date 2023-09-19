@@ -20,39 +20,41 @@ using namespace ::sycl;
 
 bool device_init()
 {
-    bool success = true;
-    try{
-        // Get a SYCL device queue
-        queue device_q(gpu_selector_v);
-    
-        // allocate a buffer to store the magic number on the device
-        buffer<unsigned int, 1> d_word_buf(NULL, 1);
+  bool success = true;
+  try {
+    // Get a SYCL device queue
+    queue device_q(gpu_selector_v);
 
-        //launch a kernel to initialize the magic number
-        device_q.submit([&](handler& cgh) {
-            auto d_word = d_word_buf.get_access<access::mode::write>(cgh);
-            cgh.single_task<class device_init_kernel>([=]() {
-                d_word[0] = ZFP_MAGIC;
-            });
-            //enable if unsure about device
-            std::cout << "Running on: "
-              << device_q.get_device().get_info<info::device::name>()
-              << std::endl;
+    // allocate a buffer to store the magic number on the device
+    buffer<unsigned int, 1> d_word_buf(NULL, 1);
+
+    //launch a kernel to initialize the magic number
+    device_q.submit([&](handler& cgh) {
+      auto d_word = d_word_buf.get_access<access::mode::write>(cgh);
+      cgh.single_task<class device_init_kernel>([=]() {
+        d_word[0] = ZFP_MAGIC;
         });
-        device_q.wait();
+      //enable if unsure about device
+      std::cout << "Running on: "
+        << device_q.get_device().get_info<info::device::name>()
+        << std::endl;
+      });
+    device_q.wait();
 
-        //copy the magic number back to the host
-        unsigned int h_word = d_word_buf.get_access<access::mode::read>()[0];
-        if (h_word != ZFP_MAGIC) {
-            std::cerr<<"zfp_sycl : zfp device init failed"<<std::endl;
-            success = false;
-        }
-    }catch (exception const &e) {
-        std::cerr<<"zfp_sycl : zfp device init "<< e.what() << std::endl;
-        success = false;}
+    //copy the magic number back to the host
+    unsigned int h_word = d_word_buf.get_access<access::mode::read>()[0];
+    if (h_word != ZFP_MAGIC) {
+      std::cerr << "zfp_sycl : zfp device init failed" << std::endl;
+      success = false;
+    }
+  }  
+catch (exception const& e) {
+    std::cerr << "zfp_sycl : zfp device init " << e.what() << std::endl;
+    success = false;
+  }
 
 
-    return success;
+  return success;
 }
 
 // advance pointer from d_begin to address difference between h_ptr and h_begin
@@ -65,11 +67,11 @@ void* device_pointer(void* d_begin, void* h_begin, void* h_ptr)
 void* device_pointer(void* d_begin, void* h_begin, void* h_ptr, zfp_type type)
 {
   switch (type) {
-    case zfp_type_int32:  return device_pointer<int>(d_begin, h_begin, h_ptr);
-    case zfp_type_int64:  return device_pointer<long long int>(d_begin, h_begin, h_ptr);
-    case zfp_type_float:  return device_pointer<float>(d_begin, h_begin, h_ptr);
-    case zfp_type_double: return device_pointer<double>(d_begin, h_begin, h_ptr);
-    default:              return NULL;
+  case zfp_type_int32:  return device_pointer<int>(d_begin, h_begin, h_ptr);
+  case zfp_type_int64:  return device_pointer<long long int>(d_begin, h_begin, h_ptr);
+  case zfp_type_float:  return device_pointer<float>(d_begin, h_begin, h_ptr);
+  case zfp_type_double: return device_pointer<double>(d_begin, h_begin, h_ptr);
+  default:              return NULL;
   }
 }
 
@@ -93,17 +95,18 @@ bool device_malloc(T** d_pointer, size_t size, const char* what = 0)
 
 // allocate device memory and copy from host
 template <typename T>
-bool device_copy_from_host(T **d_pointer, size_t size, void *h_pointer,
-                           const char *what = 0) try {
-  dpct::device_ext &dev_ct1 = dpct::get_current_device();
-  queue &q_ct1 = dev_ct1.default_queue();
+bool device_copy_from_host(T** d_pointer, size_t size, void* h_pointer,
+  const char* what = 0) try {
+  dpct::device_ext& dev_ct1 = dpct::get_current_device();
+  queue& q_ct1 = dev_ct1.default_queue();
   if (!device_malloc(d_pointer, size, what))
     return false;
-  
-  try{
+
+  try {
     q_ct1.memcpy(*d_pointer, h_pointer, size).wait();
     return true;
-  } catch (exception const &exc) {
+  }
+  catch (exception const& exc) {
 #ifdef ZFP_DEBUG
     std::cerr << "zfp_sycl : failed to copy " << (what ? what : "data") << " from host to device" << std::endl;
 #endif
@@ -111,9 +114,10 @@ bool device_copy_from_host(T **d_pointer, size_t size, void *h_pointer,
     *d_pointer = NULL;
     return false;
   }
-} catch (exception const &exc) {
+}
+catch (exception const& exc) {
   std::cerr << exc.what() << "Exception caught at file:" << __FILE__
-            << ", line:" << __LINE__ << std::endl;
+    << ", line:" << __LINE__ << std::endl;
   std::exit(1);
 }
 
@@ -141,7 +145,7 @@ Word* setup_device_stream_decompress(zfp_stream* stream)
   return d_stream;
 }
 
-ushort* setup_device_index_compress(zfp_stream *stream, const zfp_field *field)
+ushort* setup_device_index_compress(zfp_stream* stream, const zfp_field* field)
 {
   ushort* d_index = stream->index ? (ushort*)stream->index->data : NULL;
   if (!is_gpu_ptr(d_index)) {
@@ -167,8 +171,8 @@ Word* setup_device_index_decompress(zfp_stream* stream)
 
 bool setup_device_chunking(size_t* chunk_size, unsigned long long** d_offsets, size_t* lcubtemp, void** d_cubtemp, uint processors)
 {
-  dpct::device_ext &dev_ct1 = dpct::get_current_device();
-  queue &q_ct1 = dev_ct1.default_queue();
+  dpct::device_ext& dev_ct1 = dpct::get_current_device();
+  queue& q_ct1 = dev_ct1.default_queue();
   // TODO : Error handling for CUDA malloc and CUB?
   // Assuming 1 thread = 1 ZFP block,
   // launching 1024 threads per SM should give a decent occupancy
