@@ -586,7 +586,7 @@ namespace internal {
               d_offsets + cur_blocks + 1, d_offsets);
 
           // compact the stream array in-place
-          chunk_process_launch((uint*)d_stream, d_offsets, i, cur_blocks, last_chunk, maxbits, processors);
+          chunk_process_launch((uint*)d_stream, d_offsets, i, cur_blocks, last_chunk, maxbits, processors); // This is whats wrong with variable precision mode
         }
         // update compressed size and pad to whole words
         q_ct1.memcpy(&bits_written, d_offsets, sizeof(unsigned long long)).wait();
