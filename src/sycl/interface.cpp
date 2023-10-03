@@ -63,12 +63,6 @@ zfp_internal_sycl_init(zfp_exec_params_sycl* params) try {
   */
   params->grid_size[2] = prop.get_max_nd_range_size<int *>()[2];
 
-  size_t max_work_group_size =
-       dpct::get_default_queue()
-           .get_device()
-           .get_info<::sycl::info::device::max_work_group_size>();
-  printf("max_work_group_size = %d\n", max_work_group_size);
-
   // launch device warm-up kernel
   return (zfp_bool)zfp::sycl::internal::device_init();
   return zfp_true;
