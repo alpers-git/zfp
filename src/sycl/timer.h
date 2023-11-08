@@ -20,8 +20,7 @@ public:
     void start()
     {
         dpct::device_ext& dev_ct1 = dpct::get_current_device();
-        ::sycl::property_list props{::sycl::property::queue::enable_profiling{}};
-        ::sycl::queue q_ct1((::sycl::device)dev_ct1, props);
+        ::sycl::queue q_ct1((::sycl::device)dev_ct1, ::sycl::property::queue::enable_profiling{});
         e_start = q_ct1.ext_oneapi_submit_barrier();//ugh...instead of timing the actual kernel, we time the barrier
     }
 
@@ -29,8 +28,7 @@ public:
     void stop()
     {
         dpct::device_ext& dev_ct1 = dpct::get_current_device();
-        ::sycl::property_list props{::sycl::property::queue::enable_profiling{}};
-        ::sycl::queue q_ct1((::sycl::device)dev_ct1, props);
+        ::sycl::queue q_ct1((::sycl::device)dev_ct1, ::sycl::property::queue::enable_profiling{});
         e_stop = q_ct1.ext_oneapi_submit_barrier();//ugh...instead of timing the actual kernel, we time the barrier
         e_stop.wait_and_throw();
         q_ct1.wait();
