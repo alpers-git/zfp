@@ -157,7 +157,8 @@ encode1(
 
 #ifdef ZFP_WITH_SYCL_PROFILE
   timer.stop();
-  timer.print_throughput<Scalar>("Encode", "encode1", dim3(size[0]));
+  timer.print_throughput<Scalar>("Encode", "encode1",
+                                 ::sycl::range<1>(size[0]));
 #endif
 
   return (unsigned long long)stream_bytes * CHAR_BIT;

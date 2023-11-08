@@ -150,10 +150,8 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   DPCT1049:15: The work-group size passed to the SYCL kernel may exceed the
   limit. To get the device limit, query info::device::max_work_group_size.
   Adjust the work-group size if needed. 
-  
-  TODO: ask Nate about this... Looks correct to me.
   */
-  q_ct1.submit([&](::sycl::handler &cgh) {
+    q_ct1.submit([&](::sycl::handler &cgh) {
     extern dpct::global_memory<const unsigned char, 1> perm_1;
     extern dpct::global_memory<const unsigned char, 1> perm_2;
     extern dpct::global_memory<const unsigned char, 1> perm_3;
@@ -184,8 +182,10 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
 
 #ifdef ZFP_WITH_SYCL_PROFILE
   timer.stop();
-  timer.print_throughput<Scalar>("Decode", "decode1", dim3(size[0]));
+  timer.print_throughput<Scalar>("Decode", "decode1",
+                                 ::sycl::range<1>(size[0]));
 #endif
+
 
   // copy bit offset
   unsigned long long int offset;

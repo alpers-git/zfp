@@ -196,6 +196,9 @@ mark_as_advanced(ZFP_CUDA_PROFILE)
 option(ZFP_WITH_HIP_PROFILE "Report HIP throughput" OFF)
 mark_as_advanced(ZFP_HIP_PROFILE)
 
+option(ZFP_WITH_SYCL_PROFILE "Report SYCL throughput" OFF)
+mark_as_advanced(ZFP_SYCL_PROFILE)
+
 # Handle compile-time macros
 
 if((DEFINED ZFP_INT64) AND (DEFINED ZFP_INT64_SUFFIX))
@@ -318,6 +321,10 @@ endif()
 
 if(ZFP_WITH_HIP_PROFILE)
   list(APPEND zfp_private_defs ZFP_WITH_HIP_PROFILE)
+endif()
+
+if(ZFP_WITH_SYCL_PROFILE)
+  list(APPEND zfp_private_defs ZFP_WITH_SYCL_PROFILE)
 endif()
 
 list(APPEND ppm_private_defs PPM_CHROMA=${PPM_CHROMA})

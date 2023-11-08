@@ -205,7 +205,7 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
 
 #ifdef ZFP_WITH_SYCL_PROFILE
   timer.stop();
-  timer.print_throughput<Scalar>("Decode", "decode3", dim3(size[0], size[1], size[2]));
+  timer.print_throughput<Scalar>("Decode", "decode3", range<3>(size[0], size[1], size[2]));
 #endif
 
   // copy bit offset

@@ -189,7 +189,7 @@ encode3(
 
 #ifdef ZFP_WITH_SYCL_PROFILE
   timer.stop();
-  timer.print_throughput<Scalar>("Encode", "encode3", dim3(size[0], size[1], size[2]));
+  timer.print_throughput<Scalar>("Encode", "encode3", range<3>(size[0], size[1], size[2]));
 #endif
 
   return (unsigned long long)stream_bytes * CHAR_BIT;
