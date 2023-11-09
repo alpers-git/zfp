@@ -35,7 +35,12 @@ zfp_internal_sycl_init(zfp_exec_params_sycl* params) try {
 #if ZFP_WITH_SYCL_DEVICE_INFO
   std::cerr << "Running on: "
     << dpct::get_current_device().default_queue().get_device().get_info<::sycl::info::device::name>()
+    << " with driver version: "
+    << dpct::get_current_device().default_queue().get_device().get_info<::sycl::info::device::driver_version>()
+    << " and max compute units: "
+    << dpct::get_current_device().default_queue().get_device().get_info<::sycl::info::device::max_compute_units>()
     << std::endl;
+    
 #endif
 
 
