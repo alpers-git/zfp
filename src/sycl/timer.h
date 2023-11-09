@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <iostream>
 #include <CL/sycl.hpp>
+#include <chrono>
 
 namespace zfp {
 namespace sycl {
@@ -39,8 +40,8 @@ public:
     void print_throughput(const char* task, const char* subtask, RangeType dims) const
     {   
         //since we are timing barriers we will get end barrier's starting time and start barrier's ending time...ugh
-        float ns = (e_stop.get_profiling_info<::sycl::info::event_profiling::command_end>() -
-            e_start.get_profiling_info<::sycl::info::event_profiling::command_start>());
+        float ns = (e_stop.get_profiling_info<::sycl::info::event_profiling::command_start>() -
+            e_start.get_profiling_info<::sycl::info::event_profiling::command_end>());
         double seconds = double(ns) / 1e9;
         size_t bytes = dims.size() * sizeof(Scalar);
         double throughput = bytes / seconds;

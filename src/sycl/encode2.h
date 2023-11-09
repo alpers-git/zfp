@@ -138,6 +138,7 @@ encode2(
 #ifdef ZFP_WITH_SYCL_PROFILE
   Timer timer;
   timer.start();
+  ::sycl::event e = 
 #endif
 
   // launch GPU kernel
@@ -173,6 +174,7 @@ encode2(
   });
 
 #ifdef ZFP_WITH_SYCL_PROFILE
+  e.wait();
   timer.stop();
   timer.print_throughput<Scalar>("Encode", "encode2", range<2>(size[0], size[1]));
 #endif

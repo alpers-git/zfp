@@ -152,6 +152,7 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
 #ifdef ZFP_WITH_SYCL_PROFILE
   Timer timer;
   timer.start();
+  ::sycl::event e = 
 #endif
 
   // launch GPU kernel
@@ -190,6 +191,7 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   });
 
 #ifdef ZFP_WITH_SYCL_PROFILE
+  e.wait();
   timer.stop();
   timer.print_throughput<Scalar>("Decode", "decode2", range<2>(size[0], size[1]));
 #endif
