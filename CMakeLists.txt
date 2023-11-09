@@ -199,6 +199,9 @@ mark_as_advanced(ZFP_HIP_PROFILE)
 option(ZFP_WITH_SYCL_PROFILE "Report SYCL throughput" OFF)
 mark_as_advanced(ZFP_SYCL_PROFILE)
 
+option(ZFP_WITH_SYCL_DEVICE_INFO "Report current SYCL device info" OFF)
+mark_as_advanced(ZFP_SYCL_DEVICE_INFO)
+
 # Handle compile-time macros
 
 if((DEFINED ZFP_INT64) AND (DEFINED ZFP_INT64_SUFFIX))
@@ -325,6 +328,10 @@ endif()
 
 if(ZFP_WITH_SYCL_PROFILE)
   list(APPEND zfp_private_defs ZFP_WITH_SYCL_PROFILE)
+endif()
+
+if(ZFP_WITH_SYCL_DEVICE_INFO)
+  list(APPEND zfp_private_defs ZFP_WITH_SYCL_DEVICE_INFO)
 endif()
 
 list(APPEND ppm_private_defs PPM_CHROMA=${PPM_CHROMA})
