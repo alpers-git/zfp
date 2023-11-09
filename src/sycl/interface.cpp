@@ -29,8 +29,14 @@ zfp_internal_sycl_init(zfp_exec_params_sycl* params) try {
   if (sizeof(Word) != sizeof(bitstream_word))
     return false;
 
-  params->device = zfp_sycl_gpu; //obsolete
-  dpct::dev_mgr::instance().select_device(0);// Not selecting GPU device??!
+  dpct::dev_mgr::instance().select_device(0);// Let user filter the device externally
+
+  //enable if unsure about device
+#if ZFP_WITH_SYCL_DEVICE_INFO
+  std::cerr << "Running on: "
+    << dpct::get_current_device().default_queue().get_device().get_info<::sycl::info::device::name>()
+    << std::endl;
+#endif
 
 
   // perform expensive query of device properties only once
@@ -65,7 +71,6 @@ zfp_internal_sycl_init(zfp_exec_params_sycl* params) try {
 
   // launch device warm-up kernel
   return (zfp_bool)zfp::sycl::internal::device_init();
-  return zfp_true;
 }
 catch (sycl::exception const &exc) {
   std::cerr << exc.what() << "Exception caught at file:" << __FILE__

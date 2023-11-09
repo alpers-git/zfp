@@ -24,7 +24,8 @@ bool device_init()
   bool success = true;
   try {
     // Get a SYCL device queue
-    queue device_q(gpu_selector_v);
+    dpct::device_ext& dev_ct1 = dpct::get_current_device();
+    queue& device_q = dev_ct1.default_queue();
 
     // allocate a buffer to store the magic number on the device
     buffer<unsigned int, 1> d_word_buf(NULL, 1);
@@ -35,11 +36,7 @@ bool device_init()
       cgh.single_task<class device_init_kernel>([=]() {
         d_word[0] = ZFP_MAGIC;
         });
-      //enable if unsure about device
-      std::cout << "Running on: "
-        << device_q.get_device().get_info<info::device::name>()
-        << std::endl;
-      });
+    });
     device_q.wait();
 
     //copy the magic number back to the host

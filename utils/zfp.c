@@ -115,6 +115,7 @@ usage()
   fprintf(stderr, "  -x omp[=threads[,chunk_size]] : OpenMP parallel compression\n");
   fprintf(stderr, "  -x cuda : CUDA fixed rate parallel compression/decompression\n");
   fprintf(stderr, "  -x hip : HIP fixed rate parallel compression/decompression\n");
+  fprintf(stderr, "  -x sycl : SYCL fixed rate parallel compression/decompression\n");
   fprintf(stderr, "Index for parallel decompression:\n");
   fprintf(stderr, "  -m <path> : block index (output of compression, input to variable-rate parallel decompression)\n");
   fprintf(stderr, "  -n <type>=<granularity>: optional type (offset or hybrid) and granularity of block index\n");
@@ -306,6 +307,8 @@ int main(int argc, char* argv[])
           exec = zfp_exec_cuda;
         else if (!strcmp(argv[i], "hip"))
           exec = zfp_exec_hip;
+        else if (!strcmp(argv[i], "sycl"))
+          exec = zfp_exec_sycl;
         else
           usage();
         break;
@@ -522,6 +525,12 @@ int main(int argc, char* argv[])
           !zfp_stream_set_omp_threads(zfp, threads) ||
           !zfp_stream_set_omp_chunk_size(zfp, chunk_size)) {
         fprintf(stderr, "OpenMP execution not available\n");
+        return EXIT_FAILURE;
+      }
+      break;
+    case zfp_exec_sycl:
+      if (!zfp_stream_set_execution(zfp, exec)) {
+        fprintf(stderr, "SYCL execution not available\n");
         return EXIT_FAILURE;
       }
       break;
