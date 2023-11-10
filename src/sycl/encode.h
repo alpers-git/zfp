@@ -503,9 +503,6 @@ encode(
 
   //internal::ErrorCheck error;
 
-#ifdef ZFP_WITH_SYCL_PROFILE
-  for (int i = 0; i < 51; i++){
-#endif
   uint dims = size[0] ? size[1] ? size[2] ? 3 : 2 : 1 : 0;
   switch (dims) {
     case 1:
@@ -520,9 +517,6 @@ encode(
     default:
       break;
   }
-#ifdef ZFP_WITH_SYCL_PROFILE
-  }
-#endif
 
 //   if (!error.check("encode"))
 //     bits_written = 0;
