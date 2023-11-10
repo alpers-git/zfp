@@ -6,6 +6,7 @@
 #include <string.h>
 #include "zfp.h"
 #include "zfp/internal/zfp/macros.h"
+#include <time.h>
 
 /*
 File I/O is done using the following combinations of i, o, s, and z:
@@ -588,8 +589,25 @@ int main(int argc, char* argv[])
     if (idxpath)
       zfp_stream_set_index(zfp, index);
 
+
     /* compress data */
-    zfpsize = zfp_compress(zfp, field);
+    for (size_t i = 0; i < 51; i++)
+    {
+      clock_t start = clock();
+      zfpsize = zfp_compress(zfp, field);
+      clock_t end = clock();
+      double seconds = (double)(end - start) / CLOCKS_PER_SEC;
+      size_t bytes = nx * ny * nz * sizeof(float);
+      double throughput = bytes / seconds;
+      throughput /= 1024 * 1024 * 1024;
+      printf("nx: %zu, ny: %zu, nz: %zu, nw: %zu\n", nx, ny, nz);
+      printf("Encode elapsed time: %f\n", seconds);
+      printf("# encode1 rate: %f (GB / sec)\n", throughput);
+      //reset the stream
+      zfp_stream_rewind(zfp);
+
+    }
+    
     if (zfpsize == 0) {
       fprintf(stderr, "compression failed\n");
       return EXIT_FAILURE;
