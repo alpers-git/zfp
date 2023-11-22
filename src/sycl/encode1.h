@@ -45,9 +45,8 @@ void encode1_kernel(
 {
   const size_t blockId =
       item_ct1.get_group(2) +
-      (size_t)item_ct1.get_group_range(2) *
-          (item_ct1.get_group(1) +
-           (size_t)item_ct1.get_group_range(1) * item_ct1.get_group(0));
+      (size_t)item_ct1.get_group_range(2) * 
+      (item_ct1.get_group(1) + (size_t)item_ct1.get_group_range(1) * item_ct1.get_group(0));
 
   // each thread gets a block; block index = global thread index
   const size_t block_idx =
