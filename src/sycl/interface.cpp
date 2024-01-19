@@ -21,6 +21,7 @@
 
 #include <CL/sycl.hpp>
 #include <dpct/dpct.hpp>
+#include <oneapi/dpl/execution>
 
 zfp_bool
 zfp_internal_sycl_init(zfp_exec_params_sycl* params) try {
@@ -29,53 +30,56 @@ zfp_internal_sycl_init(zfp_exec_params_sycl* params) try {
   if (sizeof(Word) != sizeof(bitstream_word))
     return false;
 
-  dpct::dev_mgr::instance().select_device(0);// Let user filter the device externally
-
-  //enable if unsure about device
-#if ZFP_WITH_SYCL_DEVICE_INFO
-  std::cerr << "Running on: "
-    << dpct::get_current_device().default_queue().get_device().get_info<::sycl::info::device::name>()
-    << " with driver version: "
-    << dpct::get_current_device().default_queue().get_device().get_info<::sycl::info::device::driver_version>()
-    << " and max compute units: "
-    << dpct::get_current_device().default_queue().get_device().get_info<::sycl::info::device::max_compute_units>()
-    << std::endl;
-    
-#endif
-
-
+  dpct::dev_mgr::instance().select_device(0);
   // perform expensive query of device properties only once
   static bool initialized = false;
   static dpct::device_info prop;
 
-  if (!initialized)
-  {
-    try {
-      dpct::get_current_device().get_device_info(prop);
-    }catch (::sycl::exception const &e) {
-      std::cerr<<"zfp_sycl : zfp internal sycl init "<< e.what() << std::endl;
-      return zfp_false;
-    }
-  }
-  initialized = true;
+  // if (!initialized)
+  // {
+  //   try {
+  //     dpct::get_current_device().get_device_info(prop);
+  //   }catch (::sycl::exception const &e) {
+  //     std::cerr<<"zfp_sycl : zfp internal sycl init "<< e.what() << std::endl;
+  //     return zfp_false;
+  //   }
+  // }
+  // initialized = true;
 
+  zfp_bool result = (zfp_bool)zfp::sycl::internal::device_init();
+
+  ::sycl::queue q = ::sycl::queue(zfp::sycl::internal::zfp_dev_selector);
+  auto policy = oneapi::dpl::execution::make_device_policy(q);
+  auto dev = policy.queue().get_device();
+    //enable if unsure about device
+#if ZFP_WITH_SYCL_DEVICE_INFO
+  std::cerr << "Running on: "
+    << dev.get_info<::sycl::info::device::name>()
+    << " with driver version: "
+    << dev.get_info<::sycl::info::device::driver_version>()
+    << " and max compute units: "
+    << dev.get_info<::sycl::info::device::max_compute_units>()
+    << std::endl;
+    
+#endif
   //cache device properties
-  params->processors = prop.get_max_compute_units();
+  params->processors = dev.get_info<::sycl::info::device::max_compute_units>();
+  sycl::id<3> groups = dev.get_info<sycl::ext::oneapi::experimental::info::device::max_work_groups<3>>();
   /*
   DPCT1022:37: Resolved
   */
-  params->grid_size[0] = prop.get_max_nd_range_size<int *>()[0];
+  params->grid_size[0] = groups[0];//??? maybe use 2,1,0 order
   /*
   DPCT1022:38: Resolved
   */
-  params->grid_size[1] = prop.get_max_nd_range_size<int *>()[1];
+  params->grid_size[1] = groups[1];
   /*
   DPCT1022:39: Resolved
   */
-  params->grid_size[2] = prop.get_max_nd_range_size<int *>()[2];
+  params->grid_size[2] = groups[2];
 
   // launch device warm-up kernel
-  return (zfp_bool)zfp::sycl::internal::device_init();
+  return result;
 }
 catch (sycl::exception const &exc) {
   std::cerr << exc.what() << "Exception caught at file:" << __FILE__

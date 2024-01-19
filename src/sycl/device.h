@@ -24,9 +24,7 @@ bool device_init()
   bool success = true;
   try {
     // Get a SYCL device queue
-    dpct::device_ext& dev_ct1 = dpct::get_current_device();
-    queue& device_q = dev_ct1.default_queue();
-
+    queue device_q(zfp_dev_selector);
     // allocate a buffer to store the magic number on the device
     buffer<unsigned int, 1> d_word_buf(NULL, 1);
 
