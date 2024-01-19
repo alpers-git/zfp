@@ -131,8 +131,7 @@ encode3(
   int minexp
 )
 {
-  dpct::device_ext &dev_ct1 = dpct::get_current_device();
-  ::sycl::queue &q_ct1 = dev_ct1.default_queue();
+  ::sycl::queue q(zfp::sycl::internal::zfp_dev_selector);
   const int sycl_block_size = 128;
   const ::sycl::range<3> block_size = ::sycl::range<3>(1, 1, sycl_block_size);
 
@@ -147,7 +146,7 @@ encode3(
 
   // zero-initialize bit stream (for atomics)
   const size_t stream_bytes = calculate_device_memory(blocks, maxbits);
-  q_ct1.memset(d_stream, 0, stream_bytes).wait();
+  q.memset(d_stream, 0, stream_bytes).wait();
 
 #ifdef ZFP_WITH_SYCL_PROFILE
   Timer timer;
@@ -161,7 +160,7 @@ encode3(
   limit. To get the device limit, query info::device::max_work_group_size.
   Adjust the work-group size if needed.
   */
-  q_ct1.submit([&](::sycl::handler &cgh) {
+  q.submit([&](::sycl::handler &cgh) {
     extern dpct::global_memory<const unsigned char, 1> perm_1;
     extern dpct::global_memory<const unsigned char, 1> perm_2;
     extern dpct::global_memory<const unsigned char, 1> perm_3;

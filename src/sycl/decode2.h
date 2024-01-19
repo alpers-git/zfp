@@ -120,8 +120,7 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
         const zfp_exec_params_sycl *params, const Word *d_stream, uint minbits,
         uint maxbits, uint maxprec, int minexp, const Word *d_index,
         zfp_index_type index_type, uint granularity) try {
-  dpct::device_ext &dev_ct1 = dpct::get_current_device();
-  ::sycl::queue &q_ct1 = dev_ct1.default_queue();
+  ::sycl::queue q(zfp::sycl::internal::zfp_dev_selector);
   // block size is fixed to 32 in this version for hybrid index
   const int sycl_block_size = 32;
   const ::sycl::range<3> block_size = ::sycl::range<3>(1, 1, sycl_block_size);
@@ -141,13 +140,13 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   unsigned long long int* d_offset;
   try {
     d_offset = (unsigned long long int*)::sycl::malloc_device(
-        sizeof(*d_offset), q_ct1);
+        sizeof(*d_offset), q);
   } catch (::sycl::exception const& e) {
     std::cerr << "Caught synchronous SYCL exception during malloc_device:\n"
               << e.what() << std::endl;
     std::exit(1);
   }
-  q_ct1.memset(d_offset, 0, sizeof(*d_offset)).wait();
+  q.memset(d_offset, 0, sizeof(*d_offset)).wait();
 
 #ifdef ZFP_WITH_SYCL_PROFILE
   Timer timer;
@@ -161,7 +160,7 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   limit. To get the device limit, query info::device::max_work_group_size.
   Adjust the work-group size if needed.
   */
-  q_ct1.submit([&](::sycl::handler &cgh) {
+  q.submit([&](::sycl::handler &cgh) {
     extern dpct::global_memory<const unsigned char, 1> perm_1;
     extern dpct::global_memory<const unsigned char, 1> perm_2;
     extern dpct::global_memory<const unsigned char, 1> perm_3;
@@ -198,8 +197,8 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
 
   // copy bit offset
   unsigned long long int offset;
-  q_ct1.memcpy(&offset, d_offset, sizeof(offset)).wait();
-  ::sycl::free(d_offset, q_ct1);
+  q.memcpy(&offset, d_offset, sizeof(offset)).wait();
+  ::sycl::free(d_offset, q);
 
   return offset;
 }

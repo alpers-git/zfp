@@ -30,7 +30,7 @@ zfp_internal_sycl_init(zfp_exec_params_sycl* params) try {
   if (sizeof(Word) != sizeof(bitstream_word))
     return false;
 
-  dpct::dev_mgr::instance().select_device(0);
+  dpct::dev_mgr::instance().select_device(0);//TODO:remove
   // perform expensive query of device properties only once
   static bool initialized = false;
   static dpct::device_info prop;
