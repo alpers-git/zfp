@@ -15,8 +15,8 @@ set(syclZFP_sources
     encode1.h
     encode2.h
     encode3.h
-    writer.h
-    # constants.h
+    #writer.h
+    constants.h
     # device.h
     # error.h
     # shared.h
