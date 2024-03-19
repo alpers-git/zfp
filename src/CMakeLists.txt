@@ -9,6 +9,19 @@ if(ZFP_WITH_CUDA)
   add_definitions(-DZFP_WITH_CUDA)
 endif()
 
+if(ZFP_WITH_HIP)
+  add_definitions(-DZFP_WITH_HIP)
+  set(ZFP_HIP_SOURCE hip/interface.cpp)
+  set_source_files_properties(${ZFP_HIP_SOURCE} PROPERTIES LANGUAGE HIP)
+endif()
+
+if(ZFP_WITH_SYCL)
+  find_package(TBB REQUIRED)
+  add_definitions(-DZFP_WITH_SYCL)
+  set(ZFP_SYCL_SOURCE sycl/syclZFP.cpp)
+  set_source_files_properties(${ZFP_SYCL_SOURCE} PROPERTIES LANGUAGE CXX)
+  add_subdirectory(sycl)
+endif()
 
 set(zfp_source
   zfp.c
