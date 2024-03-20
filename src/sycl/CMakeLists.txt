@@ -30,4 +30,5 @@ set(syclZFP_sources
 set(syclZFP_headers
     shared.h
     syclZFP.h
-    ErrorCheck.h)
+    #ErrorCheck.h MAY NOT NEED IT
+    )

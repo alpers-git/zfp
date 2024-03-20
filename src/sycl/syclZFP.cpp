@@ -21,8 +21,8 @@
 
 #include "ErrorCheck.h"
 
-#include "pointers.dp.cpp"
-#include "type_info.dp.cpp"
+#include "pointers.h"
+#include "type_info.h"
 
 // we need to know about bitstream, but we don't 
 // want duplicate symbols.
