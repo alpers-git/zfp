@@ -7,7 +7,7 @@
 #include "syclZFP.h"
 #include "shared.h"
 #include "encode.h"
-#include "ErrorCheck.h"
+// #include "ErrorCheck.h"
 #include "type_info.h"
 
 #define ZFP_2D_BLOCK_SIZE 16 

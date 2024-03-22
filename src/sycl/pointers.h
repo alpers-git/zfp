@@ -5,7 +5,7 @@
 #define DPCT_COMPAT_RT_VERSION 11060
 #include <sycl/sycl.hpp>
 #include <dpct/dpct.hpp>
-#include "ErrorCheck.h"
+// #include "ErrorCheck.h"
 #include <iostream>
 
 

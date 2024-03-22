@@ -137,6 +137,8 @@ option(ZFP_WITH_DAZ "Treat subnormals as zero to avoid overflow" OFF)
 
 option(ZFP_WITH_CUDA "Enable CUDA parallel compression" OFF)
 
+option(ZFP_WITH_SYCL "Enable SYCL parallel compression" OFF)
+
 option(ZFP_WITH_BIT_STREAM_STRIDED "Enable strided access for progressive zfp streams" OFF)
 mark_as_advanced(ZFP_WITH_BIT_STREAM_STRIDED)
 
@@ -209,6 +211,12 @@ if(ZFP_WITH_CUDA)
   if(${CUDA_VERSION_MAJOR} LESS 7)
     message(FATAL_ERROR "zfp requires at least CUDA 7.0.")
   endif()
+endif()
+
+if(ZFP_WITH_SYCL)
+  set(DPCPP_FLAGS -fsycl -fsycl-targets=spir64_x86_64)
+  set(CMAKE_CXX_STANDARD 17)
+  include(cmake/FindSYCL.cmake)
 endif()
 
 if(NOT (ZFP_BIT_STREAM_WORD_SIZE EQUAL 64))

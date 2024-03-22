@@ -7,9 +7,6 @@
 #include "syclZFP.h"
 
 #include <iostream>
-#include "interface.h"
-#include "../share/device.h"
-#include "shared.h"
 
 #include "encode1.h"
 #include "encode2.h"
@@ -19,7 +16,7 @@
 #include "decode2.h"
 #include "decode3.h"
 
-#include "ErrorCheck.h"
+//#include "ErrorCheck.h"
 
 #include "pointers.h"
 #include "type_info.h"
@@ -125,7 +122,7 @@ size_t encode(uint dims[3], sycl::int3 stride, int bits_per_block, T *d_data,
     }
   }
 
-  ErrorCheck errors;
+  // ErrorCheck errors;
   size_t stream_size = 0;
   if(d == 1)
   {
@@ -151,7 +148,7 @@ size_t encode(uint dims[3], sycl::int3 stride, int bits_per_block, T *d_data,
     stream_size = syclZFP::encode<T>(ndims, s, d_data, d_stream, bits_per_block); 
   }
 
-  errors.chk("Encode");
+  // errors.chk("Encode");
   
   return stream_size; 
 }

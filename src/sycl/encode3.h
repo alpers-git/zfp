@@ -10,7 +10,7 @@
 #include "type_info.h"
 
 #define ZFP_3D_BLOCK_SIZE 64
-namespace cuZFP{
+namespace syclZFP{
 
 template<typename Scalar> 
 inline 

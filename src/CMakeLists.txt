@@ -16,11 +16,12 @@ if(ZFP_WITH_HIP)
 endif()
 
 if(ZFP_WITH_SYCL)
-  find_package(TBB REQUIRED)
+  message(STATUS "Building with SYCL support")
+  add_subdirectory(sycl)
+  # find_package(TBB REQUIRED)
   add_definitions(-DZFP_WITH_SYCL)
   set(ZFP_SYCL_SOURCE sycl/syclZFP.cpp)
   set_source_files_properties(${ZFP_SYCL_SOURCE} PROPERTIES LANGUAGE CXX)
-  add_subdirectory(sycl)
 endif()
 
 set(zfp_source
@@ -34,7 +35,8 @@ set(zfp_source
   encode3f.c encode3d.c encode3i.c encode3l.c
   decode3f.c decode3d.c decode3i.c decode3l.c
   encode4f.c encode4d.c encode4i.c encode4l.c
-  decode4f.c decode4d.c decode4i.c decode4l.c)
+  decode4f.c decode4d.c decode4i.c decode4l.c
+  ${ZFP_SYCL_SOURCE})
 
 add_library(zfp ${zfp_source}
                 ${zfp_cuda_backend_obj})
@@ -56,6 +58,11 @@ endif()
 
 if(ZFP_WITH_CUDA)
   target_link_libraries(zfp PRIVATE ${CUDA_CUDART_LIBRARY} stdc++)
+endif()
+
+if(ZFP_WITH_SYCL)
+  # target_link_libraries(zfp PRIVATE TBB::tbb)
+  add_sycl_to_target(TARGET zfp SOURCES ${ZFP_SYCL_SOURCE})
 endif()
 
 target_compile_definitions(zfp
