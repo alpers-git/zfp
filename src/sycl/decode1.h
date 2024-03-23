@@ -123,9 +123,10 @@ size_t decode1launch(uint dim,
 #endif
 
   {
-    dpct::has_capability_or_fail(dpct::get_in_order_queue().get_device(),
-                                 {sycl::aspect::fp64});//! LOOKS PROBLEMATIC
-    dpct::get_in_order_queue().submit([&](sycl::handler &cgh) {
+    // dpct::has_capability_or_fail(dpct::get_in_order_queue().get_device(),
+    //                              {sycl::aspect::fp64});//! LOOKS PROBLEMATIC
+    sycl::queue q_ct1{syclZFP::internal_device_selector{}};
+    q_ct1.submit([&](sycl::handler &cgh) {
       perm_3d.init();
       perm_1.init();
       perm_2.init();

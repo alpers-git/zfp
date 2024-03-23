@@ -70,7 +70,7 @@ max_exponent(const Scalar* p)
 {
   Scalar max_val = 0;
   for (int i = 0; i < BlockSize; ++i) {
-    Scalar f = sycl::fabs((double)(p[i]));
+    Scalar f = sycl::fabs(p[i]);
     max_val = sycl::max(max_val, f);
   }
   return exponent<Scalar>(max_val);

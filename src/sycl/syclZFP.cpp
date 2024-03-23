@@ -20,6 +20,7 @@
 
 #include "pointers.h"
 #include "type_info.h"
+#include "shared.h"
 
 // we need to know about bitstream, but we don't 
 // want duplicate symbols.
@@ -29,6 +30,11 @@
 
 #include "zfp/bitstream.inl"
 #include <cmath>
+
+#define ZFP_WITH_SYCL_DEVICE_INFO
+#ifdef ZFP_WITH_SYCL_DEVICE_INFO
+  static bool printed_device_info = false;
+#endif
 
 namespace internal 
 {
@@ -218,14 +224,13 @@ Word *setup_device_stream_compress(zfp_stream *stream,const zfp_field *field)
 
   Word *d_stream = NULL;
   size_t max_size = zfp_stream_maximum_size(stream, field);
-  d_stream = (Word *)sycl::malloc_device(max_size, dpct::get_in_order_queue());
+  d_stream = (Word *)sycl::malloc_device(max_size, sycl::queue{syclZFP::internal_device_selector{}});
   return d_stream;
 }
 
 Word *setup_device_stream_decompress(zfp_stream *stream,const zfp_field *field)
 {
-  dpct::device_ext &dev_ct1 = dpct::get_current_device();
-  sycl::queue &q_ct1 = dev_ct1.in_order_queue();
+  sycl::queue q_ct1{syclZFP::internal_device_selector{}};
   bool stream_device = syclZFP::is_gpu_ptr(stream->stream->begin);
   assert(sizeof(bitstream_word) == sizeof(Word)); // "CUDA version currently only supports 64bit words");
 
@@ -272,9 +277,8 @@ void *setup_device_field_compress(const zfp_field *field,
                                   const sycl::int3 &stride,
                                   long long int &offset)
 {
-  dpct::device_ext &dev_ct1 = dpct::get_current_device();
-  sycl::queue &q_ct1 = dev_ct1.in_order_queue();
-  bool field_device = syclZFP::is_gpu_ptr(field->data);
+  sycl::queue q_ct1{syclZFP::internal_device_selector{}};
+  bool field_device = true; //syclZFP::is_gpu_ptr(field->data);
 
   if(field_device)
   {
@@ -317,7 +321,7 @@ void *setup_device_field_decompress(const zfp_field *field,
                                     const sycl::int3 &stride,
                                     long long int &offset)
 {
-  bool field_device = syclZFP::is_gpu_ptr(field->data);
+  bool field_device = true; //syclZFP::is_gpu_ptr(field->data);
 
   if(field_device)
   {
@@ -348,15 +352,14 @@ void *setup_device_field_decompress(const zfp_field *field,
   {
     size_t field_bytes = type_size * field_size;
     d_data =
-        (void *)sycl::malloc_device(field_bytes, dpct::get_in_order_queue());
+        (void *)sycl::malloc_device(field_bytes,  sycl::queue{syclZFP::internal_device_selector{}});
   }
   return offset_void(field->type, d_data, -offset);
 }
 
 void cleanup_device_ptr(void *orig_ptr, void *d_ptr, size_t bytes, long long int offset, zfp_type type)
 {
-  dpct::device_ext &dev_ct1 = dpct::get_current_device();
-  sycl::queue &q_ct1 = dev_ct1.in_order_queue();
+  sycl::queue q_ct1 {syclZFP::internal_device_selector{}};
   bool device = syclZFP::is_gpu_ptr(orig_ptr);
   if(device)
   {
@@ -379,6 +382,16 @@ void cleanup_device_ptr(void *orig_ptr, void *d_ptr, size_t bytes, long long int
 size_t
 sycl_compress(zfp_stream *stream, const zfp_field *field)
 {
+#ifdef ZFP_WITH_SYCL_DEVICE_INFO
+  if(!printed_device_info)
+  {
+    sycl::queue q_ct1{syclZFP::internal_device_selector{}};
+    std::cout<<"Running on \n\tDevice: "<<q_ct1.get_device().get_info<sycl::info::device::name>()<<"\n";
+    std::cout<<"\tDriver: "<<q_ct1.get_device().get_info<sycl::info::device::driver_version>()<<"\n";
+    std::cout<<"\tMax Compute Units: "<<q_ct1.get_device().get_info<sycl::info::device::max_compute_units>()<<"\n";
+    printed_device_info = true;
+  }
+#endif
   uint dims[3];
   dims[0] = field->nx;
   dims[1] = field->ny;
@@ -438,6 +451,16 @@ sycl_compress(zfp_stream *stream, const zfp_field *field)
 void 
 sycl_decompress(zfp_stream *stream, zfp_field *field)
 {
+  #ifdef ZFP_WITH_SYCL_DEVICE_INFO
+  if(!printed_device_info)
+  {
+    sycl::queue q_ct1{syclZFP::internal_device_selector{}};
+    std::cout<<"Running on \n\tDevice: "<<q_ct1.get_device().get_info<sycl::info::device::name>()<<"\n";
+    std::cout<<"\tDriver: "<<q_ct1.get_device().get_info<sycl::info::device::driver_version>()<<"\n";
+    std::cout<<"\tMax Compute Units: "<<q_ct1.get_device().get_info<sycl::info::device::max_compute_units>()<<"\n";
+    printed_device_info = true;
+  }
+#endif
   uint dims[3];
   dims[0] = field->nx;
   dims[1] = field->ny;

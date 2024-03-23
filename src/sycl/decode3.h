@@ -164,9 +164,10 @@ size_t decode3launch(sycl::uint3 dims, sycl::int3 stride, Word *stream,
   Adjust the work-group size if needed.
   */
   {
-    dpct::has_capability_or_fail(dpct::get_in_order_queue().get_device(),
-                                 {sycl::aspect::fp64});//! LOOKS PROBLEMATIC
-    dpct::get_in_order_queue().submit([&](sycl::handler &cgh) {
+    // dpct::has_capability_or_fail(dpct::get_in_order_queue().get_device(),
+    //                              {sycl::aspect::fp64});//! LOOKS PROBLEMATIC
+    sycl::queue q_ct1{syclZFP::internal_device_selector{}};
+    q_ct1.submit([&](sycl::handler &cgh) {
       perm_3d.init();
       perm_1.init();
       perm_2.init();

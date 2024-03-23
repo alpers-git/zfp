@@ -16,7 +16,6 @@ if(ZFP_WITH_HIP)
 endif()
 
 if(ZFP_WITH_SYCL)
-  message(STATUS "Building with SYCL support")
   add_subdirectory(sycl)
   # find_package(TBB REQUIRED)
   add_definitions(-DZFP_WITH_SYCL)

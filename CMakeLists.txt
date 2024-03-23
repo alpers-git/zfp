@@ -214,9 +214,15 @@ if(ZFP_WITH_CUDA)
 endif()
 
 if(ZFP_WITH_SYCL)
-  set(DPCPP_FLAGS -fsycl -fsycl-targets=spir64_x86_64)
+  # set(DPCPP_FLAGS  -fsycl
+  #   #-fsycl-targets=spir64_x86_64
+  #   )
   set(CMAKE_CXX_STANDARD 17)
   include(cmake/FindSYCL.cmake)
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=spir64_x86_64")
+
+  set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g")
+  set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 endif()
 
 if(NOT (ZFP_BIT_STREAM_WORD_SIZE EQUAL 64))

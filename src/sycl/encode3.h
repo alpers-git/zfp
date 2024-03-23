@@ -128,8 +128,7 @@ template <class Scalar>
 size_t encode3launch(sycl::uint3 dims, sycl::int3 stride, const Scalar *d_data,
                      Word *stream, const int maxbits)
 {
-  dpct::device_ext &dev_ct1 = dpct::get_current_device();
-  sycl::queue &q_ct1 = dev_ct1.in_order_queue();
+  sycl::queue q_ct1{syclZFP::internal_device_selector{}};
 
   const int sycl_block_size = 128;
   sycl::range<3> block_size = sycl::range<3>(1, 1, sycl_block_size);
@@ -167,7 +166,7 @@ size_t encode3launch(sycl::uint3 dims, sycl::int3 stride, const Scalar *d_data,
 #endif
 
   {
-    dpct::has_capability_or_fail(q_ct1.get_device(), {sycl::aspect::fp64});//! LOOKS PROBLEMATIC
+    //dpct::has_capability_or_fail(q_ct1.get_device(), {sycl::aspect::fp64});//! LOOKS PROBLEMATIC
     q_ct1.submit([&](sycl::handler &cgh) {
       perm_3d.init();
       perm_1.init();

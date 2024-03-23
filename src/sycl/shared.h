@@ -22,14 +22,33 @@ typedef unsigned long long Word;
 DPCT1064:12: Migrated ldexp call is used in a macro/template definition and may
 not be valid for all macro/template uses. Adjust the code.
 */
-#define LDEXP(x, e)                                                            \
-  sycl::ldexp((double)(float)x,                                                \
-              e - ((int)(CHAR_BIT * scalar_sizeof<float>()) - 2))
+#define LDEXP(x, e) sycl::ldexp(x,e)
 
 #define NBMASK 0xaaaaaaaaaaaaaaaaull
 
 namespace syclZFP
 {
+
+struct internal_device_selector : public sycl::device_selector
+{
+public:
+  internal_device_selector() {}
+  int operator()(const sycl::device &device) const
+  {
+    int point = 0;
+    point += device.get_info<sycl::info::device::max_compute_units>();
+    if (device.is_gpu())
+    {
+      point += 100;
+    }
+    if (device.has(sycl::aspect::fp64))
+    {
+      point += 50;
+    }
+    
+    return point;
+  }
+};
 
 template<typename T>
 void print_bits(const T &bits)
