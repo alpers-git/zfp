@@ -386,9 +386,7 @@ sycl_compress(zfp_stream *stream, const zfp_field *field)
   if(!printed_device_info)
   {
     sycl::queue q_ct1{syclZFP::internal_device_selector{}};
-    std::cout<<"Running on \n\tDevice: "<<q_ct1.get_device().get_info<sycl::info::device::name>()<<"\n";
-    std::cout<<"\tDriver: "<<q_ct1.get_device().get_info<sycl::info::device::driver_version>()<<"\n";
-    std::cout<<"\tMax Compute Units: "<<q_ct1.get_device().get_info<sycl::info::device::max_compute_units>()<<"\n";
+    syclZFP::ShowDevice(q_ct1);
     printed_device_info = true;
   }
 #endif
@@ -455,9 +453,7 @@ sycl_decompress(zfp_stream *stream, zfp_field *field)
   if(!printed_device_info)
   {
     sycl::queue q_ct1{syclZFP::internal_device_selector{}};
-    std::cout<<"Running on \n\tDevice: "<<q_ct1.get_device().get_info<sycl::info::device::name>()<<"\n";
-    std::cout<<"\tDriver: "<<q_ct1.get_device().get_info<sycl::info::device::driver_version>()<<"\n";
-    std::cout<<"\tMax Compute Units: "<<q_ct1.get_device().get_info<sycl::info::device::max_compute_units>()<<"\n";
+    syclZFP::ShowDevice(q_ct1);
     printed_device_info = true;
   }
 #endif

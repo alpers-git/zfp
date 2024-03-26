@@ -50,6 +50,23 @@ public:
   }
 };
 
+void ShowDevice(sycl::queue &q) {
+
+  // Output platform and device information.
+  auto device = q.get_device();
+  std::cout << std::setw(20) << "=== Running Queues On ===" << std::endl;
+  auto p_name = device.get_platform().get_info<sycl::info::platform::name>();
+  std::cout << std::setw(20) << "Platform Name: " << p_name << "\n";
+  auto p_version = device.get_platform().get_info<sycl::info::platform::version>();
+  std::cout << std::setw(20) << "Platform Version: " << p_version << "\n";
+  auto d_name = device.get_info<sycl::info::device::name>();
+  std::cout << std::setw(20) << "Device Name: " << d_name << "\n";
+  auto max_work_group = device.get_info<sycl::info::device::max_work_group_size>();
+  std::cout << std::setw(20) << "Max Work Group: " << max_work_group << "\n";
+  auto max_compute_units = device.get_info<sycl::info::device::max_compute_units>();
+  std::cout << std::setw(20) << "Max Compute Units: " << max_compute_units << "\n\n";
+}
+
 template<typename T>
 void print_bits(const T &bits)
 {
