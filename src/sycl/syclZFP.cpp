@@ -278,7 +278,7 @@ void *setup_device_field_compress(const zfp_field *field,
                                   long long int &offset)
 {
   sycl::queue q_ct1{syclZFP::internal_device_selector{}};
-  bool field_device = true; //syclZFP::is_gpu_ptr(field->data);
+  bool field_device = syclZFP::is_gpu_ptr(field->data);
 
   if(field_device)
   {
@@ -321,7 +321,7 @@ void *setup_device_field_decompress(const zfp_field *field,
                                     const sycl::int3 &stride,
                                     long long int &offset)
 {
-  bool field_device = true; //syclZFP::is_gpu_ptr(field->data);
+  bool field_device = syclZFP::is_gpu_ptr(field->data);
 
   if(field_device)
   {
@@ -361,6 +361,7 @@ void cleanup_device_ptr(void *orig_ptr, void *d_ptr, size_t bytes, long long int
 {
   sycl::queue q_ct1 {syclZFP::internal_device_selector{}};
   bool device = syclZFP::is_gpu_ptr(orig_ptr);
+  //print prorties of orig_ptr
   if(device)
   {
     return;

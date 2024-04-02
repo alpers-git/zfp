@@ -157,7 +157,6 @@ size_t encode2launch(sycl::uint2 dims, sycl::int2 stride, const Scalar *d_data,
   {
     //dpct::has_capability_or_fail(q_ct1.get_device(), {sycl::aspect::fp64});//! LOOKS PROBLEMATIC
     q_ct1.submit([&](sycl::handler &cgh) {
-        //...
       perm_3d.init();
       perm_1.init();
       perm_2.init();

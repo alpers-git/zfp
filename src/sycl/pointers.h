@@ -14,8 +14,13 @@ namespace syclZFP
 // https://gitlab.kitware.com/third-party/nvpipe/blob/master/encode.c
 bool is_gpu_ptr(const void *ptr) try {
   dpct::pointer_attributes atts;
-  const dpct::err0 perr = DPCT_CHECK_ERROR(atts.init(ptr));
-  return perr == 0 && (atts.get_memory_type() == sycl::usm::alloc::device ||
+  bool err = false;
+  try {
+    atts.init(ptr);
+  } catch (sycl::exception const &exc) {
+    err = true;
+  }
+  return (!err) && (atts.get_memory_type() == sycl::usm::alloc::device ||
                        atts.get_memory_type() == sycl::usm::alloc::shared);
 }
 catch (sycl::exception const &exc) {
