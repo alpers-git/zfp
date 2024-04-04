@@ -372,7 +372,7 @@ void cleanup_device_ptr(void *orig_ptr, void *d_ptr, size_t bytes, long long int
 
   if(bytes > 0)
   {
-    q_ct1.memcpy(h_offset_ptr, d_offset_ptr, bytes).wait();
+    q_ct1.memcpy(h_offset_ptr, d_offset_ptr, bytes).wait();//!!! Segfaults here on opencl:cpu
   }
 
   sycl::free(d_offset_ptr, q_ct1);

@@ -144,7 +144,7 @@ size_t encode1launch(uint dim,
 
   {
     //dpct::has_capability_or_fail(q_ct1.get_device(), {sycl::aspect::fp64});//! LOOKS PROBLEMATIC 
-    q_ct1.submit([&](sycl::handler &cgh) {
+    q_ct1.submit([&](sycl::handler &cgh) {//! Crashes here on opencl:gpu
       perm_3d.init();
       perm_1.init();
       perm_2.init();

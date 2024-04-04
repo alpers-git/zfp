@@ -202,7 +202,7 @@ sycl::range<3> calculate_grid_size(size_t size, size_t cuda_block_size)
 
   if(dims == 3)
   {
-    float cub_r = pow((float)grids, 1.f/3.f);;
+    float cub_r = pow((float)grids, 1.f/3.f);
     float intpart = 0;
     modf(cub_r, &intpart);
     int base = intpart;

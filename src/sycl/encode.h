@@ -68,7 +68,7 @@ template<class Scalar, int BlockSize>
 static int
 max_exponent(const Scalar* p)
 {
-  Scalar max_val = 0;
+  Scalar max_val = 0.f;
   for (int i = 0; i < BlockSize; ++i) {
     Scalar f = sycl::fabs(p[i]);
     max_val = sycl::max(max_val, f);
@@ -133,7 +133,7 @@ float
 inline 
 quantize_factor<float>(const int &exponent, float)
 {
-  return LDEXP(1.0, get_precision<float>() - 2 - exponent);
+  return LDEXP(1.0f, get_precision<float>() - 2 - exponent);
 }
 
 template<>
