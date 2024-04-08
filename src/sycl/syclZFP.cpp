@@ -224,13 +224,13 @@ Word *setup_device_stream_compress(zfp_stream *stream,const zfp_field *field)
 
   Word *d_stream = NULL;
   size_t max_size = zfp_stream_maximum_size(stream, field);
-  d_stream = (Word *)sycl::malloc_device(max_size, sycl::queue{syclZFP::internal_device_selector{}});
+  d_stream = (Word *)sycl::malloc_device(max_size, sycl::queue{syclZFP::internal_device_selector});
   return d_stream;
 }
 
 Word *setup_device_stream_decompress(zfp_stream *stream,const zfp_field *field)
 {
-  sycl::queue q_ct1{syclZFP::internal_device_selector{}};
+  sycl::queue q_ct1{syclZFP::internal_device_selector};
   bool stream_device = syclZFP::is_gpu_ptr(stream->stream->begin);
   assert(sizeof(bitstream_word) == sizeof(Word)); // "CUDA version currently only supports 64bit words");
 
@@ -277,7 +277,7 @@ void *setup_device_field_compress(const zfp_field *field,
                                   const sycl::int3 &stride,
                                   long long int &offset)
 {
-  sycl::queue q_ct1{syclZFP::internal_device_selector{}};
+  sycl::queue q_ct1{syclZFP::internal_device_selector};
   bool field_device = syclZFP::is_gpu_ptr(field->data);
 
   if(field_device)
@@ -352,14 +352,14 @@ void *setup_device_field_decompress(const zfp_field *field,
   {
     size_t field_bytes = type_size * field_size;
     d_data =
-        (void *)sycl::malloc_device(field_bytes,  sycl::queue{syclZFP::internal_device_selector{}});
+        (void *)sycl::malloc_device(field_bytes,  sycl::queue{syclZFP::internal_device_selector});
   }
   return offset_void(field->type, d_data, -offset);
 }
 
 void cleanup_device_ptr(void *orig_ptr, void *d_ptr, size_t bytes, long long int offset, zfp_type type)
 {
-  sycl::queue q_ct1 {syclZFP::internal_device_selector{}};
+  sycl::queue q_ct1 {syclZFP::internal_device_selector};
   bool device = syclZFP::is_gpu_ptr(orig_ptr);
   //print prorties of orig_ptr
   if(device)
@@ -386,7 +386,7 @@ sycl_compress(zfp_stream *stream, const zfp_field *field)
 #ifdef ZFP_WITH_SYCL_DEVICE_INFO
   if(!printed_device_info)
   {
-    sycl::queue q_ct1{syclZFP::internal_device_selector{}};
+    sycl::queue q_ct1{syclZFP::internal_device_selector};
     syclZFP::ShowDevice(q_ct1);
     printed_device_info = true;
   }
@@ -453,7 +453,7 @@ sycl_decompress(zfp_stream *stream, zfp_field *field)
   #ifdef ZFP_WITH_SYCL_DEVICE_INFO
   if(!printed_device_info)
   {
-    sycl::queue q_ct1{syclZFP::internal_device_selector{}};
+    sycl::queue q_ct1{syclZFP::internal_device_selector};
     syclZFP::ShowDevice(q_ct1);
     printed_device_info = true;
   }

@@ -128,7 +128,7 @@ template <class Scalar>
 size_t encode3launch(sycl::uint3 dims, sycl::int3 stride, const Scalar *d_data,
                      Word *stream, const int maxbits)
 {
-  sycl::queue q_ct1{syclZFP::internal_device_selector{}};
+  sycl::queue q_ct1{syclZFP::internal_device_selector};
 
   const int sycl_block_size = 128;
   sycl::range<3> block_size = sycl::range<3>(1, 1, sycl_block_size);
