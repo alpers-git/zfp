@@ -122,18 +122,17 @@ helper function to migrate __shfl_xor_sync.
   auto zfp_dev_selector = [](const ::sycl::device& d)
   {
     int score = 0;
-      // Ignore devices that do not support double-precision
-      if (d.has(::sycl::aspect::fp64))
-      {
-          score +=1; //prefer double-presion support
-      }
+    if (d.has(::sycl::aspect::fp64))
+    {
+        score +=1; //prefer double-presion support
+    }
 
-      if (d.is_gpu())
-      {
-          score +=2; //prefer GPU
-      }
-      score += d.get_info<::sycl::info::device::max_compute_units>();
-      return score;
+    if (d.is_gpu())
+    {
+        score +=2; //prefer GPU
+    }
+    score += d.get_info<::sycl::info::device::max_compute_units>();
+    return score;
   };
 
 

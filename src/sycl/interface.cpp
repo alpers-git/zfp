@@ -60,7 +60,6 @@ zfp_internal_sycl_init(zfp_exec_params_sycl* params) try {
     << " and max compute units: "
     << dev.get_info<::sycl::info::device::max_compute_units>()
     << std::endl;
-    
 #endif
   //cache device properties
   params->processors = dev.get_info<::sycl::info::device::max_compute_units>();
@@ -68,7 +67,7 @@ zfp_internal_sycl_init(zfp_exec_params_sycl* params) try {
   /*
   DPCT1022:37: Resolved
   */
-  params->grid_size[0] = groups[0];//??? maybe use 2,1,0 order
+  params->grid_size[0] = groups[2];
   /*
   DPCT1022:38: Resolved
   */
@@ -76,7 +75,7 @@ zfp_internal_sycl_init(zfp_exec_params_sycl* params) try {
   /*
   DPCT1022:39: Resolved
   */
-  params->grid_size[2] = groups[2];
+  params->grid_size[2] = groups[0];
 
   // launch device warm-up kernel
   return result;
