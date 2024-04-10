@@ -8,7 +8,7 @@ if(ZFP_WITH_SYCL)
   include(cmake/FindSYCL.cmake)
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl")
 
-  set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g")
+  set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
   set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 endif()
 
@@ -45,14 +45,13 @@ endif()
 
 project(ZFP VERSION ${ZFP_VERSION})
 
-if(ZFP_WITH_SYCL)
-  # export ZET_ENABLE_PROGRAM_DEBUGGING=1
-  add_definitions(-DZFP_WITH_SYCL)
-  find_package(IntelSYCL REQUIRED)
-  set (CMAKE_CXX_FLAGS "-Wno-implicit-function-declaration -fsycl")
-  set (CMAKE_CXX_FLAGS_DEBUG "-fPIC -O0 -fdebug-info-for-profiling")
-  set (CMAKE_CXX_FLAGS_RELEASE "-fPIC -O3")
-endif()
+# if(ZFP_WITH_SYCL)
+#   add_definitions(-DZFP_WITH_SYCL)
+#   find_package(IntelSYCL REQUIRED)
+#   set (CMAKE_CXX_FLAGS "-Wno-implicit-function-declaration -fsycl")
+#   set (CMAKE_CXX_FLAGS_DEBUG "-fPIC -O0 -fdebug-info-for-profiling")
+#   set (CMAKE_CXX_FLAGS_RELEASE "-fPIC -O3")
+# endif()
 
 #------------------------------------------------------------------------------#
 # Some boilerplate to setup nice output directories
