@@ -20,11 +20,11 @@ if(ZFP_WITH_HIP)
 endif()
 
 if(ZFP_WITH_SYCL)
+  add_subdirectory(sycl)
   find_package(TBB REQUIRED)
   add_definitions(-DZFP_WITH_SYCL)
   set(ZFP_SYCL_SOURCE sycl/interface.cpp)
   set_source_files_properties(${ZFP_SYCL_SOURCE} PROPERTIES LANGUAGE CXX)
-  add_subdirectory(sycl)
 endif()
 
 set(zfp_source
@@ -77,6 +77,7 @@ endif()
 
 if(ZFP_WITH_SYCL)
   target_link_libraries(zfp PRIVATE TBB::tbb)
+  add_sycl_to_target(TARGET zfp SOURCES ${ZFP_SYCL_SOURCE})
 endif()
 
 target_compile_definitions(zfp

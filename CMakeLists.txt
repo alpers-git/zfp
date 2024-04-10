@@ -4,16 +4,12 @@ if(ZFP_WITH_HIP)
 endif()
 
 if(ZFP_WITH_SYCL)
-  #set(CMAKE_CXX_COMPILER "icpx" )
+  set(CMAKE_CXX_STANDARD 17)
+  include(cmake/FindSYCL.cmake)
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl")
 
-  if (CMAKE_HOST_WIN32)
-      # need at least CMake 3.23 for IntelLLVM support of IntelDPCPP package on Windows
-      cmake_minimum_required(VERSION 3.23)
-      set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
-  else()
-      # CMake 3.20.5 is the minimum recommended for IntelLLVM on Linux
-      cmake_minimum_required(VERSION 3.20.5)
-  endif()
+  set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g")
+  set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 endif()
 
 # Enable MACOSX_RPATH by default
