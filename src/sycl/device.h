@@ -28,7 +28,7 @@ bool device_init()
     // Get a SYCL device queue
     queue q(zfp_dev_selector);
     // allocate a buffer to store the magic number on the device
-    unsigned int* d_word = malloc_shared<unsigned int>(1, q);
+    unsigned int* d_word = malloc_device<unsigned int>(1, q);
 
     //launch a kernel to initialize the magic number
     q.submit([&](handler& cgh) {
@@ -38,7 +38,11 @@ bool device_init()
     });
     q.wait();
 
-    if (d_word[0] != ZFP_MAGIC) {
+    // copy the magic number back to the host
+    unsigned int h_word;
+    q.memcpy(&h_word, d_word, sizeof(unsigned int)).wait();
+
+    if (h_word != ZFP_MAGIC) {
       std::cerr << "zfp_sycl : zfp device init failed" << std::endl;
       success = false;
     }

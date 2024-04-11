@@ -8,14 +8,12 @@ namespace sycl {
 namespace internal {
 
 
-static dpct::global_memory<const unsigned char, 1> perm_1(::sycl::range<1>(4),
-                                                          {0, 1, 2, 3});
+constexpr unsigned char perm_1[]={0, 1, 2, 3};
 
 #define index(i, j) ((i) + 4 * (j))
 
 // order coefficients (i, j) by i + j, then i^2 + j^2
-static dpct::global_memory<const unsigned char, 1>
-    perm_2(::sycl::range<1>(16), {
+constexpr unsigned char perm_2[]={
                                    index(0, 0), //  0 : 0
 
                                    index(1, 0), //  1 : 1
@@ -41,14 +39,13 @@ static dpct::global_memory<const unsigned char, 1>
                                    index(2, 3), // 14 : 5
 
                                    index(3, 3), // 15 : 6
-                               });
+                               };
 
 #undef index
 #define index(x, y, z) ((x) + 4 * ((y) + 4 * (z)))
 
 // order coefficients (i, j, k) by i + j + k, then i^2 + j^2 + k^2
-static dpct::global_memory<const unsigned char, 1>
-    perm_3(::sycl::range<1>(64), {
+constexpr unsigned char perm_3[]={
                                    index(0, 0, 0), //  0 : 0
 
                                    index(1, 0, 0), //  1 : 1
@@ -132,7 +129,7 @@ static dpct::global_memory<const unsigned char, 1>
                                    index(3, 3, 2), // 62 : 8
 
                                    index(3, 3, 3), // 63 : 9
-                               });
+                               };
 
 #undef index
 

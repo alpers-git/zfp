@@ -150,18 +150,16 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   limit. To get the device limit, query info::device::max_work_group_size.
   Adjust the work-group size if needed. 
   */
-    q.submit([&](::sycl::handler &cgh) {
-    extern dpct::global_memory<const unsigned char, 1> perm_1;
-    extern dpct::global_memory<const unsigned char, 1> perm_2;
-    extern dpct::global_memory<const unsigned char, 1> perm_3;
+  unsigned char* perm_1_data = malloc_shared<unsigned char>(4, q);
+  unsigned char* perm_2_data = malloc_shared<unsigned char>(16, q);
+  unsigned char* perm_3_data = malloc_shared<unsigned char>(64, q);
 
-    perm_1.init();
-    perm_2.init();
-    perm_3.init();
+  // Initialize perm_1, perm_2, and perm_3 data
+  memcpy(perm_1_data, perm_1, 4 * sizeof(unsigned char));
+  memcpy(perm_2_data, perm_2, 16 * sizeof(unsigned char));
+  memcpy(perm_3_data, perm_3, 64 * sizeof(unsigned char));
 
-    auto perm_1_ptr_ct1 = perm_1.get_ptr();
-    auto perm_2_ptr_ct1 = perm_2.get_ptr();
-    auto perm_3_ptr_ct1 = perm_3.get_ptr();
+  q.submit([&](::sycl::handler &cgh) {
 
     ::sycl::local_accessor<uint64, 1> offset_acc_ct1(::sycl::range<1>(32), cgh);
 
@@ -173,8 +171,8 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
                        decode1_kernel<Scalar>(
                            d_data, size_ct1, stride_ct2, d_stream, minbits,
                            maxbits, maxprec, minexp, d_offset, d_index,
-                           index_type, granularity, item_ct1, perm_1_ptr_ct1,
-                           perm_2_ptr_ct1, perm_3_ptr_ct1,
+                           index_type, granularity, item_ct1, perm_1_data,
+                           perm_2_data, perm_3_data,
                            offset_acc_ct1.get_pointer());
                      });
   });

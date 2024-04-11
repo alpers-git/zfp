@@ -146,18 +146,16 @@ encode2(
   limit. To get the device limit, query info::device::max_work_group_size.
   Adjust the work-group size if needed.
   */
+  unsigned char* perm_1_data = malloc_shared<unsigned char>(4, q);
+  unsigned char* perm_2_data = malloc_shared<unsigned char>(16, q);
+  unsigned char* perm_3_data = malloc_shared<unsigned char>(64, q);
+
+  // Initialize perm_1, perm_2, and perm_3 data
+  memcpy(perm_1_data, perm_1, 4 * sizeof(unsigned char));
+  memcpy(perm_2_data, perm_2, 16 * sizeof(unsigned char));
+  memcpy(perm_3_data, perm_3, 64 * sizeof(unsigned char));
+
   q.submit([&](::sycl::handler &cgh) {
-    extern dpct::global_memory<const unsigned char, 1> perm_1;
-    extern dpct::global_memory<const unsigned char, 1> perm_2;
-    extern dpct::global_memory<const unsigned char, 1> perm_3;
-
-    perm_1.init();
-    perm_2.init();
-    perm_3.init();
-
-    auto perm_1_ptr_ct1 = perm_1.get_ptr();
-    auto perm_2_ptr_ct1 = perm_2.get_ptr();
-    auto perm_3_ptr_ct1 = perm_3.get_ptr();
 
     auto make_size2_size_size_ct1 = make_size2(size[0], size[1]);
     auto make_ptrdiff2_stride_stride_ct2 = make_ptrdiff2(stride[0], stride[1]);
@@ -168,7 +166,7 @@ encode2(
                            d_data, make_size2_size_size_ct1,
                            make_ptrdiff2_stride_stride_ct2, d_stream, d_index,
                            minbits, maxbits, maxprec, minexp, item_ct1,
-                           perm_1_ptr_ct1, perm_2_ptr_ct1, perm_3_ptr_ct1);
+                           perm_1_data, perm_2_data, perm_3_data);
                      });
   });
 
