@@ -136,14 +136,12 @@ helper function to migrate __shfl_xor_sync.
   };
 
 
-  // determine whether ptr points to device memory
-  inline bool is_gpu_ptr(const void *ptr){
+  // determine whether ptr points to shared memory
+  inline bool is_usm_ptr(const void *ptr){
     dpct::pointer_attributes atts;
     try {
       atts.init(ptr);
       switch (atts.get_memory_type()) {
-        case ::sycl::usm::alloc::device:
-        /* FALL THROUGH */
         case ::sycl::usm::alloc::shared:
           return true;
         default:
@@ -159,20 +157,19 @@ helper function to migrate __shfl_xor_sync.
   }
   // asynchronous memory allocation (when supported)
   template <typename T> inline bool malloc_async(T **d_pointer, size_t size) try {
-
-    return ((*d_pointer = (T *)::sycl::malloc_shared(
-                                size, ::sycl::queue(zfp_dev_selector))),0) == 0;//TODO
+    *d_pointer = (T *)::sycl::malloc_shared(size, ::sycl::queue(zfp_dev_selector));
+    return *d_pointer != nullptr;
   }
   catch (::sycl::exception const &exc) {
     std::cerr << exc.what() << "Exception caught at file:" << __FILE__
               << ", line:" << __LINE__ << std::endl;
-    std::exit(1);
+    return false;
   }
 
   // asynchronous memory deallocation (when supported)
   inline void free_async(void* d_pointer)
   {
-    ::sycl::free(d_pointer, dpct::get_default_queue());
+    ::sycl::free(d_pointer, ::sycl::queue(zfp_dev_selector));
   }
 
   } // namespace internal

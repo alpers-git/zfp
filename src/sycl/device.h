@@ -3,6 +3,8 @@
 #ifndef ZFP_SYCL_DEVICE_H
 #define ZFP_SYCL_DEVICE_H
 
+#define ZFP_DEBUG
+
 #define ZFP_MAGIC 0x7a667000u
 
 #define SYCL_ERR(function_call, custom_msg, return_value) \
@@ -24,22 +26,19 @@ bool device_init()
   bool success = true;
   try {
     // Get a SYCL device queue
-    queue device_q(zfp_dev_selector);
+    queue q(zfp_dev_selector);
     // allocate a buffer to store the magic number on the device
-    buffer<unsigned int, 1> d_word_buf(NULL, 1);
+    unsigned int* d_word = malloc_shared<unsigned int>(1, q);
 
     //launch a kernel to initialize the magic number
-    device_q.submit([&](handler& cgh) {
-      auto d_word = d_word_buf.get_access<access::mode::write>(cgh);
+    q.submit([&](handler& cgh) {
       cgh.single_task<class device_init_kernel>([=]() {
         d_word[0] = ZFP_MAGIC;
         });
     });
-    device_q.wait();
+    q.wait();
 
-    //copy the magic number back to the host
-    unsigned int h_word = d_word_buf.get_access<access::mode::read>()[0];
-    if (h_word != ZFP_MAGIC) {
+    if (d_word[0] != ZFP_MAGIC) {
       std::cerr << "zfp_sycl : zfp device init failed" << std::endl;
       success = false;
     }
@@ -79,7 +78,7 @@ bool device_malloc(T** d_pointer, size_t size, const char* what = 0)
 
 #ifdef ZFP_DEBUG
   if (!success) {
-    std::cerr << "zfp_cuda : failed to allocate device memory";
+    std::cerr << "zfp_sycl : failed to allocate device memory";
     if (what)
       std::cerr << " for " << what;
     std::cerr << std::endl;
@@ -102,8 +101,9 @@ bool device_copy_from_host(T** d_pointer, size_t size, void* h_pointer,
 }
 catch (::sycl::exception const &exc) {
   #ifdef ZFP_DEBUG
-  std::cerr << "zfp_sycl : failed to copy." << exc.what() 
-            << "exception caught at file:" << __FILE__
+  std::cerr << "zfp_sycl : failed to copy "
+            << (what ? what : "data") << ". "<< exc.what() 
+            << " exception caught at file:" << __FILE__
             << ", line:" << __LINE__ << std::endl;
   #endif
   ::sycl::queue q(zfp_dev_selector);
@@ -115,7 +115,7 @@ catch (::sycl::exception const &exc) {
 Word* setup_device_stream_compress(zfp_stream* stream)
 {
   Word* d_stream = (Word*)stream->stream->begin;
-  if (!is_gpu_ptr(d_stream)) {
+  if (!is_usm_ptr(d_stream)) {
     // allocate device memory for compressed data
     size_t size = stream_capacity(stream->stream);
     device_malloc(&d_stream, size, "stream");
@@ -127,7 +127,7 @@ Word* setup_device_stream_compress(zfp_stream* stream)
 Word* setup_device_stream_decompress(zfp_stream* stream)
 {
   Word* d_stream = (Word*)stream->stream->begin;
-  if (!is_gpu_ptr(d_stream)) {
+  if (!is_usm_ptr(d_stream)) {
     // copy compressed data to device memory
     size_t size = stream_capacity(stream->stream);
     device_copy_from_host(&d_stream, size, stream->stream->begin, "stream");
@@ -139,7 +139,7 @@ Word* setup_device_stream_decompress(zfp_stream* stream)
 ushort* setup_device_index_compress(zfp_stream* stream, const zfp_field* field)
 {
   ushort* d_index = stream->index ? (ushort*)stream->index->data : NULL;
-  if (!is_gpu_ptr(d_index)) {
+  if (!is_usm_ptr(d_index)) {
     // allocate device memory for block index
     size_t size = zfp_field_blocks(field) * sizeof(ushort);
     device_malloc(&d_index, size, "index");
@@ -151,7 +151,7 @@ ushort* setup_device_index_compress(zfp_stream* stream, const zfp_field* field)
 Word* setup_device_index_decompress(zfp_stream* stream)
 {
   Word* d_index = (Word*)stream->index->data;
-  if (!is_gpu_ptr(d_index)) {
+  if (!is_usm_ptr(d_index)) {
     // copy index to device memory
     size_t size = stream->index->size;
     device_copy_from_host(&d_index, size, stream->index->data, "index");
@@ -162,29 +162,15 @@ Word* setup_device_index_decompress(zfp_stream* stream)
 
 bool setup_device_chunking(size_t* chunk_size, unsigned long long** d_offsets, size_t* lcubtemp, void** d_cubtemp, uint processors)
 {
-  dpct::device_ext& dev_ct1 = dpct::get_current_device();
-  queue& q_ct1 = dev_ct1.default_queue();
-  // TODO : Error handling for CUDA malloc and CUB?
+  queue q(zfp_dev_selector);
   // Assuming 1 thread = 1 ZFP block,
   // launching 1024 threads per SM should give a decent occupancy
   *chunk_size = processors * 1024;
   size_t size = (*chunk_size + 1) * sizeof(unsigned long long);
   if (!device_malloc(d_offsets, size, "offsets"))
     return false;
-  q_ct1.memset(*d_offsets, 0, size).wait(); // ensure offsets are zeroed
-
-  // Using CUB for the prefix sum. CUB needs a bit of temp memory too
-  size_t tempsize;
-  /*
-  DPCT1026:0: The call to cub::DeviceScan::InclusiveSum was removed because this
-  call is redundant in SYCL.
-  */
-  *lcubtemp = tempsize;
-  if (!device_malloc(d_cubtemp, tempsize, "offsets")) {
-    free(*d_offsets, q_ct1);
-    *d_offsets = NULL;
-    return false;
-  }
+  q.memset(*d_offsets, 0, size).wait(); // ensure offsets are zeroed
+  //Removed cub temp memory allocation stuff
 
   return true;
 }
@@ -192,7 +178,7 @@ bool setup_device_chunking(size_t* chunk_size, unsigned long long** d_offsets, s
 void* setup_device_field_compress(const zfp_field* field, void*& d_begin)
 {
   void* d_data = field->data;
-  if (is_gpu_ptr(d_data)) {
+  if (is_usm_ptr(d_data)) {
     // field already resides on device
     d_begin = zfp_field_begin(field);
     return d_data;
@@ -216,7 +202,7 @@ void* setup_device_field_compress(const zfp_field* field, void*& d_begin)
 void* setup_device_field_decompress(const zfp_field* field, void*& d_begin)
 {
   void* d_data = field->data;
-  if (is_gpu_ptr(d_data)) {
+  if (is_usm_ptr(d_data)) {
     // field has already been allocated on device
     d_begin = zfp_field_begin(field);
     return d_data;
