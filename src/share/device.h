@@ -150,6 +150,9 @@ helper function to migrate __shfl_xor_sync.
           return false;
       }
     } catch (::sycl::exception const &exc) {
+      // std::cerr << exc.what() << "Exception caught at file:" << __FILE__
+      //         << ", line:" << __LINE__ << std::endl;
+      //TODO enable when memory management is properly fixed
       return false;
     }
     return false;

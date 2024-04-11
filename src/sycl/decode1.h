@@ -1,5 +1,4 @@
 #include <sycl/sycl.hpp>
-#include <sycl/sycl.hpp>
 #include <dpct/dpct.hpp>
 #ifndef ZFP_SYCL_DECODE1_H
 #define ZFP_SYCL_DECODE1_H

@@ -1,5 +1,6 @@
 #include <oneapi/dpl/execution>
 #include <oneapi/dpl/algorithm>
+
 #include <iostream>
 #include "interface.h"
 #include "../share/device.h"
@@ -25,42 +26,34 @@
 
 zfp_bool
 zfp_internal_sycl_init(zfp_exec_params_sycl* params) try {
-
-  // ensure device word size equals CPU word size
+  // ensure GPU word size equals CPU word size
   if (sizeof(Word) != sizeof(bitstream_word))
     return false;
 
-  dpct::dev_mgr::instance().select_device(0);//TODO:remove
   // perform expensive query of device properties only once
   static bool initialized = false;
-  static dpct::device_info prop;
-
-  // if (!initialized)
-  // {
-  //   try {
-  //     dpct::get_current_device().get_device_info(prop);
-  //   }catch (::sycl::exception const &e) {
-  //     std::cerr<<"zfp_sycl : zfp internal sycl init "<< e.what() << std::endl;
-  //     return zfp_false;
-  //   }
-  // }
-  // initialized = true;
-
-  zfp_bool result = (zfp_bool)zfp::sycl::internal::device_init();
-
-  ::sycl::queue q = ::sycl::queue(zfp::sycl::internal::zfp_dev_selector);
-  auto policy = oneapi::dpl::execution::make_device_policy(q);
-  auto dev = policy.queue().get_device();
-    //enable if unsure about device
-#if ZFP_WITH_SYCL_DEVICE_INFO
-  std::cerr << "Running on: "
-    << dev.get_info<::sycl::info::device::name>()
-    << " with driver version: "
-    << dev.get_info<::sycl::info::device::driver_version>()
-    << " and max compute units: "
-    << dev.get_info<::sycl::info::device::max_compute_units>()
-    << std::endl;
-#endif
+  ::sycl::device dev;
+  if (!initialized)
+  {
+    try{
+      dev = ::sycl::device(zfp::sycl::internal::zfp_dev_selector);
+          //enable if unsure about device
+      #if ZFP_WITH_SYCL_DEVICE_INFO
+        std::cerr << "Running on: "
+          << dev.get_info<::sycl::info::device::name>()
+          << " with driver version: "
+          << dev.get_info<::sycl::info::device::driver_version>()
+          << " and max compute units: "
+          << dev.get_info<::sycl::info::device::max_compute_units>()
+          << std::endl;
+      #endif
+    } catch (sycl::exception const &exc) {
+      std::cerr << exc.what() << "Exception caught at file:" << __FILE__
+            << ", line:" << __LINE__ << std::endl;
+      return zfp_false;
+    }
+  }
+  initialized = true;
   //cache device properties
   params->processors = dev.get_info<::sycl::info::device::max_compute_units>();
   sycl::id<3> groups = dev.get_info<sycl::ext::oneapi::experimental::info::device::max_work_groups<3>>();
@@ -78,7 +71,7 @@ zfp_internal_sycl_init(zfp_exec_params_sycl* params) try {
   params->grid_size[2] = groups[0];
 
   // launch device warm-up kernel
-  return result;
+  return  (zfp_bool)zfp::sycl::internal::device_init();
 }
 catch (sycl::exception const &exc) {
   std::cerr << exc.what() << "Exception caught at file:" << __FILE__

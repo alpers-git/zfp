@@ -104,16 +104,17 @@ bool device_copy_from_host(T** d_pointer, size_t size, void* h_pointer,
   }
   catch (exception const& exc) {
 #ifdef ZFP_DEBUG
-    std::cerr << "zfp_sycl : failed to copy " << (what ? what : "data") << " from host to device" << std::endl;
+    std::cerr << "zfp_cuda : failed to copy " << (what ? what : "data") << " from host to device" << std::endl;
 #endif
-    free(*d_pointer, q_ct1);
+    dpct::dpct_free(*d_pointer);
     *d_pointer = NULL;
     return false;
   }
+  return true;
 }
-catch (exception const& exc) {
+catch (::sycl::exception const &exc) {
   std::cerr << exc.what() << "Exception caught at file:" << __FILE__
-    << ", line:" << __LINE__ << std::endl;
+            << ", line:" << __LINE__ << std::endl;
   std::exit(1);
 }
 

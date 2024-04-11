@@ -1,8 +1,6 @@
 #ifndef ZFP_SYCL_SHARED_H
 #define ZFP_SYCL_SHARED_H
 
-// report throughput; set via CMake
-// #define ZFP_WITH_SYCL_PROFILE 1
 
 #include <sycl/sycl.hpp>
 #include <dpct/dpct.hpp>
