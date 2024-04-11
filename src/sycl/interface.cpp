@@ -19,7 +19,7 @@
 #include "decode2.h"
 #include "decode3.h"
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 #include <dpct/dpct.hpp>
 #include <oneapi/dpl/execution>
 

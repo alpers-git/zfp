@@ -4,7 +4,7 @@
 #define DPCT_PROFILING_ENABLED
 #include <iomanip>
 #include <iostream>
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 #include <chrono>
 
 namespace zfp {

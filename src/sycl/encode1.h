@@ -1,4 +1,4 @@
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 #ifndef ZFP_SYCL_ENCODE1_H
 #define ZFP_SYCL_ENCODE1_H
 
