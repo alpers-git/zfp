@@ -234,7 +234,8 @@ void cleanup_device(void* begin, void* d_begin, size_t bytes = 0)
   if (d_begin != begin) {
     // copy data from device to host and free device memory
     if (begin && bytes)
-      dpct::get_default_queue().memcpy(begin, d_begin, bytes).wait();
+      queue(zfp_dev_selector).memcpy(begin, d_begin, bytes).wait(); //CPU works to an extent with this??
+      //dpct::get_default_queue().memcpy(begin, d_begin, bytes).wait();//cpu freezes here
     free_async(d_begin);
   }
 }
