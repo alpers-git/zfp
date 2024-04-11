@@ -93,29 +93,23 @@ bool device_malloc(T** d_pointer, size_t size, const char* what = 0)
 template <typename T>
 bool device_copy_from_host(T** d_pointer, size_t size, void* h_pointer,
   const char* what = 0) try {
-  dpct::device_ext& dev_ct1 = dpct::get_current_device();
-  queue& q_ct1 = dev_ct1.default_queue();
   if (!device_malloc(d_pointer, size, what))
     return false;
 
-  try {
-    q_ct1.memcpy(*d_pointer, h_pointer, size).wait();
+    ::sycl::queue q(zfp_dev_selector);
+    q.memcpy(*d_pointer, h_pointer, size).wait();
     return true;
-  }
-  catch (exception const& exc) {
-#ifdef ZFP_DEBUG
-    std::cerr << "zfp_cuda : failed to copy " << (what ? what : "data") << " from host to device" << std::endl;
-#endif
-    dpct::dpct_free(*d_pointer);
-    *d_pointer = NULL;
-    return false;
-  }
-  return true;
 }
 catch (::sycl::exception const &exc) {
-  std::cerr << exc.what() << "Exception caught at file:" << __FILE__
+  #ifdef ZFP_DEBUG
+  std::cerr << "zfp_sycl : failed to copy." << exc.what() 
+            << "exception caught at file:" << __FILE__
             << ", line:" << __LINE__ << std::endl;
-  std::exit(1);
+  #endif
+  ::sycl::queue q(zfp_dev_selector);
+  ::sycl::free(*d_pointer, q);
+  *d_pointer = NULL;
+  return false;
 }
 
 Word* setup_device_stream_compress(zfp_stream* stream)
