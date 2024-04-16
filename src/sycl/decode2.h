@@ -139,10 +139,10 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   // storage for maximum bit offset; needed to position stream
   unsigned long long int* d_offset;
   try {
-    d_offset = (unsigned long long int*)::sycl::malloc_device(
+    d_offset = (unsigned long long int*)::sycl::malloc_shared(
         sizeof(*d_offset), q);
   } catch (::sycl::exception const& e) {
-    std::cerr << "Caught synchronous SYCL exception during malloc_device:\n"
+    std::cerr << "Caught synchronous SYCL exception during malloc_shared:\n"
               << e.what() << std::endl;
     std::exit(1);
   }
@@ -183,7 +183,7 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
               d_data, make_size2_size_size_ct1, make_ptrdiff2_stride_stride_ct2,
               d_stream, minbits, maxbits, maxprec, minexp, d_offset, d_index,
               index_type, granularity, item_ct1, perm_1_data, perm_2_data,
-              perm_3_data, offset_acc_ct1.get_pointer());
+              perm_3_data, offset_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>());
         });
   });
 
