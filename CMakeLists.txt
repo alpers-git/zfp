@@ -8,7 +8,8 @@ if(ZFP_WITH_SYCL)
   include(cmake/FindSYCL.cmake)
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl")
 
-  set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
+  set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0 -Rno-debug-disables-optimization")
+  set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -O0 -Rno-debug-disables-optimization")
   set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 endif()
 
