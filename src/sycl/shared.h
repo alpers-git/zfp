@@ -32,15 +32,15 @@ namespace zfp {
 namespace sycl {
 namespace internal {
 
-typedef ::sycl::ulonglong2 size2;
-typedef ::sycl::ulonglong3 size3;
-typedef ::sycl::longlong2 ptrdiff2;
-typedef ::sycl::longlong3 ptrdiff3;
+typedef ::sycl::ulong2 size2;
+typedef ::sycl::ulong3 size3;
+typedef ::sycl::long2 ptrdiff2;
+typedef ::sycl::long3 ptrdiff3;
 
-#define make_size2(x, y) ::sycl::ulonglong2(x, y)
-#define make_ptrdiff2(x, y) ::sycl::longlong2(x, y)
-#define make_size3(x, y, z) ::sycl::ulonglong3(x, y, z)
-#define make_ptrdiff3(x, y, z) ::sycl::longlong3(x, y, z)
+#define make_size2(x, y) ::sycl::ulong2(x, y)
+#define make_ptrdiff2(x, y) ::sycl::long2(x, y)
+#define make_size3(x, y, z) ::sycl::ulong3(x, y, z)
+#define make_ptrdiff3(x, y, z) ::sycl::long3(x, y, z)
 
 // round size up to the next multiple of unit
 inline 
