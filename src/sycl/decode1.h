@@ -173,7 +173,7 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
                            maxbits, maxprec, minexp, d_offset, d_index,
                            index_type, granularity, item_ct1, perm_1_data,
                            perm_2_data, perm_3_data,
-                           offset_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>());
+                           offset_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>().get());
                      });
   });
 
