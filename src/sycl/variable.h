@@ -37,7 +37,7 @@ void copy_length_launch(ushort* bitlengths,
     int nstreams_chunk)
 {
     ::sycl::range<3> blocks(1, 1, (nstreams_chunk - 1) / 1024 + 1);
-    dpct::get_default_queue().parallel_for(
+    ::sycl::queue(zfp_dev_selector).parallel_for(
         ::sycl::nd_range<3>(blocks * ::sycl::range<3>(1, 1, 1024),
             ::sycl::range<3>(1, 1, 1024)),
         [=](::sycl::nd_item<3> item_ct1) {
@@ -295,7 +295,7 @@ void chunk_process_launch(uint* streams,
     int num_sm)
 {
     dpct::device_ext& dev_ct1 = dpct::get_current_device();
-    ::sycl::queue& q_ct1 = dev_ct1.default_queue();
+    ::sycl::queue q_ct1(zfp_dev_selector);
     int maxpad32 = (nbitsmax + 31) / 32;
     void* kernelArgs[] = { (void*)&streams,
                             (void*)&chunk_offsets,
@@ -333,8 +333,8 @@ void chunk_process_launch(uint* streams,
         */
         {
             dpct::global_memory<unsigned int, 0> d_sync_ct1(0);
-            unsigned* sync_ct1 = d_sync_ct1.get_ptr(dpct::get_default_queue());
-            dpct::get_default_queue().memset(sync_ct1, 0, sizeof(int)).wait();
+            unsigned* sync_ct1 = d_sync_ct1.get_ptr(q_ct1);
+            q_ct1.memset(sync_ct1, 0, sizeof(int)).wait();
             q_ct1
                 .submit([&](::sycl::handler& cgh) {
                 ::sycl::local_accessor<uint8_t, 1> dpct_local_acc_ct1(
@@ -560,8 +560,7 @@ unsigned long long
         size_t processors
     )
 {
-    dpct::device_ext& dev_ct1 = dpct::get_current_device();
-    ::sycl::queue& q_ct1 = dev_ct1.default_queue();
+    ::sycl::queue q_ct1(zfp_dev_selector);
     unsigned long long bits_written = 0;
     unsigned long long* d_offsets;
     size_t chunk_size;
