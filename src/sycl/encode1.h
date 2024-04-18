@@ -36,11 +36,9 @@ void encode1_kernel(
   uint minbits,         // min compressed #bits/block
   uint maxbits,         // max compressed #bits/block
   uint maxprec,         // max uncompressed #bits/value
-  int minexp            ,
+  int minexp,           // min bit plane index
   const ::sycl::nd_item<3> &item_ct1,
-  unsigned char *perm_1,
-  unsigned char *perm_2,
-  unsigned char *perm_3// min bit plane index
+  unsigned char *perm
 )
 {
   const size_t blockId =
@@ -79,8 +77,7 @@ void encode1_kernel(
     gather1(fblock, d_data + offset, stride);
 
   uint bits = encode_block<Scalar, ZFP_1D_BLOCK_SIZE>()(
-      fblock, writer, minbits, maxbits, maxprec, minexp, perm_1, perm_2,
-      perm_3);
+      fblock, writer, minbits, maxbits, maxprec, minexp, perm);
 
   if (d_index)
     d_index[block_idx] = (ushort)bits;
@@ -130,13 +127,9 @@ encode1(
   Adjust the work-group size if needed.
   */
   unsigned char* perm_1_data = malloc_shared<unsigned char>(4, q);
-  unsigned char* perm_2_data = malloc_shared<unsigned char>(16, q);
-  unsigned char* perm_3_data = malloc_shared<unsigned char>(64, q);
 
-  // Initialize perm_1, perm_2, and perm_3 data
+  // Initialize perm_1 data
   memcpy(perm_1_data, perm_1, 4 * sizeof(unsigned char));
-  memcpy(perm_2_data, perm_2, 16 * sizeof(unsigned char));
-  memcpy(perm_3_data, perm_3, 64 * sizeof(unsigned char));
 
   q.submit([&](::sycl::handler &cgh) {
 
@@ -147,14 +140,12 @@ encode1(
                      [=](::sycl::nd_item<3> item_ct1) {
                        encode1_kernel<Scalar>(
                            d_data, size_ct1, stride_ct2, d_stream, d_index,
-                           minbits, maxbits, maxprec, minexp, item_ct1,
-                           perm_1_data, perm_2_data, perm_3_data);
+                           minbits, maxbits, maxprec, minexp,
+                           item_ct1, perm_1_data);
                      });
   });
 
   free(perm_1_data, q);
-  free(perm_2_data, q);
-  free(perm_3_data, q);
 
 #ifdef ZFP_WITH_SYCL_PROFILE
   e.wait();

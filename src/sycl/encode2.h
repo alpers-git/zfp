@@ -47,11 +47,9 @@ encode2_kernel(
   uint minbits,         // min compressed #bits/block
   uint maxbits,         // max compressed #bits/block
   uint maxprec,         // max uncompressed #bits/value
-  int minexp            ,
+  int minexp,           // min bit plane index
   const ::sycl::nd_item<3> &item_ct1,
-  unsigned char *perm_1,
-  unsigned char *perm_2,
-  unsigned char *perm_3// min bit plane index
+  unsigned char *perm
 )
 {
   const size_t blockId =
@@ -95,8 +93,7 @@ encode2_kernel(
     gather2(fblock, d_data + offset, stride.x(), stride.y());
 
   uint bits = encode_block<Scalar, ZFP_2D_BLOCK_SIZE>()(
-      fblock, writer, minbits, maxbits, maxprec, minexp, perm_1, perm_2,
-      perm_3);
+      fblock, writer, minbits, maxbits, maxprec, minexp, perm);
 
   if (d_index)
     d_index[block_idx] = (ushort)bits;
@@ -146,14 +143,10 @@ encode2(
   limit. To get the device limit, query info::device::max_work_group_size.
   Adjust the work-group size if needed.
   */
-  unsigned char* perm_1_data = malloc_shared<unsigned char>(4, q);
   unsigned char* perm_2_data = malloc_shared<unsigned char>(16, q);
-  unsigned char* perm_3_data = malloc_shared<unsigned char>(64, q);
 
-  // Initialize perm_1, perm_2, and perm_3 data
-  memcpy(perm_1_data, perm_1, 4 * sizeof(unsigned char));
+  // Initialize perm_2 data
   memcpy(perm_2_data, perm_2, 16 * sizeof(unsigned char));
-  memcpy(perm_3_data, perm_3, 64 * sizeof(unsigned char));
 
   q.submit([&](::sycl::handler &cgh) {
 
@@ -165,10 +158,12 @@ encode2(
                        encode2_kernel<Scalar>(
                            d_data, make_size2_size_size_ct1,
                            make_ptrdiff2_stride_stride_ct2, d_stream, d_index,
-                           minbits, maxbits, maxprec, minexp, item_ct1,
-                           perm_1_data, perm_2_data, perm_3_data);
+                           minbits, maxbits, maxprec, minexp,
+                           item_ct1, perm_2_data);
                      });
   });
+
+  free(perm_2_data, q);
 
 #ifdef ZFP_WITH_SYCL_PROFILE
   e.wait();
