@@ -142,10 +142,9 @@ Int uint2int(UInt x)
 
 template <typename Int, typename UInt, int BlockSize>
 inline 
-void inv_order(const UInt* ublock, Int* iblock, unsigned char *perm_1,
-               unsigned char *perm_2, unsigned char *perm_3)
+void inv_order(const UInt* ublock, Int* iblock, unsigned char *perm)
 {
-  const unsigned char *perm = get_perm<BlockSize>(perm_1, perm_2, perm_3);
+  //const unsigned char *perm = get_perm<BlockSize>(perm, perm_2, perm_3);
 
 #if SYCL_LANGUAGE_VERSION < 8000
 #pragma unroll
@@ -236,9 +235,7 @@ uint decode_int_block(
   uint maxbits,
   uint maxprec
 ,
-  unsigned char *perm_1,
-  unsigned char *perm_2,
-  unsigned char *perm_3)
+  unsigned char *perm)
 {
   // decode integer coefficients
   typedef typename traits<Int>::UInt UInt;
@@ -254,7 +251,7 @@ uint decode_int_block(
   }
 
   // reorder unsigned coefficients and convert to signed integer
-  inv_order<Int, UInt, BlockSize>(ublock, iblock, perm_1, perm_2, perm_3);
+  inv_order<Int, UInt, BlockSize>(ublock, iblock, perm);
 
   // perform decorrelating transform
   inv_xform<Int, BlockSize>()(iblock);
@@ -273,9 +270,7 @@ uint decode_float_block(
   uint maxprec,
   int minexp
 ,
-  unsigned char *perm_1,
-  unsigned char *perm_2,
-  unsigned char *perm_3)
+  unsigned char *perm)
 {
   uint bits = 1;
   if (reader.read_bit()) {
@@ -288,7 +283,7 @@ uint decode_float_block(
     Int* iblock = (Int*)fblock;
     bits += decode_int_block<Int, BlockSize>(
         iblock, reader, ::sycl::max(minbits, bits) - bits,
-        ::sycl::max(maxbits, bits) - bits, maxprec, perm_1, perm_2, perm_3);
+        ::sycl::max(maxbits, bits) - bits, maxprec, perm);
     // perform inverse block-floating-point transform
     inv_cast<Float, Int, BlockSize>(iblock, fblock, emax);
   }
@@ -312,11 +307,10 @@ template <int BlockSize>
 struct decode_block<int, BlockSize> {
   inline 
   uint operator()(int* iblock, BlockReader& reader, uint minbits, uint maxbits, uint maxprec, int,
-                  unsigned char *perm_1, unsigned char *perm_2,
-                  unsigned char *perm_3) const
+                  unsigned char *perm) const
   {
     return decode_int_block<int, BlockSize>(iblock, reader, minbits, maxbits,
-                                            maxprec, perm_1, perm_2, perm_3);
+                                            maxprec, perm);
   }
 };
 
@@ -325,11 +319,10 @@ template <int BlockSize>
 struct decode_block<long long, BlockSize> {
   inline 
   uint operator()(long long* iblock, BlockReader& reader, uint minbits, uint maxbits, uint maxprec, int,
-                  unsigned char *perm_1, unsigned char *perm_2,
-                  unsigned char *perm_3) const
+                  unsigned char *perm) const
   {
     return decode_int_block<long long, BlockSize>(
-        iblock, reader, minbits, maxbits, maxprec, perm_1, perm_2, perm_3);
+        iblock, reader, minbits, maxbits, maxprec, perm);
   }
 };
 
@@ -337,13 +330,11 @@ struct decode_block<long long, BlockSize> {
 template <int BlockSize>
 struct decode_block<float, BlockSize> {
   inline 
-  uint operator()(float* fblock, BlockReader& reader, uint minbits, uint maxbits, uint maxprec, int minexp,
-                  unsigned char *perm_1, unsigned char *perm_2,
-                  unsigned char *perm_3) const
+  uint operator()(float* fblock, BlockReader& reader, uint minbits, uint maxbits, uint maxprec, int minexp, unsigned char *perm) const
   {
     return decode_float_block<float, BlockSize>(fblock, reader, minbits,
                                                 maxbits, maxprec, minexp,
-                                                perm_1, perm_2, perm_3);
+                                                perm);
   }
 };
 
@@ -352,13 +343,11 @@ template <int BlockSize>
 struct decode_block<double, BlockSize> {
   SYCL_EXTERNAL inline uint operator()(double *fblock, BlockReader &reader,
                                        uint minbits, uint maxbits, uint maxprec,
-                                       int minexp, unsigned char *perm_1,
-                                       unsigned char *perm_2,
-                                       unsigned char *perm_3) const
+                                       int minexp, unsigned char *perm) const
   {
     return decode_float_block<double, BlockSize>(fblock, reader, minbits,
                                                  maxbits, maxprec, minexp,
-                                                 perm_1, perm_2, perm_3);
+                                                 perm);
   }
 };
 

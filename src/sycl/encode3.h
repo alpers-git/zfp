@@ -175,9 +175,9 @@ encode3(
                            d_index, minbits, maxbits, maxprec, minexp,
                           item_ct1, perm_3_data);
                      });
-  });
+  }).wait();
 
-  free(perm_3_data, q);
+  ::sycl::free(perm_3_data, q);
 
 #ifdef ZFP_WITH_SYCL_PROFILE
   e.wait();

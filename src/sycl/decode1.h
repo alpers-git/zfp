@@ -44,8 +44,6 @@ decode1_kernel(
 ,
   const ::sycl::nd_item<3> &item_ct1,
   unsigned char *perm_1,
-  unsigned char *perm_2,
-  unsigned char *perm_3,
   uint64 *offset)
 {
   const size_t blockId =
@@ -80,8 +78,7 @@ decode1_kernel(
   for (; block_idx < block_end; block_idx++) {
     Scalar fblock[ZFP_1D_BLOCK_SIZE] = { 0 };
     decode_block<Scalar, ZFP_1D_BLOCK_SIZE>()(fblock, reader, minbits, maxbits,
-                                              maxprec, minexp, perm_1, perm_2,
-                                              perm_3);
+                                              maxprec, minexp, perm_1);
 
     // logical position in 1d array
     size_t pos = block_idx;
@@ -151,13 +148,8 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   Adjust the work-group size if needed. 
   */
   unsigned char* perm_1_data = malloc_shared<unsigned char>(4, q);
-  unsigned char* perm_2_data = malloc_shared<unsigned char>(16, q);
-  unsigned char* perm_3_data = malloc_shared<unsigned char>(64, q);
-
-  // Initialize perm_1, perm_2, and perm_3 data
+  // Initialize perm_1 data
   memcpy(perm_1_data, perm_1, 4 * sizeof(unsigned char));
-  memcpy(perm_2_data, perm_2, 16 * sizeof(unsigned char));
-  memcpy(perm_3_data, perm_3, 64 * sizeof(unsigned char));
 
   q.submit([&](::sycl::handler &cgh) {
 
@@ -172,10 +164,9 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
                            d_data, size_ct1, stride_ct2, d_stream, minbits,
                            maxbits, maxprec, minexp, d_offset, d_index,
                            index_type, granularity, item_ct1, perm_1_data,
-                           perm_2_data, perm_3_data,
                            offset_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>().get());
                      });
-  });
+  }).wait();
 
 #ifdef ZFP_WITH_SYCL_PROFILE
   e.wait();
@@ -184,7 +175,8 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
                                  ::sycl::range<1>(size[0]));
 #endif
 
-
+  ::sycl::free(perm_1_data, q);
+  
   // copy bit offset
   unsigned long long int offset;
   q.memcpy(&offset, d_offset, sizeof(offset)).wait();

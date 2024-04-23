@@ -222,7 +222,6 @@ template <typename Int, typename UInt, int BlockSize>
 inline 
 void fwd_order(UInt* ublock, const Int* iblock, unsigned char *perm)
 {
-  //const unsigned char* perm = get_perm<BlockSize>(perm_1, perm_2, perm_3);
 #if SYCL_LANGUAGE_VERSION < 8000
 #pragma unroll
 #else

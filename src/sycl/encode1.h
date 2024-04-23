@@ -143,9 +143,9 @@ encode1(
                            minbits, maxbits, maxprec, minexp,
                            item_ct1, perm_1_data);
                      });
-  });
+  }).wait();
 
-  free(perm_1_data, q);
+  ::sycl::free(perm_1_data, q);
 
 #ifdef ZFP_WITH_SYCL_PROFILE
   e.wait();

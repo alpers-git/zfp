@@ -161,9 +161,9 @@ encode2(
                            minbits, maxbits, maxprec, minexp,
                            item_ct1, perm_2_data);
                      });
-  });
+  }).wait();
 
-  free(perm_2_data, q);
+  ::sycl::free(perm_2_data, q);
 
 #ifdef ZFP_WITH_SYCL_PROFILE
   e.wait();

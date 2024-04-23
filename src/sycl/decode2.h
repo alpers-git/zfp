@@ -48,9 +48,7 @@ decode2_kernel(
   uint granularity
 ,
   const ::sycl::nd_item<3> &item_ct1,
-  unsigned char *perm_1,
-  unsigned char *perm_2,
-  unsigned char *perm_3,
+  unsigned char *perm,
   uint64 *offset)
 {
   const size_t blockId =
@@ -87,8 +85,7 @@ decode2_kernel(
   for (; block_idx < block_end; block_idx++) {
     Scalar fblock[ZFP_2D_BLOCK_SIZE] = { 0 };
     decode_block<Scalar, ZFP_2D_BLOCK_SIZE>()(fblock, reader, minbits, maxbits,
-                                              maxprec, minexp, perm_1, perm_2,
-                                              perm_3);
+                                              maxprec, minexp, perm);
 
     // logical position in 2d array
     size_t pos = block_idx;
@@ -160,14 +157,10 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   limit. To get the device limit, query info::device::max_work_group_size.
   Adjust the work-group size if needed.
   */
-  unsigned char* perm_1_data = malloc_shared<unsigned char>(4, q);
   unsigned char* perm_2_data = malloc_shared<unsigned char>(16, q);
-  unsigned char* perm_3_data = malloc_shared<unsigned char>(64, q);
 
-  // Initialize perm_1, perm_2, and perm_3 data
-  memcpy(perm_1_data, perm_1, 4 * sizeof(unsigned char));
+  // Initialize perm_2 data
   memcpy(perm_2_data, perm_2, 16 * sizeof(unsigned char));
-  memcpy(perm_3_data, perm_3, 64 * sizeof(unsigned char));
 
   q.submit([&](::sycl::handler &cgh) {
 
@@ -182,10 +175,10 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
           decode2_kernel<Scalar>(
               d_data, make_size2_size_size_ct1, make_ptrdiff2_stride_stride_ct2,
               d_stream, minbits, maxbits, maxprec, minexp, d_offset, d_index,
-              index_type, granularity, item_ct1, perm_1_data, perm_2_data,
-              perm_3_data, offset_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>().get());
+              index_type, granularity, item_ct1, perm_2_data,
+              offset_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>().get());
         });
-  });
+  }).wait();
 
 #ifdef ZFP_WITH_SYCL_PROFILE
   e.wait();
@@ -193,6 +186,7 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   timer.print_throughput<Scalar>("Decode", "decode2", range<2>(size[0], size[1]));
 #endif
 
+  ::sycl::free(perm_2_data, q);
   // copy bit offset
   unsigned long long int offset;
   q.memcpy(&offset, d_offset, sizeof(offset)).wait();

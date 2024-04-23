@@ -1,4 +1,10 @@
-set(CMAKE_CXX_STANDARD 11)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM")
+  # set to C++17
+  set(CMAKE_CXX_STANDARD 17)
+else()
+  # set to C++11
+  set(CMAKE_CXX_STANDARD 11)
+endif()
 
 # CMAKE_SH-NOTFOUND needed for mingw builds
 if(MINGW)
