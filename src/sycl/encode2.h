@@ -143,9 +143,10 @@ encode2(
   limit. To get the device limit, query info::device::max_work_group_size.
   Adjust the work-group size if needed.
   */
-  unsigned char* perm_2_data = malloc_shared<unsigned char>(16, q);
+  unsigned char* perm_2_data = ::sycl::malloc_shared<unsigned char>(16, q);
 
   // Initialize perm_2 data
+  // q.memcpy(perm_2_data, perm_2, 16 * sizeof(unsigned char)).wait();
   memcpy(perm_2_data, perm_2, 16 * sizeof(unsigned char));
 
   q.submit([&](::sycl::handler &cgh) {

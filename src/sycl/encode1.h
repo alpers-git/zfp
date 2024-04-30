@@ -112,7 +112,8 @@ encode1(
 
   // zero-initialize bit stream (for atomics)
   const size_t stream_bytes = calculate_device_memory(blocks, maxbits);
-  q.memset(d_stream, 0, stream_bytes).wait();
+  std::memset(d_stream, 0, stream_bytes);
+  //q.memset(d_stream, 0, stream_bytes).wait();
 
 #ifdef ZFP_WITH_SYCL_PROFILE
   Timer timer;
@@ -129,7 +130,36 @@ encode1(
   unsigned char* perm_1_data = malloc_shared<unsigned char>(4, q);
 
   // Initialize perm_1 data
-  memcpy(perm_1_data, perm_1, 4 * sizeof(unsigned char));
+  memcpy(perm_1_data, perm_1, 4 * sizeof(unsigned char));// !use this instead of q.memcpy: Reported. A driver bug
+
+  //print all of the variables that are passed to the kernel
+  // std::cout << "size[0]: " << size[0] << std::endl;
+  // std::cout << "stride[0]: " << stride[0] << std::endl;
+  // std::cout << "minbits: " << minbits << std::endl;
+  // std::cout << "maxbits: " << maxbits << std::endl;
+  // std::cout << "maxprec: " << maxprec << std::endl;
+  // std::cout << "minexp: " << minexp << std::endl;
+  // std::cout << "stream_bytes: " << stream_bytes << std::endl;
+  // std::cout << "blocks: " << blocks << std::endl;
+  //print d_data
+  // std::cout << "d_data: " << std::endl;
+  // for (int i = 0; i < size[0]; i++)
+  // {
+  //   std::cout << d_data[i] << "\n";
+  // }
+  //print d_stream
+  // std::cout << "d_stream: " << std::endl;
+  // for (int i = 0; i < stream_bytes; i++)
+  // {
+  //   std::cout << d_stream[i] << "\n";
+  // }
+  //print d_index
+  // std::cout << "d_index: " << std::endl;
+  // for (int i = 0; i < blocks; i++)
+  // {
+  //   std::cout << d_index[i] << "\n";
+  // }
+
 
   q.submit([&](::sycl::handler &cgh) {
 

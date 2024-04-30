@@ -169,9 +169,10 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   limit. To get the device limit, query info::device::max_work_group_size.
   Adjust the work-group size if needed.
   */
-  unsigned char* perm_3_data = malloc_shared<unsigned char>(64, q);
+  unsigned char* perm_3_data = ::sycl::malloc_shared<unsigned char>(64, q);
 
   // Initialize perm_3 data
+  // q.memcpy(perm_3_data, perm_3, 64 * sizeof(unsigned char)).wait();
   memcpy(perm_3_data, perm_3, 64 * sizeof(unsigned char));
 
   q.submit([&](::sycl::handler &cgh) {
@@ -203,7 +204,8 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
 
   // copy bit offset
   unsigned long long int offset;
-  q.memcpy(&offset, d_offset, sizeof(offset)).wait();
+  // q.memcpy(&offset, d_offset, sizeof(offset)).wait();
+  memcpy(&offset, d_offset, sizeof(offset));
   ::sycl::free(d_offset, q);
 
   return offset;

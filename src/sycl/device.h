@@ -99,8 +99,9 @@ bool device_copy_from_host(T** d_pointer, size_t size, void* h_pointer,
   if (!device_malloc(d_pointer, size, what))
     return false;
 
-    ::sycl::queue q(zfp_dev_selector);
-    q.memcpy(*d_pointer, h_pointer, size).wait();
+    // ::sycl::queue q(zfp_dev_selector);
+    // q.memcpy(*d_pointer, h_pointer, size).wait();
+    std::memcpy(*d_pointer, h_pointer, size);//! use this instead of q.memcpy: Reported. A driver bug
     return true;
 }
 catch (::sycl::exception const &exc) {
@@ -234,8 +235,8 @@ void cleanup_device(void* begin, void* d_begin, size_t bytes = 0)
   if (d_begin != begin) {
     // copy data from device to host and free device memory
     if (begin && bytes)
-      queue(zfp_dev_selector).memcpy(begin, d_begin, bytes).wait(); //CPU works to an extent with this??
-      //dpct::get_default_queue().memcpy(begin, d_begin, bytes).wait();//cpu freezes here
+      std::memcpy(begin, d_begin, bytes);
+      //queue(zfp_dev_selector).memcpy(begin, d_begin, bytes).wait(); //CPU works to an extent with this??
     free_async(d_begin);
   }
 }
