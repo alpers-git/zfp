@@ -143,7 +143,7 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
               << e.what() << std::endl;
     std::exit(1);
   }
-  q.memset(d_offset, 0, sizeof(*d_offset)).wait();
+  auto e1 = q.memset(d_offset, 0, sizeof(*d_offset));
 
 #ifdef ZFP_WITH_SYCL_PROFILE
   Timer timer;
@@ -160,11 +160,11 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   unsigned char* perm_2_data = ::sycl::malloc_shared<unsigned char>(16, q);
 
   // Initialize perm_2 data
-  //q.memcpy(perm_2_data, perm_2, 16 * sizeof(unsigned char)).wait();
-  memcpy(perm_2_data, perm_2, 16 * sizeof(unsigned char));
+  // memcpy(perm_2_data, perm_2, 16 * sizeof(unsigned char));
+  auto e2 = q.memcpy(perm_2_data, perm_2, 16 * sizeof(unsigned char));
 
   q.submit([&](::sycl::handler &cgh) {
-
+    cgh.depends_on({e1,e2});
     ::sycl::local_accessor<uint64, 1> offset_acc_ct1(::sycl::range<1>(32), cgh);
 
     auto make_size2_size_size_ct1 = make_size2(size[0], size[1]);

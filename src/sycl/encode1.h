@@ -125,8 +125,8 @@ encode1(
 
   // zero-initialize bit stream (for atomics)
   const size_t stream_bytes = calculate_device_memory(blocks, maxbits);
-  std::memset(d_stream, 0, stream_bytes);
-  //q.memset(d_stream, 0, stream_bytes).wait();
+  //std::memset(d_stream, 0, stream_bytes);
+  auto e1 = q.memset(d_stream, 0, stream_bytes);
 
 #ifdef ZFP_WITH_SYCL_PROFILE
   Timer timer;
@@ -143,12 +143,17 @@ encode1(
   unsigned char* perm_1_data = malloc_shared<unsigned char>(4, q);
 
   // Initialize perm_1 data
-  memcpy(perm_1_data, perm_1, 4 * sizeof(unsigned char));// !use this instead of q.memcpy: Reported. A driver bug
+  //memcpy(perm_1_data, perm_1, 4 * sizeof(unsigned char));
+  // q.memcpy(perm_1_data, perm_1, 4 * sizeof(unsigned char)).wait();
+  //write a parallel_for to set perm_1_data to 0,1,2,3
+  auto e2 = q.parallel_for(::sycl::range<1>(4), [=](::sycl::id<1> i) { // !use this instead of q.memcpy: Reported. A driver bug
+    perm_1_data[i] = i;
+  });
 
   //* size, stride, minbits, maxbits, maxprec, minexp, stream_bytes, blocks checked: no problem
   //* d_data and d_stream checked: no problem
   q.submit([&](::sycl::handler &cgh) {
-
+    cgh.depends_on({e1,e2});
     auto size_ct1 = size[0];
     auto stride_ct2 = stride[0];
 

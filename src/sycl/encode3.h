@@ -142,7 +142,7 @@ encode3(
 
   // zero-initialize bit stream (for atomics)
   const size_t stream_bytes = calculate_device_memory(blocks, maxbits);
-  q.memset(d_stream, 0, stream_bytes).wait();
+  auto e1 = q.memset(d_stream, 0, stream_bytes);
 
 #ifdef ZFP_WITH_SYCL_PROFILE
   Timer timer;
@@ -159,10 +159,11 @@ encode3(
   unsigned char* perm_3_data = ::sycl::malloc_shared<unsigned char>(64, q);
 
   // Initialize perm_3 data
-  // q.memcpy(perm_3_data, perm_3, 64 * sizeof(unsigned char)).wait();
-  memcpy(perm_3_data, perm_3, 64 * sizeof(unsigned char));
+  //memcpy(perm_3_data, perm_3, 64 * sizeof(unsigned char));
+  auto e2 = q.memcpy(perm_3_data, perm_3, 64 * sizeof(unsigned char));
 
   q.submit([&](::sycl::handler &cgh) {
+    cgh.depends_on({e1,e2});
 
     auto make_size3_size_size_size_ct1 = make_size3(size[0], size[1], size[2]);
     auto make_ptrdiff3_stride_stride_stride_ct2 =
