@@ -42,17 +42,13 @@ decode1_kernel(
   zfp_index_type index_type,
   uint granularity
 ,
-  const ::sycl::nd_item<3> &item_ct1,
+  const ::sycl::nd_item<1> &item_ct1,
   unsigned char *perm_1,
   uint64 *offset)
 {
-  const size_t blockId =
-      item_ct1.get_group(2) +
-      (size_t)item_ct1.get_group_range(2) *
-          (item_ct1.get_group(1) +
-           (size_t)item_ct1.get_group_range(1) * item_ct1.get_group(0));
-  const size_t chunk_idx =
-      item_ct1.get_local_id(2) + item_ct1.get_local_range(2) * blockId;
+  const size_t blockId = item_ct1.get_group(0);
+
+  const size_t chunk_idx = item_ct1.get_local_id(0) + item_ct1.get_local_range(0) * blockId;
 
   // number of zfp blocks
   const size_t blocks = (size + 3) / 4;
@@ -110,8 +106,8 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
         zfp_index_type index_type, uint granularity) try {
   ::sycl::queue q(zfp::sycl::internal::zfp_dev_selector);
   // block size is fixed to 32 in this version for hybrid index
-  const int SYCL_block_size = 32;
-  const ::sycl::range<3> block_size = ::sycl::range<3>(1, 1, SYCL_block_size);
+  const int sycl_block_size = 32;
+  const ::sycl::range<3> block_size = ::sycl::range<3>(1, 1, sycl_block_size);
 
   // number of zfp blocks to decode
   const size_t blocks = (size[0] + 3) / 4;
@@ -119,9 +115,8 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   // number of chunks of blocks
   const size_t chunks = (blocks + granularity - 1) / granularity;
 
-  // determine grid of thread blocks
-  const ::sycl::range<3> grid_size =
-      calculate_grid_size(params, chunks, SYCL_block_size);
+  // determine execution range for sycl kernel
+  auto kernel_range = calculate_kernel_size(params, blocks, sycl_block_size);
 
   // storage for maximum bit offset; needed to position stream
   unsigned long long int* d_offset;
@@ -160,8 +155,8 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
     auto size_ct1 = size[0];
     auto stride_ct2 = stride[0];
 
-    cgh.parallel_for(::sycl::nd_range<3>(grid_size * block_size, block_size),
-                     [=](::sycl::nd_item<3> item_ct1) {
+    cgh.parallel_for(kernel_range,
+                     [=](::sycl::nd_item<1> item_ct1) {
                        decode1_kernel<Scalar>(
                            d_data, size_ct1, stride_ct2, d_stream, minbits,
                            maxbits, maxprec, minexp, d_offset, d_index,
@@ -194,7 +189,7 @@ catch (::sycl::exception const &exc) {
 }
 
 } // namespace internal
-} // namespace hip
+} // namespace sycl
 } // namespace zfp
 
 #endif

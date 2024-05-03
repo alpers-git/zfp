@@ -407,13 +407,13 @@ decode3(
 //TODO: this function seems very optimized for CUDA consider refactoring
 SYCL_EXTERNAL inline unsigned long long
 block_offset(const Word *d_index, zfp_index_type index_type, size_t chunk_idx,
-             const ::sycl::nd_item<3> &item_ct1, ::uint64 *offset)
+             const ::sycl::nd_item<1> &item_ct1, ::uint64 *offset)
 {
   if (index_type == zfp_index_offset)
     return d_index[chunk_idx];
 
   if (index_type == zfp_index_hybrid) {
-    const size_t thread_idx = item_ct1.get_local_id(2);
+    const size_t thread_idx = item_ct1.get_local_id(0);
     // TODO: Why subtract thread_idx? And should granularity not matter?
     const size_t warp_idx = (chunk_idx - thread_idx) / 32;
     // warp operates on 32 blocks indexed by one 64-bit offset, 32 16-bit sizes

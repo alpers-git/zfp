@@ -74,32 +74,20 @@ size_t calculate_device_memory(size_t blocks, size_t bits_per_block)
   return words * sizeof(Word);
 }
 
-::sycl::range<3> calculate_grid_size(const zfp_exec_params_sycl *params,
-                                   size_t threads, size_t sycl_block_size)
+::sycl::nd_range<1> calculate_kernel_size(const zfp_exec_params_sycl *params,
+                                   size_t work_items, size_t sycl_block_size)
 {
-  // compute minimum number of thread blocks needed
-  const size_t blocks = count_up(threads, sycl_block_size);
-  const ::sycl::range<3> max_grid_dims(params->grid_size[2], params->grid_size[1],
-                                     params->grid_size[0]);
+  // compute minimum number of work-groups needed
+  size_t work_group_num = count_up(work_items, sycl_block_size);
+  const size_t total_num_work_items = work_group_num * sycl_block_size;
 
-  // compute grid dimensions
-  if (blocks <= (size_t)max_grid_dims[2]) {
-    // 1D grid
-    return ::sycl::range<3>(1, 1, blocks);
-  } else if (blocks <= (size_t)max_grid_dims[2] * max_grid_dims[1]) {
-    // 2D grid
-    const size_t base = (size_t)std::sqrt((double)blocks);
-    return ::sycl::range<3>(1, round_up(blocks, base), base);
-  } else if (blocks <=
-             (size_t)max_grid_dims[2] * max_grid_dims[1] * max_grid_dims[0]) {
-    // 3D grid
-    const size_t base = (size_t)std::cbrt((double)blocks);
-    return ::sycl::range<3>(round_up(blocks, base * base), base, base);
-  }
-  else {
-    // too many thread blocks
-    return ::sycl::range<3>(0, 0, 0);
-  }
+  size_t max_work_group_size = ::sycl::queue(zfp_dev_selector).get_device()
+                  .get_info<::sycl::info::device::max_work_group_size>();
+  const size_t work_group_size = ::sycl::min(sycl_block_size, max_work_group_size);
+
+  work_group_num = std::ceil((float)total_num_work_items / (float)work_group_size);
+
+  return ::sycl::nd_range<1>(work_group_num * work_group_size, work_group_size);
 }
 
 // coefficient permutations

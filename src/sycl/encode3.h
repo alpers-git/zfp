@@ -57,18 +57,12 @@ encode3_kernel(
   uint maxbits,         // max compressed #bits/block
   uint maxprec,         // max uncompressed #bits/value
   int minexp,           // min bit plane index
-  const ::sycl::nd_item<3> &item_ct1,
+  const ::sycl::nd_item<1> &item_ct1,
   unsigned char *perm)
 {
-  const size_t blockId =
-      item_ct1.get_group(2) +
-      (size_t)item_ct1.get_group_range(2) *
-          (item_ct1.get_group(1) +
-           (size_t)item_ct1.get_group_range(1) * item_ct1.get_group(0));
-
+  const size_t blockId = item_ct1.get_group(0);
   // each thread gets a block; block index = global thread index
-  const size_t block_idx =
-      blockId * item_ct1.get_local_range(2) + item_ct1.get_local_id(2);
+  const size_t block_idx = blockId * item_ct1.get_local_range(0) + item_ct1.get_local_id(0);
 
   // number of zfp blocks
   const size_t bx = (size.x() + 3) / 4;
@@ -129,16 +123,14 @@ encode3(
 {
   ::sycl::queue q(zfp::sycl::internal::zfp_dev_selector);
   const int sycl_block_size = 128;
-  const ::sycl::range<3> block_size = ::sycl::range<3>(1, 1, sycl_block_size);
 
   // number of zfp blocks to encode
   const size_t blocks = ((size[0] + 3) / 4) *
                         ((size[1] + 3) / 4) *
                         ((size[2] + 3) / 4);
 
-  // determine grid of thread blocks
-  const ::sycl::range<3> grid_size =
-      calculate_grid_size(params, blocks, sycl_block_size);
+  // determine execution range for sycl kernel
+  auto kernel_range = calculate_kernel_size(params, blocks, sycl_block_size);
 
   // zero-initialize bit stream (for atomics)
   const size_t stream_bytes = calculate_device_memory(blocks, maxbits);
@@ -169,8 +161,8 @@ encode3(
     auto make_ptrdiff3_stride_stride_stride_ct2 =
         make_ptrdiff3(stride[0], stride[1], stride[2]);
 
-    cgh.parallel_for(::sycl::nd_range<3>(grid_size * block_size, block_size),
-                     [=](::sycl::nd_item<3> item_ct1) {
+    cgh.parallel_for(kernel_range,
+                     [=](::sycl::nd_item<1> item_ct1) {
                        encode3_kernel<Scalar>(
                            d_data, make_size3_size_size_size_ct1,
                            make_ptrdiff3_stride_stride_stride_ct2, d_stream,

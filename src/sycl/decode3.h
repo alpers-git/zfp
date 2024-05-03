@@ -54,17 +54,13 @@ decode3_kernel(
   zfp_index_type index_type,
   uint granularity
 ,
-  const ::sycl::nd_item<3> &item_ct1,
+  const ::sycl::nd_item<1> &item_ct1,
   unsigned char *perm,
   uint64 *offset)
 {
-  const size_t blockId =
-      item_ct1.get_group(2) +
-      (size_t)item_ct1.get_group_range(2) *
-          (item_ct1.get_group(1) +
-           (size_t)item_ct1.get_group_range(1) * item_ct1.get_group(0));
-  const size_t chunk_idx =
-      item_ct1.get_local_id(2) + item_ct1.get_local_range(2) * blockId;
+  const size_t blockId = item_ct1.get_group(0);
+  
+  const size_t chunk_idx = item_ct1.get_local_id(0) + item_ct1.get_local_range(0) * blockId;
 
   // number of zfp blocks
   const size_t bx = (size.x() + 3) / 4;
@@ -141,9 +137,8 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   // number of chunks of blocks
   const size_t chunks = (blocks + granularity - 1) / granularity;
 
-  // determine grid of thread blocks
-  const ::sycl::range<3> grid_size =
-      calculate_grid_size(params, chunks, sycl_block_size);
+  // determine execution range for sycl kernel
+  auto kernel_range = calculate_kernel_size(params, blocks, sycl_block_size);
 
   // storage for maximum bit offset; needed to position stream
   unsigned long long int* d_offset;
@@ -184,8 +179,8 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
     auto make_ptrdiff3_stride_stride_stride_ct2 =
         make_ptrdiff3(stride[0], stride[1], stride[2]);
 
-    cgh.parallel_for(::sycl::nd_range<3>(grid_size * block_size, block_size),
-                     [=](::sycl::nd_item<3> item_ct1) {
+    cgh.parallel_for(kernel_range,
+                     [=](::sycl::nd_item<1> item_ct1) {
                        decode3_kernel<Scalar>(
                            d_data, make_size3_size_size_size_ct1,
                            make_ptrdiff3_stride_stride_stride_ct2, d_stream,
