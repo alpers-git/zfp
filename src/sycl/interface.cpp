@@ -70,6 +70,8 @@ zfp_internal_sycl_init(zfp_exec_params_sycl* params) try {
   */
   params->grid_size[2] = groups[0];
 
+  params->max_work_group_size = dev.get_info<::sycl::info::device::max_work_group_size>();
+
   // launch device warm-up kernel
   return  (zfp_bool)zfp::sycl::internal::device_init();
 }

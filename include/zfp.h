@@ -99,6 +99,7 @@ typedef struct {
 typedef struct {
   int processors;            /* number of SYCL multiprocessors */
   int grid_size[3];          /* maximum SYCL grid dimensions (read only) */
+  int max_work_group_size;   /* maximum SYCL work-group size (read only) */
 } zfp_exec_params_sycl;
 
 typedef struct {

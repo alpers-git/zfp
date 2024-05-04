@@ -81,9 +81,7 @@ size_t calculate_device_memory(size_t blocks, size_t bits_per_block)
   size_t work_group_num = count_up(work_items, sycl_block_size);
   const size_t total_num_work_items = work_group_num * sycl_block_size;
 
-  size_t max_work_group_size = ::sycl::queue(zfp_dev_selector).get_device()
-                  .get_info<::sycl::info::device::max_work_group_size>();
-  const size_t work_group_size = ::sycl::min(sycl_block_size, max_work_group_size);
+  const size_t work_group_size = ::sycl::min(sycl_block_size, (size_t)params->max_work_group_size);
 
   work_group_num = std::ceil((float)total_num_work_items / (float)work_group_size);
 
