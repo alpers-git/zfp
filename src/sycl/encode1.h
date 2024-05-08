@@ -122,12 +122,6 @@ encode1(
   //std::memset(d_stream, 0, stream_bytes);
   auto e1 = q.memset(d_stream, 0, stream_bytes);
 
-#ifdef ZFP_WITH_SYCL_PROFILE
-  Timer timer;
-  timer.start();
-  ::sycl::event e = 
-#endif
-
   // launch GPU kernel
   /*
   DPCT1049:1: The work-group size passed to the SYCL kernel may exceed the
@@ -146,6 +140,10 @@ encode1(
 
   //* size, stride, minbits, maxbits, maxprec, minexp, stream_bytes, blocks checked: no problem
   //* d_data and d_stream checked: no problem
+#ifdef ZFP_WITH_SYCL_PROFILE
+  Timer timer;
+  timer.start();
+#endif
   q.submit([&](::sycl::handler &cgh) {
     cgh.depends_on({e1,e2});
     auto size_ct1 = size[0];
@@ -160,15 +158,15 @@ encode1(
                      });
   }).wait();
 
-  ::sycl::free(perm_1_data, q);
-  //* d_data checked: no problem
-  //! d_stream checked: incorrect values
 #ifdef ZFP_WITH_SYCL_PROFILE
-  e.wait();
   timer.stop();
   timer.print_throughput<Scalar>("Encode", "encode1",
                                  ::sycl::range<1>(size[0]));
 #endif
+
+  //* d_data checked: no problem
+  //! d_stream checked: incorrect values
+  ::sycl::free(perm_1_data, q);
 
   return (unsigned long long)stream_bytes * CHAR_BIT;
 }

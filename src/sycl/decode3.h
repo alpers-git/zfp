@@ -152,11 +152,6 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   }
   auto e1 = q.memset(d_offset, 0, sizeof(*d_offset));
 
-#ifdef ZFP_WITH_SYCL_PROFILE
-  Timer timer;
-  timer.start();
-  ::sycl::event e = 
-#endif
 
   // launch GPU kernel
   /*
@@ -170,6 +165,10 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   // q.memcpy(perm_3_data, perm_3, 64 * sizeof(unsigned char)).wait();
   auto e2 = q.memcpy(perm_3_data, perm_3, 64 * sizeof(unsigned char));
 
+#ifdef ZFP_WITH_SYCL_PROFILE
+  Timer timer;
+  timer.start();
+#endif
   q.submit([&](::sycl::handler &cgh) {
     cgh.depends_on({e1, e2});
 
@@ -191,7 +190,6 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   }).wait();
 
 #ifdef ZFP_WITH_SYCL_PROFILE
-  e.wait();
   timer.stop();
   timer.print_throughput<Scalar>("Decode", "decode3", range<3>(size[0], size[1], size[2]));
 #endif

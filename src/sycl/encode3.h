@@ -136,12 +136,6 @@ encode3(
   const size_t stream_bytes = calculate_device_memory(blocks, maxbits);
   auto e1 = q.memset(d_stream, 0, stream_bytes);
 
-#ifdef ZFP_WITH_SYCL_PROFILE
-  Timer timer;
-  timer.start();
-  ::sycl::event e = 
-#endif
-
   // launch GPU kernel
   /*
   DPCT1049:3: The work-group size passed to the SYCL kernel may exceed the
@@ -154,6 +148,10 @@ encode3(
   //memcpy(perm_3_data, perm_3, 64 * sizeof(unsigned char));
   auto e2 = q.memcpy(perm_3_data, perm_3, 64 * sizeof(unsigned char));
 
+#ifdef ZFP_WITH_SYCL_PROFILE
+  Timer timer;
+  timer.start();
+#endif
   q.submit([&](::sycl::handler &cgh) {
     cgh.depends_on({e1,e2});
 
@@ -171,13 +169,12 @@ encode3(
                      });
   }).wait();
 
-  ::sycl::free(perm_3_data, q);
-
 #ifdef ZFP_WITH_SYCL_PROFILE
-  e.wait();
   timer.stop();
   timer.print_throughput<Scalar>("Encode", "encode3", range<3>(size[0], size[1], size[2]));
 #endif
+
+  ::sycl::free(perm_3_data, q);
 
   return (unsigned long long)stream_bytes * CHAR_BIT;
 }
