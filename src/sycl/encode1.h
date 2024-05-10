@@ -144,7 +144,7 @@ encode1(
   //* size, stride, minbits, maxbits, maxprec, minexp, stream_bytes, blocks checked: no problem
   //* d_data and d_stream checked: no problem
   auto kernel = q.submit([&](::sycl::handler &cgh) {
-    cgh.depends_on({e1});
+    cgh.depends_on({e1,e2});
     auto size_ct1 = size[0];
     auto stride_ct2 = stride[0];
 
