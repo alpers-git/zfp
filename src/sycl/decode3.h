@@ -123,14 +123,15 @@ unsigned long long
 decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
         const zfp_exec_params_sycl *params, const Word *d_stream, uint minbits,
         uint maxbits, uint maxprec, int minexp, const Word *d_index,
-        zfp_index_type index_type, uint granularity) try {
+        zfp_index_type index_type, uint granularity) //try 
+{
   ::sycl::queue q(zfp::sycl::internal::zfp_dev_selector
 #ifdef ZFP_WITH_SYCL_PROFILE
   , ::sycl::property_list{::sycl::property::queue::enable_profiling()}
 #endif
   );
   // block size is fixed to 32 in this version for hybrid index
-  const int sycl_block_size = 32;
+  const int sycl_block_size = 128;
 
   // number of zfp blocks to decode
   const size_t blocks = ((size[0] + 3) / 4) *
@@ -145,14 +146,8 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
 
   // storage for maximum bit offset; needed to position stream
   unsigned long long int* d_offset;
-  try {
-    d_offset = (unsigned long long int*)::sycl::malloc_shared(
-        sizeof(*d_offset), q);
-  } catch (::sycl::exception const& e) {
-    std::cerr << "Caught synchronous SYCL exception during malloc_shared:\n"
-              << e.what() << std::endl;
-    std::exit(1);
-  }
+  d_offset = (unsigned long long int*)::sycl::malloc_device(
+      sizeof(*d_offset), q);
   auto e1 = q.memset(d_offset, 0, sizeof(*d_offset));
 
 
@@ -162,7 +157,7 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   limit. To get the device limit, query info::device::max_work_group_size.
   Adjust the work-group size if needed.
   */
-  unsigned char* perm_3_data = ::sycl::malloc_shared<unsigned char>(64, q);
+  unsigned char* perm_3_data = ::sycl::malloc_device<unsigned char>(64, q);
 
   // Initialize perm_3 data
   // q.memcpy(perm_3_data, perm_3, 64 * sizeof(unsigned char)).wait();
@@ -192,21 +187,19 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   Timer::print_throughput<Scalar>(kernel, "Decode", "decode3", range<3>(size[0], size[1], size[2]));
 #endif
 
-  ::sycl::free(perm_3_data, q);
-
   // copy bit offset
   unsigned long long int offset;
-  // q.memcpy(&offset, d_offset, sizeof(offset)).wait();
-  memcpy(&offset, d_offset, sizeof(offset));
+  q.memcpy(&offset, d_offset, sizeof(offset)).wait();
+  ::sycl::free(perm_3_data, q);
   ::sycl::free(d_offset, q);
 
   return offset;
 }
-catch (::sycl::exception const &exc) {
-  std::cerr << exc.what() << "Exception caught at file:" << __FILE__
-            << ", line:" << __LINE__ << std::endl;
-  std::exit(1);
-}
+// catch (::sycl::exception const &exc) {
+//   std::cerr << exc.what() << "Exception caught at file:" << __FILE__
+//             << ", line:" << __LINE__ << std::endl;
+//   std::exit(1);
+// }
 
 } // namespace internal
 } // namespace sycl

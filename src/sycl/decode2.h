@@ -112,7 +112,8 @@ unsigned long long
 decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
         const zfp_exec_params_sycl *params, const Word *d_stream, uint minbits,
         uint maxbits, uint maxprec, int minexp, const Word *d_index,
-        zfp_index_type index_type, uint granularity) try {
+        zfp_index_type index_type, uint granularity) //try 
+{
   ::sycl::queue q(zfp::sycl::internal::zfp_dev_selector
 #ifdef ZFP_WITH_SYCL_PROFILE
   , ::sycl::property_list{::sycl::property::queue::enable_profiling()}
@@ -133,14 +134,8 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
 
   // storage for maximum bit offset; needed to position stream
   unsigned long long int* d_offset;
-  try {
-    d_offset = (unsigned long long int*)::sycl::malloc_shared(
-        sizeof(*d_offset), q);
-  } catch (::sycl::exception const& e) {
-    std::cerr << "Caught synchronous SYCL exception during malloc_shared:\n"
-              << e.what() << std::endl;
-    std::exit(1);
-  }
+  d_offset = (unsigned long long int*)::sycl::malloc_device(
+      sizeof(*d_offset), q);
   auto e1 = q.memset(d_offset, 0, sizeof(*d_offset));
 
 
@@ -150,7 +145,7 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   limit. To get the device limit, query info::device::max_work_group_size.
   Adjust the work-group size if needed.
   */
-  unsigned char* perm_2_data = ::sycl::malloc_shared<unsigned char>(16, q);
+  unsigned char* perm_2_data = ::sycl::malloc_device<unsigned char>(16, q);
 
   // Initialize perm_2 data
   // memcpy(perm_2_data, perm_2, 16 * sizeof(unsigned char));
@@ -178,20 +173,19 @@ kernel.wait();
                                  ::sycl::range<2>(size[0], size[1]));
 #endif
 
-  ::sycl::free(perm_2_data, q);
   // copy bit offset
   unsigned long long int offset;
-  // q.memcpy(&offset, d_offset, sizeof(offset)).wait();
-  std::memcpy(&offset, d_offset, sizeof(offset));
+  q.memcpy(&offset, d_offset, sizeof(offset)).wait();
+  ::sycl::free(perm_2_data, q);
   ::sycl::free(d_offset, q);
 
   return offset;
 }
-catch (::sycl::exception const &exc) {
-  std::cerr << exc.what() << "Exception caught at file:" << __FILE__
-            << ", line:" << __LINE__ << std::endl;
-  std::exit(1);
-}
+// catch (::sycl::exception const &exc) {
+//   std::cerr << exc.what() << "Exception caught at file:" << __FILE__
+//             << ", line:" << __LINE__ << std::endl;
+//   std::exit(1);
+// }
 
 } // namespace internal
 } // namespace sycl

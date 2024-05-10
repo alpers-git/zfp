@@ -157,7 +157,7 @@ helper function to migrate __shfl_xor_sync.
   }
   // asynchronous memory allocation (when supported)
   template <typename T> inline bool malloc_async(T **d_pointer, size_t size) try {
-    *d_pointer = (T *)::sycl::malloc_shared(size, ::sycl::queue(zfp_dev_selector));//c-type allocation
+    *d_pointer = (T *)::sycl::malloc_device(size, ::sycl::queue(zfp_dev_selector));//c-type allocation
     return *d_pointer != nullptr;
   }
   catch (::sycl::exception const &exc) {

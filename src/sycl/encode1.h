@@ -132,7 +132,7 @@ encode1(
   limit. To get the device limit, query info::device::max_work_group_size.
   Adjust the work-group size if needed.
   */
-  unsigned char* perm_1_data = malloc_shared<unsigned char>(4, q);
+  unsigned char* perm_1_data = malloc_device<unsigned char>(4, q);
 
   // Initialize perm_1 data
   //memcpy(perm_1_data, perm_1, 4 * sizeof(unsigned char));
