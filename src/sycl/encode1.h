@@ -108,7 +108,11 @@ encode1(
   int minexp
 )
 {
-  ::sycl::queue q(zfp::sycl::internal::zfp_dev_selector);
+  ::sycl::queue q(zfp::sycl::internal::zfp_dev_selector
+#ifdef ZFP_WITH_SYCL_PROFILE
+  , ::sycl::property_list{::sycl::property::queue::enable_profiling()}
+#endif
+  );
   const int sycl_block_size = 128;
 
   // number of zfp blocks to encode
@@ -132,20 +136,15 @@ encode1(
 
   // Initialize perm_1 data
   //memcpy(perm_1_data, perm_1, 4 * sizeof(unsigned char));
-  // q.memcpy(perm_1_data, perm_1, 4 * sizeof(unsigned char)).wait();
-  //write a parallel_for to set perm_1_data to 0,1,2,3
+  // auto e2 =q.memcpy(perm_1_data, perm_1, 4 * sizeof(unsigned char)).wait();
   auto e2 = q.parallel_for(::sycl::range<1>(4), [=](::sycl::id<1> i) { // !use this instead of q.memcpy: Reported. A driver bug
     perm_1_data[i] = i;
   });
-
+  
   //* size, stride, minbits, maxbits, maxprec, minexp, stream_bytes, blocks checked: no problem
   //* d_data and d_stream checked: no problem
-#ifdef ZFP_WITH_SYCL_PROFILE
-  Timer timer;
-  timer.start();
-#endif
-  q.submit([&](::sycl::handler &cgh) {
-    cgh.depends_on({e1,e2});
+  auto kernel = q.submit([&](::sycl::handler &cgh) {
+    cgh.depends_on({e1});
     auto size_ct1 = size[0];
     auto stride_ct2 = stride[0];
 
@@ -156,16 +155,15 @@ encode1(
                            minbits, maxbits, maxprec, minexp,
                            item_ct1, perm_1_data);
                      });
-  }).wait();
-
+  });
+  kernel.wait();
 #ifdef ZFP_WITH_SYCL_PROFILE
-  timer.stop();
-  timer.print_throughput<Scalar>("Encode", "encode1",
+  Timer::print_throughput<Scalar>(kernel, "Encode", "encode1",
                                  ::sycl::range<1>(size[0]));
 #endif
 
   //* d_data checked: no problem
-  //! d_stream checked: incorrect values
+  //! d_stream checked: incorrect values for CPU
   ::sycl::free(perm_1_data, q);
 
   return (unsigned long long)stream_bytes * CHAR_BIT;

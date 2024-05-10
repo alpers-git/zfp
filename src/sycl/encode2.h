@@ -110,7 +110,11 @@ encode2(
   int minexp
 )
 {
-  ::sycl::queue q(zfp::sycl::internal::zfp_dev_selector);
+    ::sycl::queue q(zfp::sycl::internal::zfp_dev_selector
+#ifdef ZFP_WITH_SYCL_PROFILE
+  , ::sycl::property_list{::sycl::property::queue::enable_profiling()}
+#endif
+  );
   const int sycl_block_size = 128;
 
   // number of zfp blocks to encode
@@ -135,11 +139,7 @@ encode2(
   // Initialize perm_2 data
   auto e2 = q.memcpy(perm_2_data, perm_2, 16 * sizeof(unsigned char));
 
-#ifdef ZFP_WITH_SYCL_PROFILE
-  Timer timer;
-  timer.start();
-#endif
-  q.submit([&](::sycl::handler &cgh) {
+  auto kernel = q.submit([&](::sycl::handler &cgh) {
     cgh.depends_on({e1,e2});
 
     auto make_size2_size_size_ct1 = make_size2(size[0], size[1]);
@@ -153,11 +153,10 @@ encode2(
                            minbits, maxbits, maxprec, minexp,
                            item_ct1, perm_2_data);
                      });
-  }).wait();
-
+  });
+  kernel.wait();
 #ifdef ZFP_WITH_SYCL_PROFILE
-  timer.stop();
-  timer.print_throughput<Scalar>("Encode", "encode2", range<2>(size[0], size[1]));
+  Timer::print_throughput<Scalar>(kernel, "Encode", "encode2", range<2>(size[0], size[1]));
 #endif
 
   ::sycl::free(perm_2_data, q);

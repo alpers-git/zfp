@@ -121,7 +121,11 @@ encode3(
   int minexp
 )
 {
-  ::sycl::queue q(zfp::sycl::internal::zfp_dev_selector);
+    ::sycl::queue q(zfp::sycl::internal::zfp_dev_selector
+#ifdef ZFP_WITH_SYCL_PROFILE
+  , ::sycl::property_list{::sycl::property::queue::enable_profiling()}
+#endif
+  );
   const int sycl_block_size = 128;
 
   // number of zfp blocks to encode
@@ -148,11 +152,7 @@ encode3(
   //memcpy(perm_3_data, perm_3, 64 * sizeof(unsigned char));
   auto e2 = q.memcpy(perm_3_data, perm_3, 64 * sizeof(unsigned char));
 
-#ifdef ZFP_WITH_SYCL_PROFILE
-  Timer timer;
-  timer.start();
-#endif
-  q.submit([&](::sycl::handler &cgh) {
+  auto kernel = q.submit([&](::sycl::handler &cgh) {
     cgh.depends_on({e1,e2});
 
     auto make_size3_size_size_size_ct1 = make_size3(size[0], size[1], size[2]);
@@ -167,11 +167,10 @@ encode3(
                            d_index, minbits, maxbits, maxprec, minexp,
                           item_ct1, perm_3_data);
                      });
-  }).wait();
-
+  });
+  kernel.wait();
 #ifdef ZFP_WITH_SYCL_PROFILE
-  timer.stop();
-  timer.print_throughput<Scalar>("Encode", "encode3", range<3>(size[0], size[1], size[2]));
+  Timer::print_throughput<Scalar>(kernel, "Encode", "encode3", range<3>(size[0], size[1], size[2]));
 #endif
 
   ::sycl::free(perm_3_data, q);

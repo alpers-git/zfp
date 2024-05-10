@@ -124,10 +124,13 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
         const zfp_exec_params_sycl *params, const Word *d_stream, uint minbits,
         uint maxbits, uint maxprec, int minexp, const Word *d_index,
         zfp_index_type index_type, uint granularity) try {
-  ::sycl::queue q(zfp::sycl::internal::zfp_dev_selector);
+  ::sycl::queue q(zfp::sycl::internal::zfp_dev_selector
+#ifdef ZFP_WITH_SYCL_PROFILE
+  , ::sycl::property_list{::sycl::property::queue::enable_profiling()}
+#endif
+  );
   // block size is fixed to 32 in this version for hybrid index
   const int sycl_block_size = 32;
-  const ::sycl::range<3> block_size = ::sycl::range<3>(1, 1, sycl_block_size);
 
   // number of zfp blocks to decode
   const size_t blocks = ((size[0] + 3) / 4) *
@@ -165,11 +168,7 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   // q.memcpy(perm_3_data, perm_3, 64 * sizeof(unsigned char)).wait();
   auto e2 = q.memcpy(perm_3_data, perm_3, 64 * sizeof(unsigned char));
 
-#ifdef ZFP_WITH_SYCL_PROFILE
-  Timer timer;
-  timer.start();
-#endif
-  q.submit([&](::sycl::handler &cgh) {
+  auto kernel = q.submit([&](::sycl::handler &cgh) {
     cgh.depends_on({e1, e2});
 
     ::sycl::local_accessor<uint64, 1> offset_acc_ct1(::sycl::range<1>(32), cgh);
@@ -187,11 +186,10 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
                            index_type, granularity, item_ct1, perm_3_data,
                            offset_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>().get());
                      });
-  }).wait();
-
+  });
+  kernel.wait();
 #ifdef ZFP_WITH_SYCL_PROFILE
-  timer.stop();
-  timer.print_throughput<Scalar>("Decode", "decode3", range<3>(size[0], size[1], size[2]));
+  Timer::print_throughput<Scalar>(kernel, "Decode", "decode3", range<3>(size[0], size[1], size[2]));
 #endif
 
   ::sycl::free(perm_3_data, q);
