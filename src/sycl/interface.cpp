@@ -43,8 +43,10 @@ zfp_internal_sycl_init(zfp_exec_params_sycl* params) try {
           << dev.get_info<::sycl::info::device::name>()
           << " with driver version: "
           << dev.get_info<::sycl::info::device::driver_version>()
-          << " and max compute units: "
+          << " max compute units: "
           << dev.get_info<::sycl::info::device::max_compute_units>()
+          << " and max work group size: "
+          << dev.get_info<::sycl::info::device::max_work_group_size>()
           << std::endl;
       #endif
     } catch (sycl::exception const &exc) {

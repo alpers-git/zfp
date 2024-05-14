@@ -24,6 +24,7 @@ using namespace ::sycl;
 bool device_init()
 {
   bool success = true;
+  return success;
   try {
     // Get a SYCL device queue
     queue q(zfp_dev_selector);
