@@ -37,8 +37,7 @@ void encode1_kernel(
   uint maxbits,         // max compressed #bits/block
   uint maxprec,         // max uncompressed #bits/value
   int minexp,           // min bit plane index
-  const ::sycl::nd_item<1> &item_ct1,
-  unsigned char *perm
+  const ::sycl::nd_item<1> &item_ct1
   //::sycl::stream os
 )
 {
@@ -75,7 +74,7 @@ void encode1_kernel(
     gather1(fblock, d_data + offset, stride);
 
   uint bits = encode_block<Scalar, ZFP_1D_BLOCK_SIZE>()(
-      fblock, writer, minbits, maxbits, maxprec, minexp, perm);
+      fblock, writer, minbits, maxbits, maxprec, minexp);
   //* fblock checked: no problem?
   //* x and offset checked: no problem
   //* perm checked: no problem
@@ -132,19 +131,11 @@ encode1(
   limit. To get the device limit, query info::device::max_work_group_size.
   Adjust the work-group size if needed.
   */
-  unsigned char* perm_1_data = malloc_device<unsigned char>(4, q);
-
-  // Initialize perm_1 data
-  //memcpy(perm_1_data, perm_1, 4 * sizeof(unsigned char));
-  // auto e2 =q.memcpy(perm_1_data, perm_1, 4 * sizeof(unsigned char)).wait();
-  auto e2 = q.parallel_for(::sycl::range<1>(4), [=](::sycl::id<1> i) { // !use this instead of q.memcpy: Reported. A driver bug
-    perm_1_data[i] = i;
-  });
   
   //* size, stride, minbits, maxbits, maxprec, minexp, stream_bytes, blocks checked: no problem
   //* d_data and d_stream checked: no problem
   auto kernel = q.submit([&](::sycl::handler &cgh) {
-    cgh.depends_on({e1,e2});
+    cgh.depends_on({e1});
     auto size_ct1 = size[0];
     auto stride_ct2 = stride[0];
 
@@ -153,7 +144,7 @@ encode1(
                        encode1_kernel<Scalar>(
                            d_data, size_ct1, stride_ct2, d_stream, d_index,
                            minbits, maxbits, maxprec, minexp,
-                           item_ct1, perm_1_data);
+                           item_ct1);
                      });
   });
   kernel.wait();
@@ -164,7 +155,6 @@ encode1(
 
   //* d_data checked: no problem
   //! d_stream checked: incorrect values for CPU
-  ::sycl::free(perm_1_data, q);
 
   return (unsigned long long)stream_bytes * CHAR_BIT;
 }

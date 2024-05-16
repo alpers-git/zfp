@@ -142,9 +142,9 @@ Int uint2int(UInt x)
 
 template <typename Int, typename UInt, int BlockSize>
 inline 
-void inv_order(const UInt* ublock, Int* iblock, unsigned char *perm)
+void inv_order(const UInt* ublock, Int* iblock)
 {
-  //const unsigned char *perm = get_perm<BlockSize>(perm, perm_2, perm_3);
+  const auto perm = get_perm<BlockSize>();
 
 #if SYCL_LANGUAGE_VERSION < 8000
 #pragma unroll
@@ -233,9 +233,7 @@ uint decode_int_block(
   BlockReader& reader,
   uint minbits,
   uint maxbits,
-  uint maxprec
-,
-  unsigned char *perm)
+  uint maxprec)
 {
   // decode integer coefficients
   typedef typename traits<Int>::UInt UInt;
@@ -251,7 +249,7 @@ uint decode_int_block(
   }
 
   // reorder unsigned coefficients and convert to signed integer
-  inv_order<Int, UInt, BlockSize>(ublock, iblock, perm);
+  inv_order<Int, UInt, BlockSize>(ublock, iblock);
 
   // perform decorrelating transform
   inv_xform<Int, BlockSize>()(iblock);
@@ -268,9 +266,7 @@ uint decode_float_block(
   uint minbits,
   uint maxbits,
   uint maxprec,
-  int minexp
-,
-  unsigned char *perm)
+  int minexp)
 {
   uint bits = 1;
   if (reader.read_bit()) {
@@ -283,7 +279,7 @@ uint decode_float_block(
     Int* iblock = (Int*)fblock;
     bits += decode_int_block<Int, BlockSize>(
         iblock, reader, ::sycl::max(minbits, bits) - bits,
-        ::sycl::max(maxbits, bits) - bits, maxprec, perm);
+        ::sycl::max(maxbits, bits) - bits, maxprec);
     // perform inverse block-floating-point transform
     inv_cast<Float, Int, BlockSize>(iblock, fblock, emax);
   }
@@ -306,11 +302,9 @@ struct decode_block;
 template <int BlockSize>
 struct decode_block<int, BlockSize> {
   inline 
-  uint operator()(int* iblock, BlockReader& reader, uint minbits, uint maxbits, uint maxprec, int,
-                  unsigned char *perm) const
+  uint operator()(int* iblock, BlockReader& reader, uint minbits, uint maxbits, uint maxprec, int) const
   {
-    return decode_int_block<int, BlockSize>(iblock, reader, minbits, maxbits,
-                                            maxprec, perm);
+    return decode_int_block<int, BlockSize>(iblock, reader, minbits, maxbits, maxprec);
   }
 };
 
@@ -318,11 +312,10 @@ struct decode_block<int, BlockSize> {
 template <int BlockSize>
 struct decode_block<long long, BlockSize> {
   inline 
-  uint operator()(long long* iblock, BlockReader& reader, uint minbits, uint maxbits, uint maxprec, int,
-                  unsigned char *perm) const
+  uint operator()(long long* iblock, BlockReader& reader, uint minbits, uint maxbits, uint maxprec, int) const
   {
     return decode_int_block<long long, BlockSize>(
-        iblock, reader, minbits, maxbits, maxprec, perm);
+        iblock, reader, minbits, maxbits, maxprec);
   }
 };
 
@@ -330,11 +323,10 @@ struct decode_block<long long, BlockSize> {
 template <int BlockSize>
 struct decode_block<float, BlockSize> {
   inline 
-  uint operator()(float* fblock, BlockReader& reader, uint minbits, uint maxbits, uint maxprec, int minexp, unsigned char *perm) const
+  uint operator()(float* fblock, BlockReader& reader, uint minbits, uint maxbits, uint maxprec, int minexp) const
   {
     return decode_float_block<float, BlockSize>(fblock, reader, minbits,
-                                                maxbits, maxprec, minexp,
-                                                perm);
+                                                maxbits, maxprec, minexp);
   }
 };
 
@@ -343,11 +335,10 @@ template <int BlockSize>
 struct decode_block<double, BlockSize> {
   SYCL_EXTERNAL inline uint operator()(double *fblock, BlockReader &reader,
                                        uint minbits, uint maxbits, uint maxprec,
-                                       int minexp, unsigned char *perm) const
+                                       int minexp) const
   {
     return decode_float_block<double, BlockSize>(fblock, reader, minbits,
-                                                 maxbits, maxprec, minexp,
-                                                 perm);
+                                                 maxbits, maxprec, minexp);
   }
 };
 

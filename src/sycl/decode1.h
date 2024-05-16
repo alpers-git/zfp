@@ -43,7 +43,6 @@ decode1_kernel(
   uint granularity
 ,
   const ::sycl::nd_item<1> &item_ct1,
-  unsigned char *perm_1,
   uint64 *offset)
 {
   const size_t blockId = item_ct1.get_group(0);
@@ -74,7 +73,7 @@ decode1_kernel(
   for (; block_idx < block_end; block_idx++) {
     Scalar fblock[ZFP_1D_BLOCK_SIZE] = { 0 };
     decode_block<Scalar, ZFP_1D_BLOCK_SIZE>()(fblock, reader, minbits, maxbits,
-                                              maxprec, minexp, perm_1);
+                                              maxprec, minexp);
 
     // logical position in 1d array
     size_t pos = block_idx;
@@ -135,13 +134,8 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   limit. To get the device limit, query info::device::max_work_group_size.
   Adjust the work-group size if needed. 
   */
-  unsigned char* perm_1_data = ::sycl::malloc_device<unsigned char>(4, q);
-  // Initialize perm_1 data
-  //memcpy(perm_1_data, perm_1, 4 * sizeof(unsigned char));
-  auto e2 = q.memcpy(perm_1_data, perm_1, 4 * sizeof(unsigned char));
-
   auto kernel = q.submit([&](::sycl::handler &cgh) {
-    cgh.depends_on({e1,e2});
+    cgh.depends_on({e1});
 
     ::sycl::local_accessor<uint64, 1> offset_acc_ct1(::sycl::range<1>(32), cgh);
 
@@ -153,7 +147,7 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
                        decode1_kernel<Scalar>(
                            d_data, size_ct1, stride_ct2, d_stream, minbits,
                            maxbits, maxprec, minexp, d_offset, d_index,
-                           index_type, granularity, item_ct1, perm_1_data,
+                           index_type, granularity, item_ct1,
                            offset_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>().get());
                      });
   });
@@ -166,7 +160,6 @@ kernel.wait();
   // copy bit offset
   unsigned long long int offset;
   q.memcpy(&offset, d_offset, sizeof(offset)).wait();
-  ::sycl::free(perm_1_data, q);
   ::sycl::free(d_offset, q);
 
   return offset;

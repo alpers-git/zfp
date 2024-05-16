@@ -55,7 +55,6 @@ decode3_kernel(
   uint granularity
 ,
   const ::sycl::nd_item<1> &item_ct1,
-  unsigned char *perm,
   uint64 *offset)
 {
   const size_t blockId = item_ct1.get_group(0);
@@ -89,7 +88,7 @@ decode3_kernel(
   for (; block_idx < block_end; block_idx++) {
     Scalar fblock[ZFP_3D_BLOCK_SIZE] = { 0 };
     decode_block<Scalar, ZFP_3D_BLOCK_SIZE>()(fblock, reader, minbits, maxbits,
-                                              maxprec, minexp,perm);
+                                              maxprec, minexp);
 
     // logical position in 3d array
     size_t pos = block_idx;
@@ -157,14 +156,8 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   limit. To get the device limit, query info::device::max_work_group_size.
   Adjust the work-group size if needed.
   */
-  unsigned char* perm_3_data = ::sycl::malloc_device<unsigned char>(64, q);
-
-  // Initialize perm_3 data
-  // q.memcpy(perm_3_data, perm_3, 64 * sizeof(unsigned char)).wait();
-  auto e2 = q.memcpy(perm_3_data, perm_3, 64 * sizeof(unsigned char));
-
   auto kernel = q.submit([&](::sycl::handler &cgh) {
-    cgh.depends_on({e1, e2});
+    cgh.depends_on({e1});
 
     ::sycl::local_accessor<uint64, 1> offset_acc_ct1(::sycl::range<1>(32), cgh);
 
@@ -178,7 +171,7 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
                            d_data, make_size3_size_size_size_ct1,
                            make_ptrdiff3_stride_stride_stride_ct2, d_stream,
                            minbits, maxbits, maxprec, minexp, d_offset, d_index,
-                           index_type, granularity, item_ct1, perm_3_data,
+                           index_type, granularity, item_ct1,
                            offset_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>().get());
                      });
   });
@@ -190,7 +183,6 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   // copy bit offset
   unsigned long long int offset;
   q.memcpy(&offset, d_offset, sizeof(offset)).wait();
-  ::sycl::free(perm_3_data, q);
   ::sycl::free(d_offset, q);
 
   return offset;

@@ -220,8 +220,9 @@ UInt int2uint(const Int x)
 
 template <typename Int, typename UInt, int BlockSize>
 inline 
-void fwd_order(UInt* ublock, const Int* iblock, unsigned char *perm)
+void fwd_order(UInt* ublock, const Int* iblock)
 {
+  const auto perm = get_perm<BlockSize>();
 #if SYCL_LANGUAGE_VERSION < 8000
 #pragma unroll
 #else
@@ -308,8 +309,7 @@ uint encode_int_block(
   BlockWriter& writer,
   uint minbits,
   uint maxbits,
-  uint maxprec,
-  unsigned char *perm)
+  uint maxprec)
 {
   // perform decorrelating transform
   fwd_xform<Int, BlockSize>()(iblock);
@@ -322,7 +322,7 @@ uint encode_int_block(
   // reorder signed coefficients and convert to unsigned integer
   typedef typename traits<Int>::UInt UInt;
   UInt ublock[BlockSize];
-  fwd_order<Int, UInt, BlockSize>(ublock, iblock, perm);
+  fwd_order<Int, UInt, BlockSize>(ublock, iblock);
 
   // encode integer coefficients
   uint bits = with_maxbits<BlockSize>(maxbits, maxprec)
@@ -341,8 +341,7 @@ uint encode_float_block(
   uint minbits,
   uint maxbits,
   uint maxprec,
-  int minexp,
-  unsigned char *perm)
+  int minexp)
 {
   uint bits = 1;
   // compute maximum exponent
@@ -361,7 +360,7 @@ uint encode_float_block(
     // encode integer block
     bits += encode_int_block<Int, BlockSize>(
         iblock, writer, ::sycl::max(minbits, bits) - bits,
-        ::sycl::max(maxbits, bits) - bits, maxprec, perm);
+        ::sycl::max(maxbits, bits) - bits, maxprec);
   }
 
   return ::sycl::max(minbits, bits);
@@ -375,11 +374,10 @@ struct encode_block;
 template <int BlockSize>
 struct encode_block<int, BlockSize> {
   inline 
-  uint operator()(int* iblock, BlockWriter& writer, uint minbits, uint maxbits, uint maxprec, int,
-                  unsigned char *perm) const
+  uint operator()(int* iblock, BlockWriter& writer, uint minbits, uint maxbits, uint maxprec, int) const
   {
     return encode_int_block<int, BlockSize>(iblock, writer, minbits, maxbits,
-                                            maxprec, perm);
+                                            maxprec);
   }
 };
 
@@ -387,11 +385,10 @@ struct encode_block<int, BlockSize> {
 template <int BlockSize>
 struct encode_block<long long, BlockSize> {
   inline 
-  uint operator()(long long* iblock, BlockWriter& writer, uint minbits, uint maxbits, uint maxprec, int,
-                  unsigned char *perm) const
+  uint operator()(long long* iblock, BlockWriter& writer, uint minbits, uint maxbits, uint maxprec, int) const
   {
     return encode_int_block<long long, BlockSize>(
-        iblock, writer, minbits, maxbits, maxprec, perm);
+        iblock, writer, minbits, maxbits, maxprec);
   }
 };
 
@@ -399,12 +396,10 @@ struct encode_block<long long, BlockSize> {
 template <int BlockSize>
 struct encode_block<float, BlockSize> {
   inline 
-  uint operator()(float* fblock, BlockWriter& writer, uint minbits, uint maxbits, uint maxprec, int minexp,
-                  unsigned char *perm) const
+  uint operator()(float* fblock, BlockWriter& writer, uint minbits, uint maxbits, uint maxprec, int minexp) const
   {
     return encode_float_block<float, BlockSize>(fblock, writer, minbits,
-                                                maxbits, maxprec, minexp,
-                                                perm);
+                                                maxbits, maxprec, minexp);
   }
 };
 
@@ -413,11 +408,10 @@ template <int BlockSize>
 struct encode_block<double, BlockSize> {
   SYCL_EXTERNAL inline uint operator()(double *fblock, BlockWriter &writer,
                                        uint minbits, uint maxbits, uint maxprec,
-                                       int minexp, unsigned char *perm) const
+                                       int minexp) const
   {
     return encode_float_block<double, BlockSize>(fblock, writer, minbits,
-                                                 maxbits, maxprec, minexp,
-                                                 perm);
+                                                 maxbits, maxprec, minexp);
   }
 };
 

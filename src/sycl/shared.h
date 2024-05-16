@@ -91,35 +91,27 @@ size_t calculate_device_memory(size_t blocks, size_t bits_per_block)
 // coefficient permutations
 template <int BlockSize>
 inline 
-const unsigned char* get_perm(const unsigned char *perm_1,
-                              const unsigned char *perm_2,
-                              const unsigned char *perm_3);
+const unsigned char* get_perm();
 
 template <>
 inline 
-const unsigned char* get_perm<4>(const unsigned char *perm_1,
-                                 const unsigned char *perm_2,
-                                 const unsigned char *perm_3)
+const unsigned char* get_perm<4>()
 {
-  return perm_1;
+  return perm_1.get();
 }
 
 template <>
 inline 
-const unsigned char* get_perm<16>(const unsigned char *perm_1,
-                                  const unsigned char *perm_2,
-                                  const unsigned char *perm_3)
+const unsigned char* get_perm<16>()
 {
-  return perm_2;
+  return perm_2.get();
 }
 
 template <>
 inline 
-const unsigned char* get_perm<64>(const unsigned char *perm_1,
-                                  const unsigned char *perm_2,
-                                  const unsigned char *perm_3)
+const unsigned char* get_perm<64>()
 {
-  return perm_3;
+  return perm_3.get();
 }
 
 // maximum number of bit planes to encode/decode

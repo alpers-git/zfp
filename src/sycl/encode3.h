@@ -57,8 +57,7 @@ encode3_kernel(
   uint maxbits,         // max compressed #bits/block
   uint maxprec,         // max uncompressed #bits/value
   int minexp,           // min bit plane index
-  const ::sycl::nd_item<1> &item_ct1,
-  unsigned char *perm)
+  const ::sycl::nd_item<1> &item_ct1)
 {
   const size_t blockId = item_ct1.get_group(0);
   // each thread gets a block; block index = global thread index
@@ -99,7 +98,7 @@ encode3_kernel(
     gather3(fblock, d_data + offset, stride.x(), stride.y(), stride.z());
 
   uint bits = encode_block<Scalar, ZFP_3D_BLOCK_SIZE>()(
-      fblock, writer, minbits, maxbits, maxprec, minexp, perm);
+      fblock, writer, minbits, maxbits, maxprec, minexp);
 
   if (d_index)
     d_index[block_idx] = (ushort)bits;
@@ -146,14 +145,9 @@ encode3(
   limit. To get the device limit, query info::device::max_work_group_size.
   Adjust the work-group size if needed.
   */
-  unsigned char* perm_3_data = ::sycl::malloc_device<unsigned char>(64, q);
-
-  // Initialize perm_3 data
-  //memcpy(perm_3_data, perm_3, 64 * sizeof(unsigned char));
-  auto e2 = q.memcpy(perm_3_data, perm_3, 64 * sizeof(unsigned char));
 
   auto kernel = q.submit([&](::sycl::handler &cgh) {
-    cgh.depends_on({e1,e2});
+    cgh.depends_on({e1});
 
     auto make_size3_size_size_size_ct1 = make_size3(size[0], size[1], size[2]);
     auto make_ptrdiff3_stride_stride_stride_ct2 =
@@ -165,15 +159,13 @@ encode3(
                            d_data, make_size3_size_size_size_ct1,
                            make_ptrdiff3_stride_stride_stride_ct2, d_stream,
                            d_index, minbits, maxbits, maxprec, minexp,
-                          item_ct1, perm_3_data);
+                          item_ct1);
                      });
   });
   kernel.wait();
 #ifdef ZFP_WITH_SYCL_PROFILE
   Timer::print_throughput<Scalar>(kernel, "Encode", "encode3", range<3>(size[0], size[1], size[2]));
 #endif
-
-  ::sycl::free(perm_3_data, q);
 
   return (unsigned long long)stream_bytes * CHAR_BIT;
 }
