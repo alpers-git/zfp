@@ -142,7 +142,7 @@ helper function to migrate __shfl_xor_sync.
     try {
       atts.init(ptr);
       switch (atts.get_memory_type()) {
-        case ::sycl::usm::alloc::shared:
+        case ::sycl::usm::alloc::device:
           return true;
         default:
           return false;

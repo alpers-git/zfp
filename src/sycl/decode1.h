@@ -26,7 +26,6 @@ void scatter_partial1(const Scalar* q, Scalar* p, uint nx, ptrdiff_t sx)
 
 // decode kernel
 template <typename Scalar>
-
 void
 decode1_kernel(
   Scalar* d_data,
@@ -110,7 +109,7 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
 #endif
   );
   // block size is fixed to 32 in this version for hybrid index
-  const int sycl_block_size = 32;
+  const int sycl_block_size = 512;
 
   // number of zfp blocks to decode
   const size_t blocks = (size[0] + 3) / 4;
@@ -137,7 +136,7 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   auto kernel = q.submit([&](::sycl::handler &cgh) {
     cgh.depends_on({e1});
 
-    ::sycl::local_accessor<uint64, 1> offset_acc_ct1(::sycl::range<1>(32), cgh);
+    ::sycl::local_accessor<uint64, 1> offset_acc_ct1(::sycl::range<1>(512), cgh);
 
     auto size_ct1 = size[0];
     auto stride_ct2 = stride[0];
