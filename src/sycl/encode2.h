@@ -51,10 +51,8 @@ encode2_kernel(
   const ::sycl::nd_item<1> &item_ct1
 )
 {
-  const size_t blockId = item_ct1.get_group(0);
-
   // each thread gets a block; block index = global thread index
-  const size_t block_idx = blockId * item_ct1.get_local_range(0) + item_ct1.get_local_id(0);
+  const size_t block_idx = item_ct1.get_global_linear_id();
 
   // number of zfp blocks
   const size_t bx = (size.x() + 3) / 4;
@@ -125,7 +123,7 @@ encode2(
 
   // zero-initialize bit stream (for atomics)
   const size_t stream_bytes = calculate_device_memory(blocks, maxbits);
-  auto e1 = q.memset(d_stream, 0, stream_bytes);
+  /*auto e1 =*/ q.memset(d_stream, 0, stream_bytes).wait();
 
   // launch GPU kernel
   /*
@@ -135,7 +133,7 @@ encode2(
   */
 
   auto kernel = q.submit([&](::sycl::handler &cgh) {
-    cgh.depends_on({e1});
+    //cgh.depends_on({e1});
 
     auto make_size2_size_size_ct1 = make_size2(size[0], size[1]);
     auto make_ptrdiff2_stride_stride_ct2 = make_ptrdiff2(stride[0], stride[1]);

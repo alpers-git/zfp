@@ -41,10 +41,8 @@ void encode1_kernel(
   //::sycl::stream os
 )
 {
-  const size_t blockId = item_ct1.get_group(0);
-
   // each thread gets a block; block index = global thread index
-  const size_t block_idx = blockId * item_ct1.get_local_range(0) + item_ct1.get_local_id(0);
+  const size_t block_idx = item_ct1.get_global_linear_id();
 
   // number of zfp blocks
   const size_t blocks = (size + 3) / 4;
@@ -147,7 +145,7 @@ encode1(
                            item_ct1);
                      });
   });
-  kernel.wait();
+  kernel.wait_and_throw();
 #ifdef ZFP_WITH_SYCL_PROFILE
   Timer::print_throughput<Scalar>(kernel, "Encode", "encode1",
                                  ::sycl::range<1>(size[0]));

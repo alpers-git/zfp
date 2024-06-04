@@ -398,7 +398,7 @@ decode3(
 //TODO: this function seems very optimized for CUDA consider refactoring
 SYCL_EXTERNAL inline unsigned long long
 block_offset(const Word *d_index, zfp_index_type index_type, size_t chunk_idx,
-             const ::sycl::nd_item<1> &item_ct1, ::uint64 *offset)
+             const ::sycl::nd_item<1> &item_ct1, ::sycl::local_accessor<uint64, 1> offset)
 {
   if (index_type == zfp_index_offset)
     return d_index[chunk_idx];
@@ -406,17 +406,17 @@ block_offset(const Word *d_index, zfp_index_type index_type, size_t chunk_idx,
   if (index_type == zfp_index_hybrid) {
     const size_t thread_idx = item_ct1.get_local_id(0);
     // TODO: Why subtract thread_idx? And should granularity not matter?
-    const size_t warp_idx = (chunk_idx - thread_idx) / 512;
+    const size_t warp_idx = (chunk_idx - thread_idx) / 32;
     // warp operates on 32 blocks indexed by one 64-bit offset, 32 16-bit sizes
     const ::uint64* data64 = (const ::uint64*)d_index + warp_idx * 9;
     const ::uint16* data16 = (const ::uint16*)data64 + 3;
 
     offset[thread_idx] = thread_idx ? data16[thread_idx] : *data64;
     // compute prefix sum in parallel
-    for (uint i = 1u; i < 512u; i <<= 1) {
-      if (thread_idx + i < 512u)
+    for (uint i = 1u; i < 32u; i <<= 1) {
+      if (thread_idx + i < 32u)
         offset[thread_idx + i] += offset[thread_idx];
-      item_ct1.barrier(::sycl::access::fence_space::local_space);
+      //item_ct1.barrier(::sycl::access::fence_space::local_space);
     }
     return offset[thread_idx];
   }

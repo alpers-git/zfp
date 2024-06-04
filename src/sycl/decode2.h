@@ -48,11 +48,9 @@ decode2_kernel(
   uint granularity
 ,
   const ::sycl::nd_item<1> &item_ct1,
-  uint64 *offset)
+  ::sycl::local_accessor<uint64, 1> offset)
 {
-  const size_t blockId = item_ct1.get_group(0);
-  
-  const size_t chunk_idx = item_ct1.get_local_id(0) + item_ct1.get_local_range(0) * blockId;
+  const size_t chunk_idx = item_ct1.get_global_linear_id();
 
   // number of zfp blocks
   const size_t bx = (size.x() + 3) / 4;
@@ -119,7 +117,7 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
 #endif
   );
   // block size is fixed to 32 in this version for hybrid index
-  const int sycl_block_size = 512;
+  const int sycl_block_size = 32;
 
   // number of zfp blocks to decode
   const size_t blocks = ((size[0] + 3) / 4) *
@@ -157,7 +155,7 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
               d_data, make_size2_size_size_ct1, make_ptrdiff2_stride_stride_ct2,
               d_stream, minbits, maxbits, maxprec, minexp, d_offset, d_index,
               index_type, granularity, item_ct1,
-              offset_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>().get());
+              offset_acc_ct1);
         });
   });
 kernel.wait();

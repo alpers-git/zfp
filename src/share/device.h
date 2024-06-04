@@ -138,6 +138,7 @@ helper function to migrate __shfl_xor_sync.
 
   // determine whether ptr points to shared memory
   inline bool is_usm_ptr(const void *ptr){
+    return false;//TODO
     dpct::pointer_attributes atts;
     try {
       atts.init(ptr);
@@ -150,7 +151,6 @@ helper function to migrate __shfl_xor_sync.
     } catch (::sycl::exception const &exc) {
       // std::cerr << exc.what() << "Exception caught at file:" << __FILE__
       //         << ", line:" << __LINE__ << std::endl;
-      //TODO enable when memory management is properly fixed
       return false;
     }
     return false;

@@ -42,11 +42,9 @@ decode1_kernel(
   uint granularity
 ,
   const ::sycl::nd_item<1> &item_ct1,
-  uint64 *offset)
+  ::sycl::local_accessor<uint64, 1> offset)
 {
-  const size_t blockId = item_ct1.get_group(0);
-
-  const size_t chunk_idx = item_ct1.get_local_id(0) + item_ct1.get_local_range(0) * blockId;
+  const size_t chunk_idx = item_ct1.get_global_linear_id();
 
   // number of zfp blocks
   const size_t blocks = (size + 3) / 4;
@@ -136,7 +134,7 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   auto kernel = q.submit([&](::sycl::handler &cgh) {
     cgh.depends_on({e1});
 
-    ::sycl::local_accessor<uint64, 1> offset_acc_ct1(::sycl::range<1>(512), cgh);
+    ::sycl::local_accessor<uint64, 1> offset_acc_ct1(::sycl::range<1>(32), cgh);
 
     auto size_ct1 = size[0];
     auto stride_ct2 = stride[0];
@@ -147,7 +145,7 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
                            d_data, size_ct1, stride_ct2, d_stream, minbits,
                            maxbits, maxprec, minexp, d_offset, d_index,
                            index_type, granularity, item_ct1,
-                           offset_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>().get());
+                           offset_acc_ct1);
                      });
   });
 kernel.wait();
