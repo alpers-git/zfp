@@ -416,7 +416,7 @@ block_offset(const Word *d_index, zfp_index_type index_type, size_t chunk_idx,
     for (uint i = 1u; i < 32u; i <<= 1) {
       if (thread_idx + i < 32u)
         offset[thread_idx + i] += offset[thread_idx];
-      //item_ct1.barrier(::sycl::access::fence_space::local_space);
+      item_ct1.barrier(::sycl::access::fence_space::local_space);
     }
     return offset[thread_idx];
   }
