@@ -42,7 +42,8 @@ decode1_kernel(
   uint granularity
 ,
   const ::sycl::nd_item<1> &item_ct1,
-  ::sycl::local_accessor<uint64, 1> offset)
+  ::sycl::local_accessor<uint64, 1> offset,
+  ::sycl::local_accessor<Scalar, 1> fblock)
 {
   const size_t chunk_idx = item_ct1.get_global_linear_id();
 
@@ -67,9 +68,11 @@ decode1_kernel(
   BlockReader reader(d_stream, bit_offset);
 
   // decode blocks assigned to this thread
+  const size_t fblock_offset = item_ct1.get_local_linear_id() * ZFP_1D_BLOCK_SIZE; //to use SLM
+  Scalar* fblock_ptr = fblock.get_pointer() + fblock_offset;
   for (; block_idx < block_end; block_idx++) {
-    Scalar fblock[ZFP_1D_BLOCK_SIZE] = { 0 };
-    decode_block<Scalar, ZFP_1D_BLOCK_SIZE>()(fblock, reader, minbits, maxbits,
+    //Scalar fblock[ZFP_1D_BLOCK_SIZE] = { 0 };
+    decode_block<Scalar, ZFP_1D_BLOCK_SIZE>()(fblock_ptr, reader, minbits, maxbits,
                                               maxprec, minexp);
 
     // logical position in 1d array
@@ -82,9 +85,9 @@ decode1_kernel(
     // scatter data from contiguous block
     const uint nx = (uint)::sycl::min(size_t(size - x), size_t(4));
     if (nx < ZFP_1D_BLOCK_SIZE)
-      scatter_partial1(fblock, d_data + offset, nx, stride);
+      scatter_partial1(fblock_ptr, d_data + offset, nx, stride);
     else
-      scatter1(fblock, d_data + offset, stride);
+      scatter1(fblock_ptr, d_data + offset, stride);
   }
 
   // record maximum bit offset reached by any thread
@@ -107,7 +110,7 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
 #endif
   );
   // block size is fixed to 32 in this version for hybrid index
-  const int sycl_block_size = 512;
+  const int sycl_block_size = 32;
 
   // number of zfp blocks to decode
   const size_t blocks = (size[0] + 3) / 4;
@@ -135,6 +138,7 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
     cgh.depends_on({e1});
 
     ::sycl::local_accessor<uint64, 1> offset_acc_ct1(::sycl::range<1>(32), cgh);
+    ::sycl::local_accessor<Scalar, 1> fblock_slm(::sycl::range<1>(sycl_block_size * ZFP_1D_BLOCK_SIZE), cgh);
 
     auto size_ct1 = size[0];
     auto stride_ct2 = stride[0];
@@ -145,7 +149,7 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
                            d_data, size_ct1, stride_ct2, d_stream, minbits,
                            maxbits, maxprec, minexp, d_offset, d_index,
                            index_type, granularity, item_ct1,
-                           offset_acc_ct1);
+                           offset_acc_ct1, fblock_slm);
                      });
   });
 kernel.wait();

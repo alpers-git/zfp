@@ -55,7 +55,8 @@ decode3_kernel(
   uint granularity
 ,
   const ::sycl::nd_item<1> &item_ct1,
-  ::sycl::local_accessor<uint64, 1> offset)
+  ::sycl::local_accessor<uint64, 1> offset,
+  ::sycl::local_accessor<Scalar, 1> fblock)
 {
   const size_t chunk_idx = item_ct1.get_global_linear_id();
 
@@ -83,9 +84,11 @@ decode3_kernel(
   BlockReader reader(d_stream, bit_offset);
 
   // decode blocks assigned to this thread
+  const size_t fblock_offset = item_ct1.get_local_linear_id() * ZFP_3D_BLOCK_SIZE;
+  Scalar* fblock_ptr = fblock.get_pointer() + fblock_offset;
   for (; block_idx < block_end; block_idx++) {
-    Scalar fblock[ZFP_3D_BLOCK_SIZE] = { 0 };
-    decode_block<Scalar, ZFP_3D_BLOCK_SIZE>()(fblock, reader, minbits, maxbits,
+    // Scalar fblock[ZFP_3D_BLOCK_SIZE] = { 0 };
+    decode_block<Scalar, ZFP_3D_BLOCK_SIZE>()(fblock_ptr, reader, minbits, maxbits,
                                               maxprec, minexp);
 
     // logical position in 3d array
@@ -102,10 +105,10 @@ decode3_kernel(
     const uint ny = (uint)::sycl::min(size_t(size.y() - y), size_t(4));
     const uint nz = (uint)::sycl::min(size_t(size.z() - z), size_t(4));
     if (nx * ny * nz < ZFP_3D_BLOCK_SIZE)
-      scatter_partial3(fblock, d_data + offset, nx, ny, nz, stride.x(),
+      scatter_partial3(fblock_ptr, d_data + offset, nx, ny, nz, stride.x(),
                        stride.y(), stride.z());
     else
-      scatter3(fblock, d_data + offset, stride.x(), stride.y(), stride.z());
+      scatter3(fblock_ptr, d_data + offset, stride.x(), stride.y(), stride.z());
   }
 
   // record maximum bit offset reached by any thread
@@ -155,14 +158,15 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   Adjust the work-group size if needed.
   */
   auto kernel = q.submit([&](::sycl::handler &cgh) {
-    cgh.depends_on({e1});
 
     ::sycl::local_accessor<uint64, 1> offset_acc_ct1(::sycl::range<1>(32), cgh);
+    ::sycl::local_accessor<Scalar, 1> fblock_slm(::sycl::range<1>(sycl_block_size * ZFP_3D_BLOCK_SIZE), cgh);
 
     auto make_size3_size_size_size_ct1 = make_size3(size[0], size[1], size[2]);
     auto make_ptrdiff3_stride_stride_stride_ct2 =
         make_ptrdiff3(stride[0], stride[1], stride[2]);
 
+    cgh.depends_on({e1});
     cgh.parallel_for(kernel_range,
                      [=](::sycl::nd_item<1> item_ct1) {
                        decode3_kernel<Scalar>(
@@ -170,7 +174,7 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
                            make_ptrdiff3_stride_stride_stride_ct2, d_stream,
                            minbits, maxbits, maxprec, minexp, d_offset, d_index,
                            index_type, granularity, item_ct1,
-                           offset_acc_ct1);
+                           offset_acc_ct1, fblock_slm);
                      });
   });
   kernel.wait();

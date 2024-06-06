@@ -138,13 +138,13 @@ encode1(
   //* size, stride, minbits, maxbits, maxprec, minexp, stream_bytes, blocks checked: no problem
   //* d_data and d_stream checked: no problem
   auto kernel = q.submit([&](::sycl::handler &cgh) {
-    cgh.depends_on({e1});
 
     ::sycl::local_accessor<Scalar, 1> fblock_slm(::sycl::range<1>(sycl_block_size * ZFP_1D_BLOCK_SIZE), cgh);
     
     auto size_ct1 = size[0];
     auto stride_ct2 = stride[0];
 
+    cgh.depends_on({e1});
     cgh.parallel_for(kernel_range,
                      [=](::sycl::nd_item<1> item_ct1) {
                        encode1_kernel<Scalar>(

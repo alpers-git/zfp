@@ -138,13 +138,13 @@ encode2(
   */
 
   auto kernel = q.submit([&](::sycl::handler &cgh) {
-    cgh.depends_on({e1});
 
     ::sycl::local_accessor<Scalar, 1> fblock_slm(::sycl::range<1>(sycl_block_size * ZFP_2D_BLOCK_SIZE), cgh);
 
     auto make_size2_size_size_ct1 = make_size2(size[0], size[1]);
     auto make_ptrdiff2_stride_stride_ct2 = make_ptrdiff2(stride[0], stride[1]);
 
+    cgh.depends_on({e1});
     cgh.parallel_for(kernel_range,
                      [=](::sycl::nd_item<1> item_ct1) {
                        encode2_kernel<Scalar>(

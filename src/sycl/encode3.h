@@ -151,7 +151,6 @@ encode3(
   */
 
   auto kernel = q.submit([&](::sycl::handler &cgh) {
-    cgh.depends_on({e1});
 
     ::sycl::local_accessor<Scalar, 1> fblock_slm(::sycl::range<1>(sycl_block_size * ZFP_3D_BLOCK_SIZE), cgh);
 
@@ -159,6 +158,7 @@ encode3(
     auto make_ptrdiff3_stride_stride_stride_ct2 =
         make_ptrdiff3(stride[0], stride[1], stride[2]);
 
+    cgh.depends_on({e1});
     cgh.parallel_for(kernel_range,
                      [=](::sycl::nd_item<1> item_ct1) {
                        encode3_kernel<Scalar>(
