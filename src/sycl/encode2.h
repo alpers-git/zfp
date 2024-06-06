@@ -48,8 +48,9 @@ encode2_kernel(
   uint maxbits,         // max compressed #bits/block
   uint maxprec,         // max uncompressed #bits/value
   int minexp,           // min bit plane index
-  const ::sycl::nd_item<1> &item_ct1
-)
+
+  const ::sycl::nd_item<1> &item_ct1,
+  ::sycl::local_accessor<Scalar, 1> fblock)
 {
   // each thread gets a block; block index = global thread index
   const size_t block_idx = item_ct1.get_global_linear_id();
@@ -76,16 +77,20 @@ encode2_kernel(
   BlockWriter writer(d_stream, bit_offset);
 
   // gather data into a contiguous block
-  Scalar fblock[ZFP_2D_BLOCK_SIZE];
+  const size_t fblock_offset = item_ct1.get_local_linear_id() * ZFP_2D_BLOCK_SIZE; //to use SLM
+  Scalar* fblock_ptr = fblock.get_pointer() + fblock_offset;
   const uint nx = (uint)::sycl::min(size_t(size.x() - x), size_t(4));
   const uint ny = (uint)::sycl::min(size_t(size.y() - y), size_t(4));
   if (nx * ny < ZFP_2D_BLOCK_SIZE)
-    gather_partial2(fblock, d_data + offset, nx, ny, stride.x(), stride.y());
+    gather_partial2(fblock_ptr, d_data + offset, nx, ny, stride.x(), stride.y());
   else
-    gather2(fblock, d_data + offset, stride.x(), stride.y());
+    gather2(fblock_ptr, d_data + offset, stride.x(), stride.y());
+
+  //set cache for block
+  fblock_ptr = fblock.get_pointer() + fblock_offset;
 
   uint bits = encode_block<Scalar, ZFP_2D_BLOCK_SIZE>()(
-      fblock, writer, minbits, maxbits, maxprec, minexp);
+      fblock_ptr, writer, minbits, maxbits, maxprec, minexp);
 
   if (d_index)
     d_index[block_idx] = (ushort)bits;
@@ -123,7 +128,7 @@ encode2(
 
   // zero-initialize bit stream (for atomics)
   const size_t stream_bytes = calculate_device_memory(blocks, maxbits);
-  /*auto e1 =*/ q.memset(d_stream, 0, stream_bytes).wait();
+  auto e1 = q.memset(d_stream, 0, stream_bytes);
 
   // launch GPU kernel
   /*
@@ -133,7 +138,9 @@ encode2(
   */
 
   auto kernel = q.submit([&](::sycl::handler &cgh) {
-    //cgh.depends_on({e1});
+    cgh.depends_on({e1});
+
+    ::sycl::local_accessor<Scalar, 1> fblock_slm(::sycl::range<1>(sycl_block_size * ZFP_2D_BLOCK_SIZE), cgh);
 
     auto make_size2_size_size_ct1 = make_size2(size[0], size[1]);
     auto make_ptrdiff2_stride_stride_ct2 = make_ptrdiff2(stride[0], stride[1]);
@@ -144,7 +151,7 @@ encode2(
                            d_data, make_size2_size_size_ct1,
                            make_ptrdiff2_stride_stride_ct2, d_stream, d_index,
                            minbits, maxbits, maxprec, minexp,
-                           item_ct1);
+                           item_ct1, fblock_slm);
                      });
   });
   kernel.wait();

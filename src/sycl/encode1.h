@@ -37,8 +37,9 @@ void encode1_kernel(
   uint maxbits,         // max compressed #bits/block
   uint maxprec,         // max uncompressed #bits/value
   int minexp,           // min bit plane index
-  const ::sycl::nd_item<1> &item_ct1
-  //::sycl::stream os
+
+  const ::sycl::nd_item<1> &item_ct1,
+  ::sycl::local_accessor<Scalar, 1> fblock
 )
 {
   // each thread gets a block; block index = global thread index
@@ -64,15 +65,19 @@ void encode1_kernel(
 
 
   // gather data into a contiguous block
-  Scalar fblock[ZFP_1D_BLOCK_SIZE];
+  const size_t fblock_offset = item_ct1.get_local_linear_id() * ZFP_1D_BLOCK_SIZE; //to use SLM
+  Scalar* fblock_ptr = fblock.get_pointer() + fblock_offset;
   const uint nx = (uint)::sycl::min(size_t(size - x), size_t(4));
   if (nx < ZFP_1D_BLOCK_SIZE)
-    gather_partial1(fblock, d_data + offset, nx, stride);
+    gather_partial1(fblock_ptr, d_data + offset, nx, stride);
   else
-    gather1(fblock, d_data + offset, stride);
+    gather1(fblock_ptr, d_data + offset, stride);
+
+  //set cache for block
+  fblock_ptr = fblock.get_pointer() + fblock_offset;
 
   uint bits = encode_block<Scalar, ZFP_1D_BLOCK_SIZE>()(
-      fblock, writer, minbits, maxbits, maxprec, minexp);
+      fblock_ptr, writer, minbits, maxbits, maxprec, minexp);
   //* fblock checked: no problem?
   //* x and offset checked: no problem
   //* perm checked: no problem
@@ -134,6 +139,9 @@ encode1(
   //* d_data and d_stream checked: no problem
   auto kernel = q.submit([&](::sycl::handler &cgh) {
     cgh.depends_on({e1});
+
+    ::sycl::local_accessor<Scalar, 1> fblock_slm(::sycl::range<1>(sycl_block_size * ZFP_1D_BLOCK_SIZE), cgh);
+    
     auto size_ct1 = size[0];
     auto stride_ct2 = stride[0];
 
@@ -142,10 +150,10 @@ encode1(
                        encode1_kernel<Scalar>(
                            d_data, size_ct1, stride_ct2, d_stream, d_index,
                            minbits, maxbits, maxprec, minexp,
-                           item_ct1);
+                           item_ct1, fblock_slm);
                      });
   });
-  kernel.wait_and_throw();
+  kernel.wait();
 #ifdef ZFP_WITH_SYCL_PROFILE
   Timer::print_throughput<Scalar>(kernel, "Encode", "encode1",
                                  ::sycl::range<1>(size[0]));
