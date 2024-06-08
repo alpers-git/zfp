@@ -89,15 +89,15 @@ decode2_kernel(
     const ptrdiff_t y = (pos % by) * 4; pos /= by;
 
     // offset into field
-    const ptrdiff_t offset = x * stride.x() + y * stride.y();
+    const ptrdiff_t data_offset = x * stride.x() + y * stride.y();
 
     // scatter data from contiguous block
     const uint nx = (uint)::sycl::min(size_t(size.x() - x), size_t(4));
     const uint ny = (uint)::sycl::min(size_t(size.y() - y), size_t(4));
     if (nx * ny < ZFP_2D_BLOCK_SIZE)
-      scatter_partial2(fblock_ptr, d_data + offset, nx, ny, stride.x(), stride.y());
+      scatter_partial2(fblock_ptr, d_data + data_offset, nx, ny, stride.x(), stride.y());
     else
-      scatter2(fblock_ptr, d_data + offset, stride.x(), stride.y());
+      scatter2(fblock_ptr, d_data + data_offset, stride.x(), stride.y());
   }
 
   // record maximum bit offset reached by any thread

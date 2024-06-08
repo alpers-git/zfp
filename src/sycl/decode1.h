@@ -80,14 +80,14 @@ decode1_kernel(
     const ptrdiff_t x = pos * 4;
 
     // offset into field
-    const ptrdiff_t offset = x * stride;
+    const ptrdiff_t data_offset = x * stride;
 
     // scatter data from contiguous block
     const uint nx = (uint)::sycl::min(size_t(size - x), size_t(4));
     if (nx < ZFP_1D_BLOCK_SIZE)
-      scatter_partial1(fblock_ptr, d_data + offset, nx, stride);
+      scatter_partial1(fblock_ptr, d_data + data_offset, nx, stride);
     else
-      scatter1(fblock_ptr, d_data + offset, stride);
+      scatter1(fblock_ptr, d_data + data_offset, stride);
   }
 
   // record maximum bit offset reached by any thread

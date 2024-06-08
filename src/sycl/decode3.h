@@ -98,17 +98,17 @@ decode3_kernel(
     const ptrdiff_t z = (pos % bz) * 4; pos /= bz;
 
     // offset into field
-    const ptrdiff_t offset = x * stride.x() + y * stride.y() + z * stride.z();
+    const ptrdiff_t data_offset = x * stride.x() + y * stride.y() + z * stride.z();
 
     // scatter data from contiguous block
     const uint nx = (uint)::sycl::min(size_t(size.x() - x), size_t(4));
     const uint ny = (uint)::sycl::min(size_t(size.y() - y), size_t(4));
     const uint nz = (uint)::sycl::min(size_t(size.z() - z), size_t(4));
     if (nx * ny * nz < ZFP_3D_BLOCK_SIZE)
-      scatter_partial3(fblock_ptr, d_data + offset, nx, ny, nz, stride.x(),
+      scatter_partial3(fblock_ptr, d_data + data_offset, nx, ny, nz, stride.x(),
                        stride.y(), stride.z());
     else
-      scatter3(fblock_ptr, d_data + offset, stride.x(), stride.y(), stride.z());
+      scatter3(fblock_ptr, d_data + data_offset, stride.x(), stride.y(), stride.z());
   }
 
   // record maximum bit offset reached by any thread
@@ -169,7 +169,7 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
     cgh.depends_on({e1});
     cgh.parallel_for(kernel_range,
                      [=](::sycl::nd_item<1> item_ct1) {
-                       decode3_kernel<Scalar>(
+                        decode3_kernel<Scalar>(
                            d_data, make_size3_size_size_size_ct1,
                            make_ptrdiff3_stride_stride_stride_ct2, d_stream,
                            minbits, maxbits, maxprec, minexp, d_offset, d_index,
