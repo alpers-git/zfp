@@ -119,7 +119,7 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   const size_t chunks = (blocks + granularity - 1) / granularity;
 
   // determine execution range for sycl kernel
-  auto kernel_range = calculate_kernel_size(params, blocks, sycl_block_size);
+  auto kernel_range = calculate_kernel_size(params, chunks, sycl_block_size);
 
   // storage for maximum bit offset; needed to position stream
   unsigned long long int* d_offset;
