@@ -92,8 +92,11 @@ decode1_kernel(
 
   // record maximum bit offset reached by any thread
   bit_offset = reader.rtell();
-  dpct::atomic_fetch_max<::sycl::access::address_space::generic_space>(
-      max_offset, bit_offset);
+  // dpct::atomic_fetch_max<::sycl::access::address_space::generic_space>(
+  //     max_offset, bit_offset); //! MOVED to another kernel as this is a huge bottleneck
+
+  //record every offset to find max later
+  max_offset[chunk_idx + 1] = bit_offset; // "+1" as the 0th element is reserved for max
 }
 
 // launch decode kernel
@@ -122,10 +125,11 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   auto kernel_range = calculate_kernel_size(params, chunks, sycl_block_size);
 
   // storage for maximum bit offset; needed to position stream
-  unsigned long long int* d_offset;
-  d_offset = (unsigned long long int*)::sycl::malloc_device(
-      sizeof(*d_offset), q);
-  auto e1 = q.memset(d_offset, 0, sizeof(*d_offset));
+  unsigned long long int* d_offsets;
+  d_offsets = (unsigned long long int*)::sycl::malloc_device(
+      sizeof(*d_offsets) * (chunks + 1), q); // 0th element is reserved for max reduction result...
+  // so we need +1 offset here
+  auto e1 = q.memset(d_offsets, 0, sizeof(*d_offsets) * (chunks+1));
 
 
   // launch GPU kernel
@@ -134,8 +138,8 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   limit. To get the device limit, query info::device::max_work_group_size.
   Adjust the work-group size if needed. 
   */
-  auto kernel = q.submit([&](::sycl::handler &cgh) {
-    cgh.depends_on({e1});
+  auto kernel = q.submit([&](::sycl::handler& cgh) {
+    cgh.depends_on({ e1 });
 
     ::sycl::local_accessor<uint64, 1> offset_acc_ct1(::sycl::range<1>(32), cgh);
     ::sycl::local_accessor<Scalar, 1> fblock_slm(::sycl::range<1>(sycl_block_size * ZFP_1D_BLOCK_SIZE), cgh);
@@ -144,24 +148,36 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
     auto stride_ct2 = stride[0];
 
     cgh.parallel_for(kernel_range,
-                     [=](::sycl::nd_item<1> item_ct1) {
-                       decode1_kernel<Scalar>(
-                           d_data, size_ct1, stride_ct2, d_stream, minbits,
-                           maxbits, maxprec, minexp, d_offset, d_index,
-                           index_type, granularity, item_ct1,
-                           offset_acc_ct1, fblock_slm);
-                     });
-  });
-kernel.wait();
+      [=](::sycl::nd_item<1> item_ct1) {
+        decode1_kernel<Scalar>(
+          d_data, size_ct1, stride_ct2, d_stream, minbits,
+          maxbits, maxprec, minexp, d_offsets, d_index,
+          index_type, granularity, item_ct1,
+          offset_acc_ct1, fblock_slm);
+      });
+    });
+  kernel.wait();
 #ifdef ZFP_WITH_SYCL_PROFILE
   Timer::print_throughput<Scalar>(kernel, "Decode", "decode1",
                                  ::sycl::range<1>(size[0]));
 #endif
 
+  // reduce maximum bit offset in parallel into a single value
+  //* NOT A FAIR COMPARISON TO CUDA VERSION AS THIS REDUCTION... 
+  //* RESIDES IN THE KERNEL ABOVE AS ATOMICMAX
+  unsigned long long int offset = 0;
+  q.submit([&](::sycl::handler& cgh) {
+    auto max_reduce = ::sycl::reduction(&d_offsets[0],
+      ::sycl::maximum<unsigned long long int>());
+
+    cgh.parallel_for(::sycl::range<1>(chunks), max_reduce,
+      [=](::sycl::id<1> idx, auto& max) {
+        max.combine(d_offsets[idx + 1]);});
+    }).wait();
+
   // copy bit offset
-  unsigned long long int offset;
-  q.memcpy(&offset, d_offset, sizeof(offset)).wait();
-  ::sycl::free(d_offset, q);
+  q.memcpy(&offset, d_offsets, sizeof(offset)).wait();
+  ::sycl::free(d_offsets, q);
 
   return offset;
 }
