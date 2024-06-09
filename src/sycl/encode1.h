@@ -66,7 +66,9 @@ void encode1_kernel(
 
   // gather data into a contiguous block
   const size_t fblock_offset = item_ct1.get_local_linear_id() * ZFP_1D_BLOCK_SIZE; //to use SLM
-  Scalar* fblock_ptr = fblock.get_pointer() + fblock_offset;
+  Scalar* fblock_ptr = 
+      fblock.template get_multi_ptr<::sycl::access::decorated::yes>().get() +
+      fblock_offset;
   const uint nx = (uint)::sycl::min(size_t(size - x), size_t(4));
   if (nx < ZFP_1D_BLOCK_SIZE)
     gather_partial1(fblock_ptr, d_data + offset, nx, stride);
@@ -74,7 +76,9 @@ void encode1_kernel(
     gather1(fblock_ptr, d_data + offset, stride);
 
   //set cache for block
-  fblock_ptr = fblock.get_pointer() + fblock_offset;
+  fblock_ptr = 
+      fblock.template get_multi_ptr<::sycl::access::decorated::yes>().get() +
+      fblock_offset;
 
   uint bits = encode_block<Scalar, ZFP_1D_BLOCK_SIZE>()(
       fblock_ptr, writer, minbits, maxbits, maxprec, minexp);

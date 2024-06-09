@@ -77,7 +77,9 @@ decode2_kernel(
 
   // decode blocks assigned to this thread
   const size_t fblock_offset = item_ct1.get_local_linear_id() * ZFP_2D_BLOCK_SIZE; //to use SLM
-  Scalar* fblock_ptr = fblock.get_pointer() + fblock_offset;
+  Scalar* fblock_ptr = 
+      fblock.template get_multi_ptr<::sycl::access::decorated::yes>().get() +
+      fblock_offset;
   for (; block_idx < block_end; block_idx++) {
     // Scalar fblock[ZFP_2D_BLOCK_SIZE] = { 0 };
     decode_block<Scalar, ZFP_2D_BLOCK_SIZE>()(fblock_ptr, reader, minbits, maxbits,

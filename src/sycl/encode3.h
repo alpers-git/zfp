@@ -88,7 +88,9 @@ encode3_kernel(
 
   // gather data into a contiguous block
   const size_t fblock_offset = item_ct1.get_local_linear_id() * ZFP_3D_BLOCK_SIZE; //to use SLM
-  Scalar* fblock_ptr = fblock.get_pointer() + fblock_offset;
+  Scalar* fblock_ptr = 
+      fblock.template get_multi_ptr<::sycl::access::decorated::yes>().get() +
+      fblock_offset;
   const uint nx = (uint)::sycl::min(size_t(size.x() - x), size_t(4));
   const uint ny = (uint)::sycl::min(size_t(size.y() - y), size_t(4));
   const uint nz = (uint)::sycl::min(size_t(size.z() - z), size_t(4));
@@ -99,7 +101,9 @@ encode3_kernel(
     gather3(fblock_ptr, d_data + offset, stride.x(), stride.y(), stride.z());
   
   //set the cache to fblock
-  fblock_ptr = fblock.get_pointer() + fblock_offset;
+  fblock_ptr = 
+      fblock.template get_multi_ptr<::sycl::access::decorated::yes>().get() +
+      fblock_offset;
 
   uint bits = encode_block<Scalar, ZFP_3D_BLOCK_SIZE>()(
       fblock_ptr, writer, minbits, maxbits, maxprec, minexp);
