@@ -24,6 +24,21 @@ static void print_throughput(::sycl::event queue_event, const char* task, const 
     std::cerr << task << " elapsed time: " << std::fixed << std::setprecision(6) << seconds << std::endl;
     std::cerr << "# " << subtask << " rate: " << std::fixed << std::setprecision(2) << throughput << " (GB / sec)" << std::endl;
 }
+
+template <typename Scalar, typename RangeType>
+static void print_throughput_include_reduce(::sycl::event queue_event, ::sycl::event reduce_event, const char* task, const char* subtask, RangeType dims)
+{   
+    float ns = (queue_event.get_profiling_info<::sycl::info::event_profiling::command_end>() -
+        queue_event.get_profiling_info<::sycl::info::event_profiling::command_start>()) +
+        (reduce_event.get_profiling_info<::sycl::info::event_profiling::command_end>() -
+        reduce_event.get_profiling_info<::sycl::info::event_profiling::command_start>());
+    double seconds = double(ns) / 1e9;
+    size_t bytes = dims.size() * sizeof(Scalar);
+    double throughput = bytes / seconds;
+    throughput /= 1024 * 1024 * 1024;
+    std::cerr << task << " elapsed time: " << std::fixed << std::setprecision(6) << seconds << std::endl;
+    std::cerr << "# " << subtask << " rate: " << std::fixed << std::setprecision(2) << throughput << " (GB / sec)" << std::endl;
+}
 } // namespace Timer
 
 } // namespace internal

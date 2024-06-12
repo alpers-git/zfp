@@ -170,23 +170,22 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
       });
     });
   kernel.wait();
-#ifdef ZFP_WITH_SYCL_PROFILE
-  Timer::print_throughput<Scalar>(kernel, "Decode", "decode2",
-                                 ::sycl::range<2>(size[0], size[1]));
-#endif
-
-  // reduce maximum bit offset in parallel into a single value
-  //* NOT A FAIR COMPARISON TO CUDA VERSION AS THIS REDUCTION... 
-  //* RESIDES IN THE KERNEL ABOVE AS ATOMICMAX
   unsigned long long int offset = 0;
-   q.submit([&](::sycl::handler &cgh) {
-    auto max_reduce = ::sycl::reduction(&d_offsets[0], 
-            ::sycl::maximum<unsigned long long int>());
+  auto reduce = q.submit([&](::sycl::handler& cgh) {
+    auto max_reduce = ::sycl::reduction(&d_offsets[0],
+      ::sycl::maximum<unsigned long long int>());
 
     cgh.parallel_for(::sycl::range<1>(chunks), max_reduce,
-             [=](::sycl::id<1> idx, auto& max) {
-                max.combine(d_offsets[idx+1]);});
-  }).wait();
+      [=](::sycl::id<1> idx, auto& max) {
+        max.combine(d_offsets[idx + 1]);});
+    });
+  reduce.wait();
+  #ifdef ZFP_WITH_SYCL_PROFILE
+    Timer::print_throughput<Scalar>(kernel, "Decode", "decode2",
+                                  ::sycl::range<2>(size[0], size[1]));
+    Timer::print_throughput_include_reduce<Scalar>(kernel, reduce, "Decode", "decode2 (w/ reduce)",
+                                  ::sycl::range<2>(size[0], size[1]));
+  #endif
 
   // copy bit offset
   q.memcpy(&offset, d_offsets, sizeof(offset)).wait();
