@@ -175,7 +175,7 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
     auto max_reduce = ::sycl::reduction(&d_offsets[0],
       ::sycl::maximum<unsigned long long int>());
 
-    cgh.parallel_for(::sycl::range<1>(chunks), max_reduce,
+    cgh.parallel_for(::sycl::range<1>(chunks+1), max_reduce,
       [=](::sycl::id<1> idx, auto& max) {
         max.combine(d_offsets[idx + 1]);});
     });
