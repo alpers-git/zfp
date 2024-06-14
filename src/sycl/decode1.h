@@ -103,7 +103,7 @@ unsigned long long
 decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
         const zfp_exec_params_sycl *params, const Word *d_stream, uint minbits,
         uint maxbits, uint maxprec, int minexp, const Word *d_index,
-        zfp_index_type index_type, uint granularity) //try 
+        zfp_index_type index_type, uint granularity)
 {
   ::sycl::queue q(zfp::sycl::internal::zfp_dev_selector
 #ifdef ZFP_WITH_SYCL_PROFILE
@@ -161,11 +161,6 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
 
   return *offset;
 }
-// catch (::sycl::exception const &exc) {
-//   std::cerr << exc.what() << "Exception caught at file:" << __FILE__
-//             << ", line:" << __LINE__ << std::endl;
-//   std::exit(1);
-// }
 
 } // namespace internal
 } // namespace sycl
