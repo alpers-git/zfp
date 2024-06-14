@@ -49,7 +49,7 @@ decode3_kernel(
   uint maxbits,
   uint maxprec,
   int minexp,
-  unsigned long long int* max_offset,
+  unsigned long long int& bit_offset,
   const Word* d_index,
   zfp_index_type index_type,
   uint granularity
@@ -76,7 +76,6 @@ decode3_kernel(
     return;
 
   // compute bit offset to compressed block
-  unsigned long long bit_offset;
   if (minbits == maxbits)
     bit_offset = chunk_idx * maxbits;
   else
@@ -117,9 +116,6 @@ decode3_kernel(
   bit_offset = reader.rtell();
   // dpct::atomic_fetch_max<::sycl::access::address_space::generic_space>(
   //     max_offset, bit_offset); //! MOVED to another kernel as this is a huge bottleneck
-
-  //record every offset to find max later
-  max_offset[chunk_idx + 1] = bit_offset; // "+1" as the 0th element is reserved for max
 }
 
 // launch decode kernel
@@ -128,7 +124,7 @@ unsigned long long
 decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
         const zfp_exec_params_sycl *params, const Word *d_stream, uint minbits,
         uint maxbits, uint maxprec, int minexp, const Word *d_index,
-        zfp_index_type index_type, uint granularity) //try 
+        zfp_index_type index_type, uint granularity)
 {
   ::sycl::queue q(zfp::sycl::internal::zfp_dev_selector
 #ifdef ZFP_WITH_SYCL_PROFILE
@@ -150,68 +146,46 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   auto kernel_range = calculate_kernel_size(params, chunks, sycl_block_size);
 
   // storage for maximum bit offset; needed to position stream
-  unsigned long long int* d_offsets;
-  d_offsets = (unsigned long long int*)::sycl::malloc_device(
-      sizeof(*d_offsets) * (chunks + 1), q); // 0th element is reserved for max reduction result...
-  // so we need +1 offset here
-  auto e1 = q.memset(d_offsets, 0, sizeof(*d_offsets) * (chunks+1));
+  unsigned long long int* offset;
+  offset = (unsigned long long int*)::sycl::malloc_shared(
+      sizeof(*offset), q);
 
 
   // launch GPU kernel
-  /*
-  DPCT1049:17: The work-group size passed to the SYCL kernel may exceed the
-  limit. To get the device limit, query info::device::max_work_group_size.
-  Adjust the work-group size if needed.
-  */
+  /*DPCT1049:17: Resolved*/
   auto kernel = q.submit([&](::sycl::handler& cgh) {
-
     ::sycl::local_accessor<uint64, 1> offset_acc_ct1(::sycl::range<1>(32), cgh);
     ::sycl::local_accessor<Scalar, 1> fblock_slm(::sycl::range<1>(sycl_block_size * ZFP_3D_BLOCK_SIZE), cgh);
 
-    auto make_size3_size_size_size_ct1 = make_size3(size[0], size[1], size[2]);
-    auto make_ptrdiff3_stride_stride_stride_ct2 =
+    auto data_dims = 
+      make_size3(size[0], size[1], size[2]);
+    auto data_stride =
       make_ptrdiff3(stride[0], stride[1], stride[2]);
 
-    cgh.depends_on({ e1 });
-    cgh.parallel_for(kernel_range,
-      [=](::sycl::nd_item<1> item_ct1) {
+    //create reduction kernel
+    auto max_reduce = ::sycl::reduction(offset, ::sycl::maximum<>());
+
+    cgh.parallel_for(kernel_range, max_reduce,
+      [=](::sycl::nd_item<1> item_ct1, auto& max) {
+        unsigned long long bit_offset;
         decode3_kernel<Scalar>(
-          d_data, make_size3_size_size_size_ct1,
-          make_ptrdiff3_stride_stride_stride_ct2, d_stream,
-          minbits, maxbits, maxprec, minexp, d_offsets, d_index,
-          index_type, granularity, item_ct1,
-          offset_acc_ct1, fblock_slm);
+          d_data, data_dims, data_stride, 
+          d_stream, minbits, maxbits, maxprec, 
+          minexp, bit_offset, d_index, index_type,
+          granularity, item_ct1, offset_acc_ct1, 
+          fblock_slm);
+        //reduce the bit_offset from the decode to find max offset
+        max.combine(bit_offset);
       });
     });
   kernel.wait();
-  unsigned long long int offset = 0;
-  auto reduce = q.submit([&](::sycl::handler& cgh) {
-    auto max_reduce = ::sycl::reduction(&d_offsets[0],
-      ::sycl::maximum<unsigned long long int>());
-
-    cgh.parallel_for(::sycl::range<1>(chunks+1), max_reduce,
-      [=](::sycl::id<1> idx, auto& max) {
-        max.combine(d_offsets[idx + 1]);});
-    });
-  reduce.wait();
 #ifdef ZFP_WITH_SYCL_PROFILE
   Timer::print_throughput<Scalar>(kernel, "Decode", "decode3",
-                                 ::sycl::range<3>(size[0], size[1], size[2]));
-  Timer::print_throughput_include_reduce<Scalar>(kernel, reduce, "Decode", "decode3 (w/ reduce)",
-                                 ::sycl::range<3>(size[0], size[1], size[2]));
+    ::sycl::range<3>(size[0], size[1], size[2]));
 #endif
 
-  // copy bit offset
-  q.memcpy(&offset, d_offsets, sizeof(offset)).wait();
-  ::sycl::free(d_offsets, q);
-
-  return offset;
+  return *offset;
 }
-// catch (::sycl::exception const &exc) {
-//   std::cerr << exc.what() << "Exception caught at file:" << __FILE__
-//             << ", line:" << __LINE__ << std::endl;
-//   std::exit(1);
-// }
 
 } // namespace internal
 } // namespace sycl
