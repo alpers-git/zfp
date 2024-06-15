@@ -15,8 +15,8 @@ namespace Timer {
 template <typename Scalar, typename RangeType>
 static void print_throughput(::sycl::event queue_event, const char* task, const char* subtask, RangeType dims)
 {   
-    float ns = (queue_event.get_profiling_info<::sycl::info::event_profiling::command_end>() -
-        queue_event.get_profiling_info<::sycl::info::event_profiling::command_start>());
+    uint64_t ns = (queue_event.get_profiling_info<::sycl::info::event_profiling::command_end>() -
+        queue_event.get_profiling_info<::sycl::info::event_profiling::command_submit>());
     double seconds = double(ns) / 1e9;
     size_t bytes = dims.size() * sizeof(Scalar);
     double throughput = bytes / seconds;
