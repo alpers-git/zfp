@@ -42,7 +42,7 @@ decode2_kernel(
   uint maxbits,
   uint maxprec,
   int minexp,
-  unsigned long long int& bit_offset,
+  unsigned long long int* max_offset,
   const Word* d_index,
   zfp_index_type index_type,
   uint granularity
@@ -68,6 +68,7 @@ decode2_kernel(
     return;
 
   // compute bit offset to compressed block
+  unsigned long long int bit_offset;
   if (minbits == maxbits)
     bit_offset = chunk_idx * maxbits;
   else
@@ -101,10 +102,8 @@ decode2_kernel(
       scatter2(fblock_ptr, d_data + data_offset, stride.x(), stride.y());
   }
 
-  // record maximum bit offset reached by any thread
-  bit_offset = reader.rtell();
-  // dpct::atomic_fetch_max<::sycl::access::address_space::generic_space>(
-  //     max_offset, bit_offset); //! MOVED to another kernel as this is a huge bottleneck
+  if(block_idx == blocks)
+    *max_offset = reader.rtell();
 }
 
 // launch decode kernel
@@ -137,6 +136,7 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   unsigned long long int* offset;
   offset = (unsigned long long int*)::sycl::malloc_shared(
       sizeof(*offset), q);
+  offset[0] = 0;
 
   // launch GPU kernel
   /*DPCT1049:17: Resolved*/
@@ -149,20 +149,14 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
     auto data_stride = 
       make_ptrdiff2(stride[0], stride[1]);
 
-    //create reduction kernel
-    auto max_reduce = ::sycl::reduction(offset, ::sycl::maximum<>());
-
-    cgh.parallel_for(kernel_range, max_reduce,
-      [=](::sycl::nd_item<1> item_ct1, auto& max) {
-        unsigned long long bit_offset;
+    cgh.parallel_for(kernel_range,
+      [=](::sycl::nd_item<1> item_ct1) {
         decode2_kernel<Scalar>(
           d_data, data_dims, data_stride, 
           d_stream, minbits, maxbits, maxprec, 
-          minexp, bit_offset, d_index, index_type,
+          minexp, offset, d_index, index_type,
           granularity, item_ct1, offset_acc_ct1, 
           fblock_slm);
-        //reduce the bit_offset from the decode to find max offset
-        max.combine(bit_offset);
       });
     });
   kernel.wait();
