@@ -38,8 +38,7 @@ void encode1_kernel(
   uint maxprec,         // max uncompressed #bits/value
   int minexp,           // min bit plane index
 
-  const ::sycl::nd_item<1> &item_ct1,
-  ::sycl::local_accessor<Scalar, 1> fblock
+  const ::sycl::nd_item<1> &item_ct1
 )
 {
   // each thread gets a block; block index = global thread index
@@ -65,23 +64,15 @@ void encode1_kernel(
 
 
   // gather data into a contiguous block
-  const size_t fblock_offset = item_ct1.get_local_linear_id() * ZFP_1D_BLOCK_SIZE; //to use SLM
-  Scalar* fblock_ptr = 
-      fblock.template get_multi_ptr<::sycl::access::decorated::yes>().get() +
-      fblock_offset;
+  Scalar fblock[ZFP_1D_BLOCK_SIZE];
   const uint nx = (uint)::sycl::min(size_t(size - x), size_t(4));
   if (nx < ZFP_1D_BLOCK_SIZE)
-    gather_partial1(fblock_ptr, d_data + offset, nx, stride);
+    gather_partial1(fblock, d_data + offset, nx, stride);
   else
-    gather1(fblock_ptr, d_data + offset, stride);
-
-  //set cache for block
-  fblock_ptr = 
-      fblock.template get_multi_ptr<::sycl::access::decorated::yes>().get() +
-      fblock_offset;
+    gather1(fblock, d_data + offset, stride);
 
   uint bits = encode_block<Scalar, ZFP_1D_BLOCK_SIZE>()(
-      fblock_ptr, writer, minbits, maxbits, maxprec, minexp);
+      fblock, writer, minbits, maxbits, maxprec, minexp);
   //* fblock checked: no problem?
   //* x and offset checked: no problem
   //* perm checked: no problem
@@ -142,20 +133,18 @@ encode1(
   //* size, stride, minbits, maxbits, maxprec, minexp, stream_bytes, blocks checked: no problem
   //* d_data and d_stream checked: no problem
   auto kernel = q.submit([&](::sycl::handler &cgh) {
-
-    ::sycl::local_accessor<Scalar, 1> fblock_slm(::sycl::range<1>(sycl_block_size * ZFP_1D_BLOCK_SIZE), cgh);
-    
     auto size_ct1 = size[0];
     auto stride_ct2 = stride[0];
 
     cgh.depends_on({e1});
     cgh.parallel_for(kernel_range,
-                     [=](::sycl::nd_item<1> item_ct1) {
-                       encode1_kernel<Scalar>(
-                           d_data, size_ct1, stride_ct2, d_stream, d_index,
-                           minbits, maxbits, maxprec, minexp,
-                           item_ct1, fblock_slm);
-                     });
+      [=](::sycl::nd_item<1> item_ct1) {
+        encode1_kernel<Scalar>(
+            d_data, size_ct1, stride_ct2,
+            d_stream, d_index, minbits,
+            maxbits, maxprec, minexp, 
+            item_ct1);
+      });
   });
   kernel.wait();
 #ifdef ZFP_WITH_SYCL_PROFILE

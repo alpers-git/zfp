@@ -48,8 +48,7 @@ decode2_kernel(
   uint granularity
 ,
   const ::sycl::nd_item<1> &item_ct1,
-  ::sycl::local_accessor<uint64, 1> offset,
-  ::sycl::local_accessor<Scalar, 1> fblock)
+  ::sycl::local_accessor<uint64, 1> offset)
 {
   const size_t chunk_idx = item_ct1.get_global_linear_id();
 
@@ -76,13 +75,9 @@ decode2_kernel(
   BlockReader reader(d_stream, bit_offset);
 
   // decode blocks assigned to this thread
-  const size_t fblock_offset = item_ct1.get_local_linear_id() * ZFP_2D_BLOCK_SIZE; //to use SLM
-  Scalar* fblock_ptr = 
-      fblock.template get_multi_ptr<::sycl::access::decorated::yes>().get() +
-      fblock_offset;
   for (; block_idx < block_end; block_idx++) {
-    // Scalar fblock[ZFP_2D_BLOCK_SIZE] = { 0 };
-    decode_block<Scalar, ZFP_2D_BLOCK_SIZE>()(fblock_ptr, reader, minbits, maxbits,
+    Scalar fblock[ZFP_2D_BLOCK_SIZE] = { 0 };
+    decode_block<Scalar, ZFP_2D_BLOCK_SIZE>()(fblock, reader, minbits, maxbits,
                                               maxprec, minexp);
 
     // logical position in 2d array
@@ -97,9 +92,9 @@ decode2_kernel(
     const uint nx = (uint)::sycl::min(size_t(size.x() - x), size_t(4));
     const uint ny = (uint)::sycl::min(size_t(size.y() - y), size_t(4));
     if (nx * ny < ZFP_2D_BLOCK_SIZE)
-      scatter_partial2(fblock_ptr, d_data + data_offset, nx, ny, stride.x(), stride.y());
+      scatter_partial2(fblock, d_data + data_offset, nx, ny, stride.x(), stride.y());
     else
-      scatter2(fblock_ptr, d_data + data_offset, stride.x(), stride.y());
+      scatter2(fblock, d_data + data_offset, stride.x(), stride.y());
   }
 
   if(block_idx == blocks)
@@ -142,7 +137,6 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   /*DPCT1049:17: Resolved*/
   auto kernel = q.submit([&](::sycl::handler& cgh) {
     ::sycl::local_accessor<uint64, 1> offset_acc_ct1(::sycl::range<1>(32), cgh);
-    ::sycl::local_accessor<Scalar, 1> fblock_slm(::sycl::range<1>(sycl_block_size * ZFP_2D_BLOCK_SIZE), cgh);
 
     auto data_dims = 
       make_size2(size[0], size[1]);
@@ -155,8 +149,7 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
           d_data, data_dims, data_stride, 
           d_stream, minbits, maxbits, maxprec, 
           minexp, offset, d_index, index_type,
-          granularity, item_ct1, offset_acc_ct1, 
-          fblock_slm);
+          granularity, item_ct1, offset_acc_ct1);
       });
     });
   kernel.wait();

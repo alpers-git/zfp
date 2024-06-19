@@ -58,8 +58,7 @@ encode3_kernel(
   uint maxprec,         // max uncompressed #bits/value
   int minexp,           // min bit plane index
 
-  const ::sycl::nd_item<1> &item_ct1,
-  ::sycl::local_accessor<Scalar, 1> fblock)
+  const ::sycl::nd_item<1> &item_ct1)
 {
   const size_t block_idx = item_ct1.get_global_linear_id();
   
@@ -87,26 +86,18 @@ encode3_kernel(
   BlockWriter writer(d_stream, bit_offset);
 
   // gather data into a contiguous block
-  const size_t fblock_offset = item_ct1.get_local_linear_id() * ZFP_3D_BLOCK_SIZE; //to use SLM
-  Scalar* fblock_ptr = 
-      fblock.template get_multi_ptr<::sycl::access::decorated::yes>().get() +
-      fblock_offset;
+  Scalar fblock[ZFP_3D_BLOCK_SIZE];
   const uint nx = (uint)::sycl::min(size_t(size.x() - x), size_t(4));
   const uint ny = (uint)::sycl::min(size_t(size.y() - y), size_t(4));
   const uint nz = (uint)::sycl::min(size_t(size.z() - z), size_t(4));
   if (nx * ny * nz < ZFP_3D_BLOCK_SIZE)
-    gather_partial3(fblock_ptr, d_data + offset, nx, ny, nz, stride.x(), stride.y(),
+    gather_partial3(fblock, d_data + offset, nx, ny, nz, stride.x(), stride.y(),
                     stride.z());
   else
-    gather3(fblock_ptr, d_data + offset, stride.x(), stride.y(), stride.z());
-  
-  //set the cache to fblock
-  fblock_ptr = 
-      fblock.template get_multi_ptr<::sycl::access::decorated::yes>().get() +
-      fblock_offset;
+    gather3(fblock, d_data + offset, stride.x(), stride.y(), stride.z());
 
   uint bits = encode_block<Scalar, ZFP_3D_BLOCK_SIZE>()(
-      fblock_ptr, writer, minbits, maxbits, maxprec, minexp);
+      fblock, writer, minbits, maxbits, maxprec, minexp);
 
   if (d_index)
     d_index[block_idx] = (ushort)bits;
@@ -155,22 +146,19 @@ encode3(
   */
 
   auto kernel = q.submit([&](::sycl::handler &cgh) {
-
-    ::sycl::local_accessor<Scalar, 1> fblock_slm(::sycl::range<1>(sycl_block_size * ZFP_3D_BLOCK_SIZE), cgh);
-
     auto make_size3_size_size_size_ct1 = make_size3(size[0], size[1], size[2]);
     auto make_ptrdiff3_stride_stride_stride_ct2 =
         make_ptrdiff3(stride[0], stride[1], stride[2]);
 
     cgh.depends_on({e1});
     cgh.parallel_for(kernel_range,
-                     [=](::sycl::nd_item<1> item_ct1) {
-                       encode3_kernel<Scalar>(
-                           d_data, make_size3_size_size_size_ct1,
-                           make_ptrdiff3_stride_stride_stride_ct2, d_stream,
-                           d_index, minbits, maxbits, maxprec, minexp,
-                          item_ct1, fblock_slm);
-                     });
+      [=](::sycl::nd_item<1> item_ct1) {
+        encode3_kernel<Scalar>(
+          d_data, make_size3_size_size_size_ct1,
+          make_ptrdiff3_stride_stride_stride_ct2, d_stream,
+          d_index, minbits, maxbits, maxprec, minexp,
+          item_ct1);
+      });
   });
   kernel.wait();
 #ifdef ZFP_WITH_SYCL_PROFILE
