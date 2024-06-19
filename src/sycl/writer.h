@@ -19,9 +19,9 @@ private:
 
   // use atomic write to avoid write race conditions
   inline void write_word(Word w) {
-    // dpct::atomic_fetch_add<::sycl::access::address_space::generic_space>(ptr++,
-    //                                                                    w);
-    *ptr++ = w;//! TO AVOID ATOMICS WILL NOT WORK ON VARIABLE-RATE
+    dpct::atomic_fetch_add<::sycl::access::address_space::generic_space>(ptr++,
+                                                                       w);
+    // *ptr++ = w;//! TO AVOID ATOMICS WILL NOT WORK ON VARIABLE-RATE
   }
 
 public:
