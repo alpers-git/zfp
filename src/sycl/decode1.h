@@ -126,7 +126,7 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   // launch GPU kernel
   /*DPCT1049:17: Resolved*/
   auto kernel = q.submit([&](::sycl::handler& cgh) {
-    ::sycl::local_accessor<uint64, 1> offset_acc_ct1(::sycl::range<1>(32), cgh);
+    ::sycl::local_accessor<uint64, 1> offset_acc_ct1(::sycl::range<1>(sycl_block_size), cgh);
 
     auto data_size = size[0];
     auto data_stride = stride[0];

@@ -124,7 +124,7 @@ encode3(
   , ::sycl::property_list{::sycl::property::queue::enable_profiling()}
 #endif
   );
-  const int sycl_block_size = 128;
+  const int sycl_block_size = 256;
 
   // number of zfp blocks to encode
   const size_t blocks = ((size[0] + 3) / 4) *
