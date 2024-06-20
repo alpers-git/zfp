@@ -134,17 +134,18 @@ encode2(
 
   auto kernel = q.submit([&](::sycl::handler &cgh) {
 
-    auto make_size2_size_size_ct1 = make_size2(size[0], size[1]);
-    auto make_ptrdiff2_stride_stride_ct2 = make_ptrdiff2(stride[0], stride[1]);
+    auto data_size =
+      make_size2(size[0], size[1]);
+    auto data_stride =
+      make_ptrdiff2(stride[0], stride[1]);
 
     cgh.depends_on({e1});
     cgh.parallel_for(kernel_range,
       [=](::sycl::nd_item<1> item_ct1) {
         encode2_kernel<Scalar>(
-            d_data, make_size2_size_size_ct1,
-            make_ptrdiff2_stride_stride_ct2, d_stream, 
-            d_index, minbits, maxbits, maxprec, minexp,
-            item_ct1);
+            d_data, data_size, data_stride,
+            d_stream, d_index, minbits, maxbits,
+            maxprec, minexp, item_ct1);
       });
   });
   kernel.wait();

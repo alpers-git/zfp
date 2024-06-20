@@ -133,17 +133,16 @@ encode1(
   //* size, stride, minbits, maxbits, maxprec, minexp, stream_bytes, blocks checked: no problem
   //* d_data and d_stream checked: no problem
   auto kernel = q.submit([&](::sycl::handler &cgh) {
-    auto size_ct1 = size[0];
-    auto stride_ct2 = stride[0];
+    auto data_size = size[0];
+    auto data_stride = stride[0];
 
     cgh.depends_on({e1});
     cgh.parallel_for(kernel_range,
       [=](::sycl::nd_item<1> item_ct1) {
         encode1_kernel<Scalar>(
-            d_data, size_ct1, stride_ct2,
-            d_stream, d_index, minbits,
-            maxbits, maxprec, minexp, 
-            item_ct1);
+            d_data, data_size, data_stride,
+            d_stream, d_index, minbits, maxbits,
+            maxprec, minexp, item_ct1);
       });
   });
   kernel.wait();
