@@ -55,7 +55,8 @@ decode3_kernel(
   uint granularity
 ,
   const ::sycl::nd_item<1> &item_ct1,
-  ::sycl::local_accessor<uint64, 1> offset)
+  ::sycl::local_accessor<uint64, 1> offset,
+  Scalar* fblock)
 {
   const size_t chunk_idx = item_ct1.get_global_linear_id();
 
@@ -84,7 +85,7 @@ decode3_kernel(
 
   // decode blocks assigned to this thread
   for (; block_idx < block_end; block_idx++) {
-    Scalar fblock[ZFP_3D_BLOCK_SIZE] = { 0 };
+    // Scalar fblock[ZFP_3D_BLOCK_SIZE] = { 0 };
     decode_block<Scalar, ZFP_3D_BLOCK_SIZE>()(fblock, reader, minbits, maxbits,
                                               maxprec, minexp);
 
@@ -150,6 +151,9 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   /*DPCT1049:17: Resolved*/
   auto kernel = q.submit([&](::sycl::handler& cgh) {
     ::sycl::local_accessor<uint64, 1> offset_acc_ct1(::sycl::range<1>(sycl_block_size), cgh);
+    // local memory for block to avoid register spillage
+    ::sycl::local_accessor<Scalar, 1> fblock_slm(
+      ::sycl::range<1>(ZFP_3D_BLOCK_SIZE) * kernel_range.get_local_range()[0], cgh);
 
     auto data_size = 
       make_size3(size[0], size[1], size[2]);
@@ -158,11 +162,17 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
 
     cgh.parallel_for(kernel_range,
       [=](::sycl::nd_item<1> item_ct1) {
+        Scalar* fblock = 
+          fblock_slm.template 
+          get_multi_ptr<::sycl::access::decorated::yes>().get() +
+          ZFP_3D_BLOCK_SIZE * item_ct1.get_local_linear_id();
+
         decode3_kernel<Scalar>(
           d_data, data_size, data_stride, 
           d_stream, minbits, maxbits, maxprec, 
           minexp, offset, d_index, index_type,
-          granularity, item_ct1, offset_acc_ct1);
+          granularity, item_ct1, offset_acc_ct1,
+          fblock);
       });
     });
   kernel.wait();

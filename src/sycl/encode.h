@@ -109,11 +109,8 @@ inline
 void fwd_cast(Int *iblock, const Scalar *fblock, int emax)
 {
   const Scalar scale = quantize_factor<Scalar>(emax);
-#if SYCL_LANGUAGE_VERSION < 8000
-#pragma unroll
-#else
-  #pragma unroll BlockSize
-#endif
+
+#pragma unroll BlockSize
   for (int i = 0; i < BlockSize; i++)
     iblock[i] = (Int)(scale * fblock[i]);
 }
@@ -223,11 +220,8 @@ inline
 void fwd_order(UInt* ublock, const Int* iblock)
 {
   const auto perm = get_perm<BlockSize>();
-#if SYCL_LANGUAGE_VERSION < 8000
-#pragma unroll
-#else
-  #pragma unroll BlockSize
-#endif
+
+#pragma unroll BlockSize
   for (int i = 0; i < BlockSize; i++)
     ublock[i] = int2uint<Int, UInt>(iblock[perm[i]]);
 }
@@ -243,11 +237,8 @@ uint encode_ints(UInt* ublock, BlockWriter& writer, uint maxbits, uint maxprec)
   for (uint k = intprec, n = 0; bits && k-- > kmin;) {
     // step 1: extract bit plane #k to x
     uint64 x = 0;
-#if SYCL_LANGUAGE_VERSION < 8000
-#pragma unroll
-#else
-    #pragma unroll BlockSize
-#endif
+
+#pragma unroll BlockSize
     for (int i = 0; i < BlockSize; i++)
       x += (uint64)((ublock[i] >> k) & 1u) << i;
     // step 2: encode first n bits of bit plane
@@ -277,11 +268,8 @@ uint encode_ints_prec(UInt* ublock, BlockWriter& writer, uint maxprec)
   for (uint k = intprec, n = 0; k-- > kmin;) {
     // step 1: extract bit plane #k to x
     uint64 x = 0;
-#if SYCL_LANGUAGE_VERSION < 8000
-#pragma unroll
-#else
+    
     #pragma unroll BlockSize
-#endif
     for (int i = 0; i < BlockSize; i++)
       x += (uint64)((ublock[i] >> k) & 1u) << i;
     // step 2: encode first n bits of bit plane

@@ -32,11 +32,8 @@ inline
 void inv_cast(const Int *iblock, Scalar *fblock, int emax)
 {
   const Scalar scale = dequantize_factor<Scalar>(emax);
-#if SYCL_LANGUAGE_VERSION < 8000
-#pragma unroll
-#else
-  #pragma unroll BlockSize
-#endif
+
+#pragma unroll BlockSize
   for (int i = 0; i < BlockSize; i++)
     fblock[i] = scale * (Scalar)iblock[i];
 }
@@ -146,11 +143,8 @@ void inv_order(const UInt* ublock, Int* iblock)
 {
   const auto perm = get_perm<BlockSize>();
 
-#if SYCL_LANGUAGE_VERSION < 8000
-#pragma unroll
-#else
-  #pragma unroll BlockSize
-#endif
+
+#pragma unroll BlockSize
   for (int i = 0; i < BlockSize; i++)
     iblock[perm[i]] = uint2int<Int, UInt>(ublock[i]);
 }
@@ -174,11 +168,8 @@ uint decode_ints(UInt* ublock, BlockReader& reader, uint maxbits, uint maxprec)
         ;
 
     // deposit bit plane (use fixed bound to prevent warp divergence)
-#if SYCL_LANGUAGE_VERSION < 8000
-#pragma unroll
-#else
-    #pragma unroll BlockSize
-#endif
+    
+#pragma unroll BlockSize
     for (int i = 0; i < BlockSize; i++, x >>= 1)
       ublock[i] += (UInt)(x & 1u) << k;
   }
@@ -208,11 +199,8 @@ uint decode_ints_prec(UInt* ublock, BlockReader& reader, const uint maxprec)
         ;
 
     // deposit bit plane (use fixed bound to prevent warp divergence)
-#if SYCL_LANGUAGE_VERSION < 8000
-#pragma unroll
-#else
-    #pragma unroll BlockSize
-#endif
+    
+#pragma unroll BlockSize
     for (int i = 0; i < BlockSize; i++, x >>= 1)
       ublock[i] += (UInt)(x & 1u) << k;
   }
