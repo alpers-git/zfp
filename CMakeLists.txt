@@ -7,6 +7,8 @@ if(ZFP_WITH_SYCL)
   set(CMAKE_CXX_STANDARD 17)
   include(cmake/FindSYCL.cmake)
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-device-code-split=per_kernel")
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl-targets=spir64_gen")
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xsycl-target-backend \"-device dg2 -options -ze-intel-enable-auto-large-GRF-mode\"")
 
   set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Rno-debug-disables-optimization")
   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -Rno-debug-disables-optimization")

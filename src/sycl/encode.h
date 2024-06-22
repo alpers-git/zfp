@@ -216,14 +216,119 @@ UInt int2uint(const Int x)
 }
 
 template <typename Int, typename UInt, int BlockSize>
-inline 
+inline
 void fwd_order(UInt* ublock, const Int* iblock)
 {
-  const auto perm = get_perm<BlockSize>();
+//   const auto perm = get_perm<BlockSize>();
 
-#pragma unroll BlockSize
-  for (int i = 0; i < BlockSize; i++)
-    ublock[i] = int2uint<Int, UInt>(iblock[perm[i]]);
+// #pragma unroll BlockSize
+//   for (int i = 0; i < BlockSize; i++)
+//     ublock[i] = int2uint<Int, UInt>(iblock[perm[i]]);
+  if constexpr(BlockSize == 4)
+  {
+    ublock[0] = int2uint<Int, UInt>(iblock[0]);
+    ublock[1] = int2uint<Int, UInt>(iblock[1]);
+    ublock[2] = int2uint<Int, UInt>(iblock[2]);
+    ublock[3] = int2uint<Int, UInt>(iblock[3]);
+  }
+  else if (BlockSize == 16)
+  {
+#define index(i, j) ((i) + 4 * (j))
+    ublock[0] = int2uint<Int, UInt>(iblock[index(0, 0)]);
+    ublock[1] = int2uint<Int, UInt>(iblock[index(1, 0)]);
+    ublock[2] = int2uint<Int, UInt>(iblock[index(0, 1)]);
+    ublock[3] = int2uint<Int, UInt>(iblock[index(1, 1)]);
+    ublock[4] = int2uint<Int, UInt>(iblock[index(2, 0)]);
+    ublock[5] = int2uint<Int, UInt>(iblock[index(0, 2)]);
+    ublock[6] = int2uint<Int, UInt>(iblock[index(2, 1)]);
+    ublock[7] = int2uint<Int, UInt>(iblock[index(1, 2)]);
+    ublock[8] = int2uint<Int, UInt>(iblock[index(3, 0)]);
+    ublock[9] = int2uint<Int, UInt>(iblock[index(0, 3)]);
+    ublock[10] = int2uint<Int, UInt>(iblock[index(2, 2)]);
+    ublock[11] = int2uint<Int, UInt>(iblock[index(3, 1)]);
+    ublock[12] = int2uint<Int, UInt>(iblock[index(1, 3)]);
+    ublock[13] = int2uint<Int, UInt>(iblock[index(3, 2)]);
+    ublock[14] = int2uint<Int, UInt>(iblock[index(2, 3)]);
+    ublock[15] = int2uint<Int, UInt>(iblock[index(3, 3)]);
+#undef index
+  }
+//   else if (BlockSize == 64)
+//   {
+// #define index(x, y, z) ((x) + 4 * ((y) + 4 * (z)))
+//     ublock[0] = int2uint<Int, UInt>(iblock[index(0, 0, 0)]);
+//     ublock[1] = int2uint<Int, UInt>(iblock[index(1, 0, 0)]);
+//     ublock[2] = int2uint<Int, UInt>(iblock[index(0, 1, 0)]);
+//     ublock[3] = int2uint<Int, UInt>(iblock[index(0, 0, 1)]);
+//     ublock[4] = int2uint<Int, UInt>(iblock[index(0, 1, 1)]);
+//     ublock[5] = int2uint<Int, UInt>(iblock[index(1, 0, 1)]);
+//     ublock[6] = int2uint<Int, UInt>(iblock[index(1, 1, 0)]);
+//     ublock[7] = int2uint<Int, UInt>(iblock[index(2, 0, 0)]);
+//     ublock[8] = int2uint<Int, UInt>(iblock[index(0, 2, 0)]);
+//     ublock[9] = int2uint<Int, UInt>(iblock[index(0, 0, 2)]);
+//     ublock[10] = int2uint<Int, UInt>(iblock[index(1, 1, 1)]);
+//     ublock[11] = int2uint<Int, UInt>(iblock[index(2, 1, 0)]);
+//     ublock[12] = int2uint<Int, UInt>(iblock[index(2, 0, 1)]);
+//     ublock[13] = int2uint<Int, UInt>(iblock[index(0, 2, 1)]);
+//     ublock[14] = int2uint<Int, UInt>(iblock[index(1, 2, 0)]);
+//     ublock[15] = int2uint<Int, UInt>(iblock[index(1, 0, 2)]);
+//     ublock[16] = int2uint<Int, UInt>(iblock[index(0, 1, 2)]);
+//     ublock[17] = int2uint<Int, UInt>(iblock[index(3, 0, 0)]);
+//     ublock[18] = int2uint<Int, UInt>(iblock[index(0, 3, 0)]);
+//     ublock[19] = int2uint<Int, UInt>(iblock[index(0, 0, 3)]);
+//     ublock[20] = int2uint<Int, UInt>(iblock[index(2, 1, 1)]);
+//     ublock[21] = int2uint<Int, UInt>(iblock[index(1, 2, 1)]);
+//     ublock[22] = int2uint<Int, UInt>(iblock[index(1, 1, 2)]);
+//     ublock[23] = int2uint<Int, UInt>(iblock[index(0, 2, 2)]);
+//     ublock[24] = int2uint<Int, UInt>(iblock[index(2, 0, 2)]);
+//     ublock[25] = int2uint<Int, UInt>(iblock[index(2, 2, 0)]);
+//     ublock[26] = int2uint<Int, UInt>(iblock[index(3, 1, 0)]);
+//     ublock[27] = int2uint<Int, UInt>(iblock[index(3, 0, 1)]);
+//     ublock[28] = int2uint<Int, UInt>(iblock[index(0, 3, 1)]);
+//     ublock[29] = int2uint<Int, UInt>(iblock[index(1, 3, 0)]);
+//     ublock[30] = int2uint<Int, UInt>(iblock[index(1, 0, 3)]);
+//     ublock[31] = int2uint<Int, UInt>(iblock[index(0, 1, 3)]);
+//     ublock[32] = int2uint<Int, UInt>(iblock[index(1, 2, 2)]);
+//     ublock[33] = int2uint<Int, UInt>(iblock[index(2, 1, 2)]);
+//     ublock[34] = int2uint<Int, UInt>(iblock[index(2, 2, 1)]);
+//     ublock[35] = int2uint<Int, UInt>(iblock[index(3, 1, 1)]);
+//     ublock[36] = int2uint<Int, UInt>(iblock[index(1, 3, 1)]);
+//     ublock[37] = int2uint<Int, UInt>(iblock[index(1, 1, 3)]);
+//     ublock[38] = int2uint<Int, UInt>(iblock[index(3, 2, 0)]);
+//     ublock[39] = int2uint<Int, UInt>(iblock[index(3, 0, 2)]);
+//     ublock[40] = int2uint<Int, UInt>(iblock[index(0, 3, 2)]);
+//     ublock[41] = int2uint<Int, UInt>(iblock[index(2, 3, 0)]);
+//     ublock[42] = int2uint<Int, UInt>(iblock[index(2, 0, 3)]);
+//     ublock[43] = int2uint<Int, UInt>(iblock[index(0, 2, 3)]);
+//     ublock[44] = int2uint<Int, UInt>(iblock[index(2, 2, 2)]);
+//     ublock[45] = int2uint<Int, UInt>(iblock[index(3, 2, 1)]);
+//     ublock[46] = int2uint<Int, UInt>(iblock[index(3, 1, 2)]);
+//     ublock[47] = int2uint<Int, UInt>(iblock[index(1, 3, 2)]);
+//     ublock[48] = int2uint<Int, UInt>(iblock[index(2, 3, 1)]);
+//     ublock[49] = int2uint<Int, UInt>(iblock[index(2, 1, 3)]);
+//     ublock[50] = int2uint<Int, UInt>(iblock[index(1, 2, 3)]);
+//     ublock[51] = int2uint<Int, UInt>(iblock[index(0, 3, 3)]);
+//     ublock[52] = int2uint<Int, UInt>(iblock[index(3, 0, 3)]);
+//     ublock[53] = int2uint<Int, UInt>(iblock[index(3, 3, 0)]);
+//     ublock[54] = int2uint<Int, UInt>(iblock[index(3, 2, 2)]);
+//     ublock[55] = int2uint<Int, UInt>(iblock[index(2, 3, 2)]);
+//     ublock[56] = int2uint<Int, UInt>(iblock[index(2, 2, 3)]);
+//     ublock[57] = int2uint<Int, UInt>(iblock[index(1, 3, 3)]);
+//     ublock[58] = int2uint<Int, UInt>(iblock[index(3, 1, 3)]);
+//     ublock[59] = int2uint<Int, UInt>(iblock[index(3, 3, 1)]);
+//     ublock[60] = int2uint<Int, UInt>(iblock[index(2, 3, 3)]);
+//     ublock[61] = int2uint<Int, UInt>(iblock[index(3, 2, 3)]);
+//     ublock[62] = int2uint<Int, UInt>(iblock[index(3, 3, 2)]);
+//     ublock[63] = int2uint<Int, UInt>(iblock[index(3, 3, 3)]);
+// #undef index
+//   }
+  else
+  {
+    const auto perm = get_perm<BlockSize>();
+
+  #pragma unroll BlockSize
+    for (int i = 0; i < BlockSize; i++)
+      ublock[i] = int2uint<Int, UInt>(iblock[perm[i]]);
+  }
 }
 
 template <typename UInt, int BlockSize>

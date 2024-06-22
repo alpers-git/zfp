@@ -58,8 +58,7 @@ encode3_kernel(
   uint maxprec,         // max uncompressed #bits/value
   int minexp,           // min bit plane index
 
-  const ::sycl::nd_item<1> &item_ct1,
-  Scalar* fblock)
+  const ::sycl::nd_item<1> &item_ct1)
 {
   const size_t block_idx = item_ct1.get_global_linear_id();
   
@@ -87,7 +86,7 @@ encode3_kernel(
   BlockWriter writer(d_stream, bit_offset);
 
   // gather data into a contiguous block
-  //Scalar fblock[ZFP_3D_BLOCK_SIZE];
+  Scalar fblock[ZFP_3D_BLOCK_SIZE];
   const uint nx = (uint)::sycl::min(size_t(size.x() - x), size_t(4));
   const uint ny = (uint)::sycl::min(size_t(size.y() - y), size_t(4));
   const uint nz = (uint)::sycl::min(size_t(size.z() - z), size_t(4));
@@ -147,10 +146,7 @@ encode3(
   */
 
   auto kernel = q.submit([&](::sycl::handler &cgh) {
-    // local memory for block to avoid register spillage
-    ::sycl::local_accessor<Scalar, 1> fblock_slm(
-      ZFP_3D_BLOCK_SIZE * kernel_range.get_local_range()[0], cgh);
-      
+
     auto data_size =
       make_size3(size[0], size[1], size[2]);
     auto data_stride =
@@ -159,16 +155,11 @@ encode3(
     cgh.depends_on({e1});
     cgh.parallel_for(kernel_range,
       [=](::sycl::nd_item<1> item_ct1) {
-        Scalar* fblock = 
-          fblock_slm.template 
-          get_multi_ptr<::sycl::access::decorated::yes>().get() +
-          ZFP_3D_BLOCK_SIZE * item_ct1.get_local_linear_id();
 
         encode3_kernel<Scalar>(
           d_data, data_size, data_stride,
           d_stream,d_index, minbits, maxbits,
-          maxprec, minexp, item_ct1,
-          fblock);
+          maxprec, minexp, item_ct1);
       });
   });
   kernel.wait();
