@@ -58,11 +58,6 @@ void encode1_kernel(
   // offset into field
   const ptrdiff_t offset = x * stride;
 
-  // initialize block writer
-  BlockWriter::Offset bit_offset = block_idx * maxbits;
-  BlockWriter writer(d_stream, bit_offset);
-
-
   // gather data into a contiguous block
   Scalar fblock[ZFP_1D_BLOCK_SIZE];
   const uint nx = (uint)::sycl::min(size_t(size - x), size_t(4));
@@ -70,6 +65,11 @@ void encode1_kernel(
     gather_partial1(fblock, d_data + offset, nx, stride);
   else
     gather1(fblock, d_data + offset, stride);
+    
+  // initialize block writer
+  BlockWriter::Offset bit_offset = block_idx * maxbits;
+  BlockWriter writer(d_stream, bit_offset);
+
 
   uint bits = encode_block<Scalar, ZFP_1D_BLOCK_SIZE>()(
       fblock, writer, minbits, maxbits, maxprec, minexp);
@@ -124,12 +124,7 @@ encode1(
   auto e1 = q.memset(d_stream, 0, stream_bytes);
 
   // launch GPU kernel
-  /*
-  DPCT1049:1: The work-group size passed to the SYCL kernel may exceed the
-  limit. To get the device limit, query info::device::max_work_group_size.
-  Adjust the work-group size if needed.
-  */
-  
+  /*DPCT1049:17: Resolved*/
   //* size, stride, minbits, maxbits, maxprec, minexp, stream_bytes, blocks checked: no problem
   //* d_data and d_stream checked: no problem
   auto kernel = q.submit([&](::sycl::handler &cgh) {

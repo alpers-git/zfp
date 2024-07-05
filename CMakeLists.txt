@@ -6,10 +6,12 @@ endif()
 if(ZFP_WITH_SYCL)
   set(CMAKE_CXX_STANDARD 17)
   include(cmake/FindSYCL.cmake)
-  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-device-code-split=per_kernel")
+  # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -gline-tables-only -fdebug-info-for-profiling")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -frename-registers -fno-rtti")
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffast-math -ipo -fsycl -fsycl-device-code-split=per_kernel")
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl-targets=spir64_gen")
-  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xsycl-target-backend \"-device dg2 -options -ze-intel-enable-auto-large-GRF-mode\"")
-
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xsycl-target-backend \"-device ${ZFP_WITH_SYCL_DEVICE}\"")
+  
   set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Rno-debug-disables-optimization")
   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -Rno-debug-disables-optimization")
   set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
@@ -197,6 +199,9 @@ mark_as_advanced(ZFP_HIP_PROFILE)
 
 option(ZFP_WITH_SYCL_PROFILE "Report SYCL throughput" OFF)
 mark_as_advanced(ZFP_SYCL_PROFILE)
+
+option(ZFP_WITH_SYCL_DEVICE "Set the SYCL device for ZFP" "pvc")
+mark_as_advanced(ZFP_SYCL_DEVICE)
 
 option(ZFP_WITH_SYCL_DEVICE_INFO "Report current SYCL device info" OFF)
 mark_as_advanced(ZFP_SYCL_DEVICE_INFO)

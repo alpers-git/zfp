@@ -81,10 +81,6 @@ encode3_kernel(
   // offset into field
   const ptrdiff_t offset = x * stride.x() + y * stride.y() + z * stride.z();
 
-  // initialize block writer
-  BlockWriter::Offset bit_offset = block_idx * maxbits;
-  BlockWriter writer(d_stream, bit_offset);
-
   // gather data into a contiguous block
   Scalar fblock[ZFP_3D_BLOCK_SIZE];
   const uint nx = (uint)::sycl::min(size_t(size.x() - x), size_t(4));
@@ -95,6 +91,10 @@ encode3_kernel(
                     stride.z());
   else
     gather3(fblock, d_data + offset, stride.x(), stride.y(), stride.z());
+
+  // initialize block writer
+  BlockWriter::Offset bit_offset = block_idx * maxbits;
+  BlockWriter writer(d_stream, bit_offset);
 
   uint bits = encode_block<Scalar, ZFP_3D_BLOCK_SIZE>()(
       fblock, writer, minbits, maxbits, maxprec, minexp);
@@ -124,7 +124,7 @@ encode3(
   , ::sycl::property_list{::sycl::property::queue::enable_profiling()}
 #endif
   );
-  const int sycl_block_size = 128;
+  const int sycl_block_size = 256;
 
   // number of zfp blocks to encode
   const size_t blocks = ((size[0] + 3) / 4) *
@@ -139,12 +139,7 @@ encode3(
   auto e1 = q.memset(d_stream, 0, stream_bytes);
 
   // launch GPU kernel
-  /*
-  DPCT1049:3: The work-group size passed to the SYCL kernel may exceed the
-  limit. To get the device limit, query info::device::max_work_group_size.
-  Adjust the work-group size if needed.
-  */
-
+  /*DPCT1049:17: Resolved*/
   auto kernel = q.submit([&](::sycl::handler &cgh) {
 
     auto data_size =
