@@ -2,6 +2,7 @@
 #define ZFP_SYCL_ENCODE_H
 
 #include "shared.h"
+#include <bits/stdc++.h>
 
 namespace zfp {
 namespace sycl {
@@ -79,6 +80,18 @@ int max_exponent(const Scalar* p)
   Scalar max_val = 0;
   for (int i = 0; i < BlockSize; i++) {
     Scalar f = ::sycl::fabs((p[i]));
+    max_val = ::sycl::max(max_val, f);
+  }
+  return exponent<Scalar>(max_val);
+}
+
+template <typename Scalar, int BlockSize>
+inline 
+int max_exponent(const ScalarUnion<Scalar>* p)
+{
+  Scalar max_val = 0;
+  for (int i = 0; i < BlockSize; i++) {
+    Scalar f = ::sycl::fabs((p[i].scalar));
     max_val = ::sycl::max(max_val, f);
   }
   return exponent<Scalar>(max_val);
@@ -213,6 +226,91 @@ inline
 UInt int2uint(const Int x)
 {
   return ((UInt)x + traits<UInt>::nbmask) ^ traits<UInt>::nbmask;
+}
+
+template <typename Int, typename UInt, int BlockSize>
+inline
+void fwd_order_inplace(ScalarUnion<Int>* block) //Cursed, but less reg. pressure
+{
+  // const auto perm = get_perm<BlockSize>();
+  #define index(x, y, z) ((x) + 4 * ((y) + 4 * (z)))
+  block[0].uintVal = int2uint<Int, UInt>(block[index(0, 0, 0)].intVal); // 0<-0
+  block[1].uintVal = int2uint<Int, UInt>(block[index(1, 0, 0)].intVal); // 1<-1
+
+  Int temp = block[2].intVal; // hold 2s value
+  block[2].uintVal = int2uint<Int, UInt>(block[index(0, 1, 0)].intVal); // 2<-4
+  block[index(0, 1, 0)].uintVal = int2uint<Int, UInt>(block[index(0, 1, 1)].intVal); // 4<-20
+  block[index(0, 1, 1)].uintVal = int2uint<Int, UInt>(block[index(2, 1, 1)].intVal); // 20<-22
+  block[index(2, 1, 1)].uintVal = int2uint<Int, UInt>(block[index(1, 1, 2)].intVal); // 22<-37
+  block[index(1, 1, 2)].uintVal = int2uint<Int, UInt>(block[index(1, 1, 3)].intVal); // 37<-53
+  block[index(1, 1, 3)].uintVal = int2uint<Int, UInt>(block[index(3, 3, 0)].intVal); // 53<-15
+  block[index(3, 3, 0)].uintVal = int2uint<Int, UInt>(block[index(1, 0, 2)].intVal); // 15<-33
+  block[index(1, 0, 2)].uintVal = int2uint<Int, UInt>(block[index(2, 1, 2)].intVal); // 33<-38
+  block[index(2, 1, 2)].uintVal = int2uint<Int, UInt>(block[index(3, 2, 0)].intVal); // 38<-11
+  block[index(3, 2, 0)].uintVal = int2uint<Int, UInt>(block[index(2, 1, 0)].intVal); // 11<-6
+  block[index(2, 1, 0)].uintVal = int2uint<Int, UInt>(block[index(1, 1, 0)].intVal); // 6<-5
+  block[index(1, 1, 0)].uintVal = int2uint<Int, UInt>(block[index(1, 0, 1)].intVal); // 5<-17
+  block[index(1, 0, 1)].uintVal = int2uint<Int, UInt>(block[index(3, 0, 0)].intVal); // 17<-3
+  block[index(3, 0, 0)].uintVal = int2uint<Int, UInt>(block[index(0, 0, 1)].intVal); // 3<-16
+  block[index(0, 0, 1)].uintVal = int2uint<Int, UInt>(block[index(0, 1, 2)].intVal); // 16<-36
+  block[index(0, 1, 2)].uintVal = int2uint<Int, UInt>(block[index(1, 3, 1)].intVal); // 36<-29
+  block[index(1, 3, 1)].uintVal = int2uint<Int, UInt>(block[index(1, 3, 0)].intVal); // 29<-13
+  block[index(1, 3, 0)].uintVal = int2uint<Int, UInt>(block[index(0, 2, 1)].intVal); // 13<-24
+  block[index(0, 2, 1)].uintVal = int2uint<Int, UInt>(block[index(2, 0, 2)].intVal); // 24<-34
+  block[index(2, 0, 2)].uintVal = int2uint<Int, UInt>(block[index(2, 2, 1)].intVal); // 34<-26
+  block[index(2, 2, 1)].uintVal = int2uint<Int, UInt>(block[index(3, 1, 0)].intVal); // 26<-7
+  block[index(3, 1, 0)].uintVal = int2uint<Int, UInt>(temp);                         // 7<-2
+
+  block[8].uintVal = int2uint<Int, UInt>(block[index(0, 2, 0)].intVal); // 8<-8
+
+  temp = block[9].intVal; // hold 9s value
+  block[9].uintVal = int2uint<Int, UInt>(block[index(0, 0, 2)].intVal); // 9<-32
+  block[index(0, 0, 2)].uintVal = int2uint<Int, UInt>(block[index(1, 2, 2)].intVal); // 32<-41
+  block[index(1, 2, 2)].uintVal = int2uint<Int, UInt>(block[index(2, 3, 0)].intVal); // 41<-14
+  block[index(2, 3, 0)].uintVal = int2uint<Int, UInt>(temp);                         // 14<-9
+  
+  temp = block[10].intVal; // hold 10s value 
+  block[10].uintVal = int2uint<Int, UInt>(block[index(1, 1, 1)].intVal); // 10<-21
+  block[index(1, 1, 1)].uintVal = int2uint<Int, UInt>(block[index(1, 2, 1)].intVal); // 21<-25
+  block[index(1, 2, 1)].uintVal = int2uint<Int, UInt>(temp); // 25<-10
+
+  temp = block[12].intVal; // hold 12s value
+  block[12].uintVal = int2uint<Int, UInt>(block[index(2, 0, 1)].intVal); // 12<-18
+  block[index(2, 0, 1)].uintVal = int2uint<Int, UInt>(temp); // 18<-12
+
+  temp = block[19].intVal; // hold 19s value
+  block[19].uintVal = int2uint<Int, UInt>(block[index(0, 0, 3)].intVal); // 19<-48
+  block[index(0, 0, 3)].uintVal = int2uint<Int, UInt>(block[index(2, 3, 1)].intVal); // 48<-30
+  block[index(2, 3, 1)].uintVal = int2uint<Int, UInt>(block[index(1, 0, 3)].intVal); // 30<-49
+  block[index(1, 0, 3)].uintVal = int2uint<Int, UInt>(block[index(2, 1, 3)].intVal); // 49<-54
+  block[index(2, 1, 3)].uintVal = int2uint<Int, UInt>(block[index(3, 2, 2)].intVal); // 54<-43
+  block[index(3, 2, 2)].uintVal = int2uint<Int, UInt>(block[index(0, 2, 3)].intVal); // 43<-56
+  block[index(0, 2, 3)].uintVal = int2uint<Int, UInt>(block[index(2, 2, 3)].intVal); // 56<-58
+  block[index(2, 2, 3)].uintVal = int2uint<Int, UInt>(block[index(3, 1, 3)].intVal); // 58<-55
+  block[index(3, 1, 3)].uintVal = int2uint<Int, UInt>(block[index(2, 3, 2)].intVal); // 55<-46
+  block[index(2, 3, 2)].uintVal = int2uint<Int, UInt>(block[index(3, 1, 2)].intVal); // 46<-39
+  block[index(3, 1, 2)].uintVal = int2uint<Int, UInt>(block[index(3, 0, 2)].intVal); // 39<-35
+  block[index(3, 0, 2)].uintVal = int2uint<Int, UInt>(block[index(3, 1, 1)].intVal); // 35<-23
+  block[index(3, 1, 1)].uintVal = int2uint<Int, UInt>(block[index(0, 2, 2)].intVal); // 23<-40
+  block[index(0, 2, 2)].uintVal = int2uint<Int, UInt>(block[index(0, 3, 2)].intVal); // 40<-44
+  block[index(0, 3, 2)].uintVal = int2uint<Int, UInt>(block[index(2, 2, 2)].intVal); // 44<-42
+  block[index(2, 2, 2)].uintVal = int2uint<Int, UInt>(block[index(2, 0, 3)].intVal); // 42<-50
+  block[index(2, 0, 3)].uintVal = int2uint<Int, UInt>(block[index(1, 2, 3)].intVal); // 50<-57
+  block[index(1, 2, 3)].uintVal = int2uint<Int, UInt>(block[index(1, 3, 3)].intVal); // 57<-61
+  block[index(1, 3, 3)].uintVal = int2uint<Int, UInt>(block[index(3, 2, 3)].intVal); // 61<-59
+  block[index(3, 2, 3)].uintVal = int2uint<Int, UInt>(block[index(3, 3, 1)].intVal); // 59<-31
+  block[index(3, 3, 1)].uintVal = int2uint<Int, UInt>(block[index(0, 1, 3)].intVal); // 31<-52
+  block[index(0, 1, 3)].uintVal = int2uint<Int, UInt>(block[index(3, 0, 3)].intVal); // 52<-51
+  block[index(3, 0, 3)].uintVal = int2uint<Int, UInt>(block[index(0, 3, 3)].intVal); // 51<-60
+  block[index(0, 3, 3)].uintVal = int2uint<Int, UInt>(block[index(2, 3, 3)].intVal); // 60<-62
+  block[index(2, 3, 3)].uintVal = int2uint<Int, UInt>(block[index(3, 3, 2)].intVal); // 62<-47
+  block[index(3, 3, 2)].uintVal = int2uint<Int, UInt>(block[index(1, 3, 2)].intVal); // 47<-45
+  block[index(1, 3, 2)].uintVal = int2uint<Int, UInt>(block[index(3, 2, 1)].intVal); // 45<-27
+  block[index(3, 2, 1)].uintVal = int2uint<Int, UInt>(temp); // 27<-19
+
+  block[28].uintVal = int2uint<Int, UInt>(block[index(0, 3, 1)].intVal); // 28<-28
+
+  block[63].uintVal = int2uint<Int, UInt>(block[index(3, 3, 3)].intVal); // 63<-63
 }
 
 template <typename Int, typename UInt, int BlockSize>
@@ -459,6 +557,71 @@ uint encode_float_block(
   return ::sycl::max(minbits, bits);
 }
 
+// common integer and block-floating-point encoder
+template <typename Int, int BlockSize>
+inline 
+uint encode_int_block_inplace(
+  ScalarUnion<Int>* iblock,
+  BlockWriter& writer,
+  uint minbits,
+  uint maxbits,
+  uint maxprec)
+{
+  // perform decorrelating transform
+  fwd_xform<Int, BlockSize>()((Int*)iblock);
+
+#if ZFP_ROUNDING_MODE == ZFP_ROUND_FIRST
+  // bias values to achieve proper rounding
+  fwd_round<Int, BlockSize>(iblock, maxprec);
+#endif
+
+  // reorder signed coefficients and convert to unsigned integer
+  typedef typename traits<Int>::UInt UInt;
+  fwd_order_inplace<Int, UInt, BlockSize>(iblock);
+
+  // encode integer coefficients
+  uint bits = with_maxbits<BlockSize>(maxbits, maxprec)
+                ? encode_ints<UInt, BlockSize>((UInt*)iblock, writer, maxbits, maxprec)
+                : encode_ints_prec<UInt, BlockSize>((UInt*)iblock, writer, maxprec);
+
+  return ::sycl::max(minbits, bits);
+}
+
+// generic encoder for floating point
+template <typename Scalar, int BlockSize>
+inline 
+uint encode_float_block_inplace(
+  ScalarUnion<Scalar>* fblock,
+  BlockWriter& writer,
+  uint minbits,
+  uint maxbits,
+  uint maxprec,
+  int minexp)
+{
+  uint bits = 1;
+  // compute maximum exponent
+  const int emax = max_exponent<Scalar, BlockSize>(fblock);
+  maxprec = precision<BlockSize>(emax, maxprec, minexp);
+  uint e = maxprec ? emax + traits<Scalar>::ebias : 0;
+  // encode block only if biased exponent is nonzero
+  if (e) {
+    // encode common exponent
+    bits += traits<Scalar>::ebits;
+    writer.write_bits(2 * e + 1, bits);
+    // perform forward block-floating-point transform
+    typedef typename traits<Scalar>::Int Int;
+    fwd_cast<Scalar, Int, BlockSize>((Int*)fblock, (Scalar*)fblock, emax);
+    
+    // encode integer block
+    bits += encode_int_block_inplace<Int, BlockSize>(
+        (ScalarUnion<Int>*)fblock, writer, ::sycl::max(minbits, bits) - bits,
+        ::sycl::max(maxbits, bits) - bits, maxprec);
+  }
+
+  return ::sycl::max(minbits, bits);
+}
+
+
 // generic encoder
 template <typename Scalar, int BlockSize>
 struct encode_block;
@@ -499,11 +662,60 @@ struct encode_block<float, BlockSize> {
 // encoder specialization for doubles
 template <int BlockSize>
 struct encode_block<double, BlockSize> {
-  SYCL_EXTERNAL inline uint operator()(double *fblock, BlockWriter &writer,
+  inline uint operator()(double *fblock, BlockWriter &writer,
                                        uint minbits, uint maxbits, uint maxprec,
                                        int minexp) const
   {
     return encode_float_block<double, BlockSize>(fblock, writer, minbits,
+                                                 maxbits, maxprec, minexp);
+  }
+};
+
+// generic encoder
+template <typename Scalar, int BlockSize>
+struct encode_block_inplace;
+
+// encoder specialization for ints
+template <int BlockSize>
+struct encode_block_inplace<ScalarUnion<int>, BlockSize> {
+  inline 
+  uint operator()(ScalarUnion<int>* iblock, BlockWriter& writer, uint minbits, uint maxbits, uint maxprec, int) const
+  {
+    return encode_int_block_inplace<int, BlockSize>(iblock, writer, minbits, maxbits,
+                                            maxprec);
+  }
+};
+
+// encoder specialization for long longs
+template <int BlockSize>
+struct encode_block_inplace<ScalarUnion<long long>, BlockSize> {
+  inline 
+  uint operator()(ScalarUnion<long long>* iblock, BlockWriter& writer, uint minbits, uint maxbits, uint maxprec, int) const
+  {
+    return encode_int_block_inplace<long long, BlockSize>(
+        iblock, writer, minbits, maxbits, maxprec);
+  }
+};
+
+// encoder specialization for floats
+template <int BlockSize>
+struct encode_block_inplace<ScalarUnion<float>, BlockSize> {
+  inline 
+  uint operator()(ScalarUnion<float>* fblock, BlockWriter& writer, uint minbits, uint maxbits, uint maxprec, int minexp) const
+  {
+    return encode_float_block_inplace<float, BlockSize>(fblock, writer, minbits,
+                                                maxbits, maxprec, minexp);
+  }
+};
+
+// encoder specialization for doubles
+template <int BlockSize>
+struct encode_block_inplace<ScalarUnion<double>, BlockSize> {
+  inline uint operator()(ScalarUnion<double> *fblock, BlockWriter &writer,
+                                       uint minbits, uint maxbits, uint maxprec,
+                                       int minexp) const
+  {
+    return encode_float_block_inplace<double, BlockSize>(fblock, writer, minbits,
                                                  maxbits, maxprec, minexp);
   }
 };
@@ -590,9 +802,6 @@ encode(
     default:
       break;
   }
-
-//   if (!error.check("encode"))
-//     bits_written = 0;
 
   return bits_written;
 }

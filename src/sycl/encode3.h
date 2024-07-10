@@ -9,17 +9,17 @@ namespace internal {
 
 template <typename Scalar>
 inline 
-void gather3(Scalar* q, const Scalar* p, ptrdiff_t sx, ptrdiff_t sy, ptrdiff_t sz)
+void gather3(ScalarUnion<Scalar>* q, const Scalar* p, ptrdiff_t sx, ptrdiff_t sy, ptrdiff_t sz)
 {
   for (uint z = 0; z < 4; z++, p += sz - 4 * sy)
     for (uint y = 0; y < 4; y++, p += sy - 4 * sx)
       for (uint x = 0; x < 4; x++, p += sx)
-        *q++ = *p;
+        (q++)->scalar = *p;
 }
 
 template <typename Scalar>
 inline 
-void gather_partial3(Scalar* q, const Scalar* p, uint nx, uint ny, uint nz, ptrdiff_t sx, ptrdiff_t sy, ptrdiff_t sz)
+void gather_partial3(ScalarUnion<Scalar>* q, const Scalar* p, uint nx, uint ny, uint nz, ptrdiff_t sx, ptrdiff_t sy, ptrdiff_t sz)
 {
   for (uint z = 0; z < 4; z++)
     if (z < nz) {
@@ -27,19 +27,19 @@ void gather_partial3(Scalar* q, const Scalar* p, uint nx, uint ny, uint nz, ptrd
         if (y < ny) {
           for (uint x = 0; x < 4; x++)
             if (x < nx) {
-              q[16 * z + 4 * y + x] = *p;
+              q[16 * z + 4 * y + x].scalar = *p;
               p += sx;
             }
           p += sy - (ptrdiff_t)nx * sx;
-          pad_block(q + 16 * z + 4 * y, nx, 1);
+          pad_block((q + 16 * z + 4 * y), nx, 1);
         }
       for (uint x = 0; x < 4; x++)
-        pad_block(q + 16 * z + x, ny, 4);
+        pad_block((q + 16 * z + x), ny, 4);
       p += sz - (ptrdiff_t)ny * sy;
     }
   for (uint y = 0; y < 4; y++)
     for (uint x = 0; x < 4; x++)
-      pad_block(q + 4 * y + x, nz, 16);
+      pad_block((q + 4 * y + x), nz, 16);
 }
 
 // encode kernel
@@ -82,7 +82,7 @@ encode3_kernel(
   const ptrdiff_t offset = x * stride.x() + y * stride.y() + z * stride.z();
 
   // gather data into a contiguous block
-  Scalar fblock[ZFP_3D_BLOCK_SIZE];
+  ScalarUnion<Scalar> fblock[ZFP_3D_BLOCK_SIZE];
   const uint nx = (uint)::sycl::min(size_t(size.x() - x), size_t(4));
   const uint ny = (uint)::sycl::min(size_t(size.y() - y), size_t(4));
   const uint nz = (uint)::sycl::min(size_t(size.z() - z), size_t(4));
@@ -96,7 +96,7 @@ encode3_kernel(
   BlockWriter::Offset bit_offset = block_idx * maxbits;
   BlockWriter writer(d_stream, bit_offset);
 
-  uint bits = encode_block<Scalar, ZFP_3D_BLOCK_SIZE>()(
+  uint bits = encode_block_inplace<ScalarUnion<Scalar>, ZFP_3D_BLOCK_SIZE>()(
       fblock, writer, minbits, maxbits, maxprec, minexp);
 
   if (d_index)

@@ -42,6 +42,17 @@ typedef ::sycl::long3 ptrdiff3;
 #define make_size3(x, y, z) ::sycl::ulong3(x, y, z)
 #define make_ptrdiff3(x, y, z) ::sycl::long3(x, y, z)
 
+//create a union of types Scalar, Int, and UInt
+template <typename Scalar>
+union ScalarUnion{
+  typedef Scalar ScalarType;
+  Scalar scalar;
+  traits<Scalar>::Int intVal;
+  traits<Scalar>::UInt uintVal;
+  ScalarUnion(Scalar s) : scalar(s) {}
+  ScalarUnion() {}
+};
+
 // round size up to the next multiple of unit
 inline 
 size_t round_up(size_t size, size_t unit)
