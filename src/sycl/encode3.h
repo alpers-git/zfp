@@ -96,7 +96,7 @@ encode3_kernel(
   BlockWriter::Offset bit_offset = block_idx * maxbits;
   BlockWriter writer(d_stream, bit_offset);
 
-  uint bits = encode_block_inplace<ScalarUnion<Scalar>, ZFP_3D_BLOCK_SIZE>()(
+  uint bits = encode_block<ScalarUnion<Scalar>, ZFP_3D_BLOCK_SIZE>()(
       fblock, writer, minbits, maxbits, maxprec, minexp);
 
   if (d_index)

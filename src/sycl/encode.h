@@ -671,13 +671,9 @@ struct encode_block<double, BlockSize> {
   }
 };
 
-// generic encoder
-template <typename Scalar, int BlockSize>
-struct encode_block_inplace;
-
-// encoder specialization for ints
+// inplace encoder specialization for ints
 template <int BlockSize>
-struct encode_block_inplace<ScalarUnion<int>, BlockSize> {
+struct encode_block<ScalarUnion<int>, BlockSize> {
   inline 
   uint operator()(ScalarUnion<int>* iblock, BlockWriter& writer, uint minbits, uint maxbits, uint maxprec, int) const
   {
@@ -686,9 +682,9 @@ struct encode_block_inplace<ScalarUnion<int>, BlockSize> {
   }
 };
 
-// encoder specialization for long longs
+// inplace encoder specialization for long longs
 template <int BlockSize>
-struct encode_block_inplace<ScalarUnion<long long>, BlockSize> {
+struct encode_block<ScalarUnion<long long>, BlockSize> {
   inline 
   uint operator()(ScalarUnion<long long>* iblock, BlockWriter& writer, uint minbits, uint maxbits, uint maxprec, int) const
   {
@@ -697,9 +693,9 @@ struct encode_block_inplace<ScalarUnion<long long>, BlockSize> {
   }
 };
 
-// encoder specialization for floats
+// inplace encoder specialization for floats
 template <int BlockSize>
-struct encode_block_inplace<ScalarUnion<float>, BlockSize> {
+struct encode_block<ScalarUnion<float>, BlockSize> {
   inline 
   uint operator()(ScalarUnion<float>* fblock, BlockWriter& writer, uint minbits, uint maxbits, uint maxprec, int minexp) const
   {
@@ -710,7 +706,7 @@ struct encode_block_inplace<ScalarUnion<float>, BlockSize> {
 
 // encoder specialization for doubles
 template <int BlockSize>
-struct encode_block_inplace<ScalarUnion<double>, BlockSize> {
+struct encode_block<ScalarUnion<double>, BlockSize> {
   inline uint operator()(ScalarUnion<double> *fblock, BlockWriter &writer,
                                        uint minbits, uint maxbits, uint maxprec,
                                        int minexp) const
