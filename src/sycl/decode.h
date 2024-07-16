@@ -139,6 +139,92 @@ Int uint2int(UInt x)
 
 template <typename Int, typename UInt, int BlockSize>
 inline 
+void inv_order(ScalarUnion<Int>* block)
+{
+  #define index(x, y, z) ((x) + 4 * ((y) + 4 * (z)))
+  block[index(0, 0, 0)].intVal = uint2int<Int, UInt>(block[0].uintVal); // 0<-0
+  block[index(1, 0, 0)].intVal = uint2int<Int, UInt>(block[1].uintVal); // 1<-1
+
+  UInt temp = block[index(0, 1, 0)].uintVal; // hold 4s value
+  block[index(0, 1, 0)].intVal = uint2int<Int, UInt>(block[2].uintVal); // 4<-2
+  block[index(2, 0, 0)].intVal = uint2int<Int, UInt>(block[index(3, 1, 0)].uintVal); // 2<-7
+  block[index(3, 1, 0)].intVal = uint2int<Int, UInt>(block[index(2, 2, 1)].uintVal); // 7<-26
+  block[index(2, 2, 1)].intVal = uint2int<Int, UInt>(block[index(2, 0, 2)].uintVal); // 26<-34
+  block[index(2, 0, 2)].intVal = uint2int<Int, UInt>(block[index(0, 2, 1)].uintVal); // 34<-24
+  block[index(0, 2, 1)].intVal = uint2int<Int, UInt>(block[index(1, 3, 0)].uintVal); // 24<-13
+  block[index(1, 3, 0)].intVal = uint2int<Int, UInt>(block[index(1, 3, 1)].uintVal); // 13<-29
+  block[index(1, 3, 1)].intVal = uint2int<Int, UInt>(block[index(0, 1, 2)].uintVal); // 29<-36
+  block[index(0, 1, 2)].intVal = uint2int<Int, UInt>(block[index(0, 0, 1)].uintVal); // 36<-16
+  block[index(0, 0, 1)].intVal = uint2int<Int, UInt>(block[index(3, 0, 0)].uintVal); // 16<-3 
+  block[index(3, 0, 0)].intVal = uint2int<Int, UInt>(block[index(1, 0, 1)].uintVal); // 3<-17
+  block[index(1, 0, 1)].intVal = uint2int<Int, UInt>(block[index(1, 1, 0)].uintVal); // 17<-5 
+  block[index(1, 1, 0)].intVal = uint2int<Int, UInt>(block[index(2, 1, 0)].uintVal); // 5<-6 
+  block[index(2, 1, 0)].intVal = uint2int<Int, UInt>(block[index(3, 2, 0)].uintVal); // 6<-11
+  block[index(3, 2, 0)].intVal = uint2int<Int, UInt>(block[index(2, 1, 2)].uintVal); // 11<-38
+  block[index(2, 1, 2)].intVal = uint2int<Int, UInt>(block[index(1, 0, 2)].uintVal); // 38<-33
+  block[index(1, 0, 2)].intVal = uint2int<Int, UInt>(block[index(3, 3, 0)].uintVal); // 33<-15
+  block[index(3, 3, 0)].intVal = uint2int<Int, UInt>(block[index(1, 1, 3)].uintVal); // 15<-53
+  block[index(1, 1, 3)].intVal = uint2int<Int, UInt>(block[index(1, 1, 2)].uintVal); // 53<-37
+  block[index(1, 1, 2)].intVal = uint2int<Int, UInt>(block[index(2, 1, 1)].uintVal); // 37<-22
+  block[index(2, 1, 1)].intVal = uint2int<Int, UInt>(block[index(0, 1, 1)].uintVal); // 22<-20
+  block[index(0, 1, 1)].intVal = uint2int<Int, UInt>(temp); // 20<-4   
+
+  block[index(0, 2, 0)].intVal = uint2int<Int, UInt>(block[8].intVal); // 8<-8
+
+  
+  temp = block[index(0, 0, 2)].uintVal; // hold 32s value
+  block[index(0, 0, 2)].intVal = uint2int<Int, UInt>(block[9].uintVal); // 32<-9
+  block[index(1, 2, 0)].intVal = uint2int<Int, UInt>(block[index(2, 3, 0)].uintVal);// 9<-14
+  block[index(2, 3, 0)].intVal = uint2int<Int, UInt>(block[index(1, 2, 2)].uintVal); // 14<-41
+  block[index(1, 2, 2)].intVal = uint2int<Int, UInt>(temp); // 41<-32
+
+  temp = block[index(1, 1, 1)].uintVal; // hold 21s value 
+  block[index(1, 1, 1)].intVal = uint2int<Int, UInt>(block[10].uintVal); // 21<-10
+  block[index(2, 2, 0)].intVal = uint2int<Int, UInt>(block[index(1, 2, 1)].uintVal); // 10<-25
+  block[index(1, 2, 1)].intVal = uint2int<Int, UInt>(temp); // 25<-21
+
+  temp = block[index(2, 0, 1)].uintVal; // hold 18s value
+  block[index(2, 0, 1)].intVal = uint2int<Int, UInt>(block[12].uintVal); // 18<-12
+  block[index(0, 3, 0)].intVal = uint2int<Int, UInt>(temp); // 12<-18
+
+  temp = block[index(0, 0, 3)].uintVal; // hold 48s value
+  block[index(0, 0, 3)].intVal = uint2int<Int, UInt>(block[19].uintVal); // 48<-19
+  block[index(3, 0, 1)].intVal = uint2int<Int, UInt>(block[index(3, 2, 1)].uintVal); // 19<-27
+  block[index(3, 2, 1)].intVal = uint2int<Int, UInt>(block[index(1, 3, 2)].uintVal); // 27<-45
+  block[index(1, 3, 2)].intVal = uint2int<Int, UInt>(block[index(3, 3, 2)].uintVal); // 45<-47
+  block[index(3, 3, 2)].intVal = uint2int<Int, UInt>(block[index(2, 3, 3)].uintVal); // 47<-62
+  block[index(2, 3, 3)].intVal = uint2int<Int, UInt>(block[index(0, 3, 3)].uintVal); // 62<-60
+  block[index(0, 3, 3)].intVal = uint2int<Int, UInt>(block[index(3, 0, 3)].uintVal); // 60<-51
+  block[index(3, 0, 3)].intVal = uint2int<Int, UInt>(block[index(0, 1, 3)].uintVal); // 51<-52
+  block[index(0, 1, 3)].intVal = uint2int<Int, UInt>(block[index(3, 3, 1)].uintVal); // 52<-31
+  block[index(3, 3, 1)].intVal = uint2int<Int, UInt>(block[index(3, 2, 3)].uintVal); // 31<-59
+  block[index(3, 2, 3)].intVal = uint2int<Int, UInt>(block[index(1, 3, 3)].uintVal); // 59<-61
+  block[index(1, 3, 3)].intVal = uint2int<Int, UInt>(block[index(1, 2, 3)].uintVal); // 61<-57
+  block[index(1, 2, 3)].intVal = uint2int<Int, UInt>(block[index(2, 0, 3)].uintVal); // 57<-50
+  block[index(2, 0, 3)].intVal = uint2int<Int, UInt>(block[index(2, 2, 2)].uintVal); // 50<-42
+  block[index(2, 2, 2)].intVal = uint2int<Int, UInt>(block[index(0, 3, 2)].uintVal); // 42<-44
+  block[index(0, 3, 2)].intVal = uint2int<Int, UInt>(block[index(0, 2, 2)].uintVal); // 44<-40
+  block[index(0, 2, 2)].intVal = uint2int<Int, UInt>(block[index(3, 1, 1)].uintVal); // 40<-23
+  block[index(3, 1, 1)].intVal = uint2int<Int, UInt>(block[index(3, 0, 2)].uintVal); // 23<-35
+  block[index(3, 0, 2)].intVal = uint2int<Int, UInt>(block[index(3, 1, 2)].uintVal); // 35<-39
+  block[index(3, 1, 2)].intVal = uint2int<Int, UInt>(block[index(2, 3, 2)].uintVal); // 39<-46
+  block[index(2, 3, 2)].intVal = uint2int<Int, UInt>(block[index(3, 1, 3)].uintVal); // 46<-55
+  block[index(3, 1, 3)].intVal = uint2int<Int, UInt>(block[index(2, 2, 3)].uintVal); // 55<-58
+  block[index(2, 2, 3)].intVal = uint2int<Int, UInt>(block[index(0, 2, 3)].uintVal); // 58<-56
+  block[index(0, 2, 3)].intVal = uint2int<Int, UInt>(block[index(3, 2, 2)].uintVal); // 56<-43
+  block[index(3, 2, 2)].intVal = uint2int<Int, UInt>(block[index(2, 1, 3)].uintVal); // 43<-54
+  block[index(2, 1, 3)].intVal = uint2int<Int, UInt>(block[index(1, 0, 3)].uintVal); // 54<-49
+  block[index(1, 0, 3)].intVal = uint2int<Int, UInt>(block[index(2, 3, 1)].uintVal); // 49<-30
+  block[index(2, 3, 1)].intVal = uint2int<Int, UInt>(temp); // 30<-48
+
+  block[index(0, 3, 1)].intVal = uint2int<Int, UInt>(block[28].uintVal); // 28<-28
+
+  block[index(3, 3, 3)].intVal = uint2int<Int, UInt>(block[63].uintVal); // 63<-63
+  #undef index
+}
+
+template <typename Int, typename UInt, int BlockSize>
+inline 
 void inv_order(const UInt* ublock, Int* iblock)
 {
 //   const auto perm = get_perm<BlockSize>();
@@ -175,75 +261,12 @@ void inv_order(const UInt* ublock, Int* iblock)
     iblock[index(3, 3)] = uint2int<Int, UInt>(ublock[15]);
 #undef index
   }
-  else if (BlockSize == 64)
-  {
-#define index(x, y, z) ((x) + 4 * ((y) + 4 * (z)))
-     iblock[index(0, 0, 0)] = uint2int<Int, UInt>(ublock[0]);
-     iblock[index(1, 0, 0)] = uint2int<Int, UInt>(ublock[1]);
-     iblock[index(0, 1, 0)] = uint2int<Int, UInt>(ublock[2]);
-     iblock[index(0, 0, 1)] = uint2int<Int, UInt>(ublock[3]);
-     iblock[index(0, 1, 1)] = uint2int<Int, UInt>(ublock[4]);
-     iblock[index(1, 0, 1)] = uint2int<Int, UInt>(ublock[5]);
-     iblock[index(1, 1, 0)] = uint2int<Int, UInt>(ublock[6]);
-     iblock[index(2, 0, 0)] = uint2int<Int, UInt>(ublock[7]);
-     iblock[index(0, 2, 0)] = uint2int<Int, UInt>(ublock[8]);
-     iblock[index(0, 0, 2)] = uint2int<Int, UInt>(ublock[9]);
-     iblock[index(1, 1, 1)] = uint2int<Int, UInt>(ublock[10]);
-     iblock[index(2, 1, 0)] = uint2int<Int, UInt>(ublock[11]);
-     iblock[index(2, 0, 1)] = uint2int<Int, UInt>(ublock[12]);
-     iblock[index(0, 2, 1)] = uint2int<Int, UInt>(ublock[13]);
-     iblock[index(1, 2, 0)] = uint2int<Int, UInt>(ublock[14]);
-     iblock[index(1, 0, 2)] = uint2int<Int, UInt>(ublock[15]);
-     iblock[index(0, 1, 2)] = uint2int<Int, UInt>(ublock[16]);
-     iblock[index(3, 0, 0)] = uint2int<Int, UInt>(ublock[17]);
-     iblock[index(0, 3, 0)] = uint2int<Int, UInt>(ublock[18]);
-     iblock[index(0, 0, 3)] = uint2int<Int, UInt>(ublock[19]);
-     iblock[index(2, 1, 1)] = uint2int<Int, UInt>(ublock[20]);
-     iblock[index(1, 2, 1)] = uint2int<Int, UInt>(ublock[21]);
-     iblock[index(1, 1, 2)] = uint2int<Int, UInt>(ublock[22]);
-     iblock[index(0, 2, 2)] = uint2int<Int, UInt>(ublock[23]);
-     iblock[index(2, 0, 2)] = uint2int<Int, UInt>(ublock[24]);
-     iblock[index(2, 2, 0)] = uint2int<Int, UInt>(ublock[25]);
-     iblock[index(3, 1, 0)] = uint2int<Int, UInt>(ublock[26]);
-     iblock[index(3, 0, 1)] = uint2int<Int, UInt>(ublock[27]);
-     iblock[index(0, 3, 1)] = uint2int<Int, UInt>(ublock[28]);
-     iblock[index(1, 3, 0)] = uint2int<Int, UInt>(ublock[29]);
-     iblock[index(1, 0, 3)] = uint2int<Int, UInt>(ublock[30]);
-     iblock[index(0, 1, 3)] = uint2int<Int, UInt>(ublock[31]);
-     iblock[index(1, 2, 2)] = uint2int<Int, UInt>(ublock[32]);
-     iblock[index(2, 1, 2)] = uint2int<Int, UInt>(ublock[33]);
-     iblock[index(2, 2, 1)] = uint2int<Int, UInt>(ublock[34]);
-     iblock[index(3, 1, 1)] = uint2int<Int, UInt>(ublock[35]);
-     iblock[index(1, 3, 1)] = uint2int<Int, UInt>(ublock[36]);
-     iblock[index(1, 1, 3)] = uint2int<Int, UInt>(ublock[37]);
-     iblock[index(3, 2, 0)] = uint2int<Int, UInt>(ublock[38]);
-     iblock[index(3, 0, 2)] = uint2int<Int, UInt>(ublock[39]);
-     iblock[index(0, 3, 2)] = uint2int<Int, UInt>(ublock[40]);
-     iblock[index(2, 3, 0)] = uint2int<Int, UInt>(ublock[41]);
-     iblock[index(2, 0, 3)] = uint2int<Int, UInt>(ublock[42]);
-     iblock[index(0, 2, 3)] = uint2int<Int, UInt>(ublock[43]);
-     iblock[index(2, 2, 2)] = uint2int<Int, UInt>(ublock[44]);
-     iblock[index(3, 2, 1)] = uint2int<Int, UInt>(ublock[45]);
-     iblock[index(3, 1, 2)] = uint2int<Int, UInt>(ublock[46]);
-     iblock[index(1, 3, 2)] = uint2int<Int, UInt>(ublock[47]);
-     iblock[index(2, 3, 1)] = uint2int<Int, UInt>(ublock[48]);
-     iblock[index(2, 1, 3)] = uint2int<Int, UInt>(ublock[49]);
-     iblock[index(1, 2, 3)] = uint2int<Int, UInt>(ublock[50]);
-     iblock[index(0, 3, 3)] = uint2int<Int, UInt>(ublock[51]);
-     iblock[index(3, 0, 3)] = uint2int<Int, UInt>(ublock[52]);
-     iblock[index(3, 3, 0)] = uint2int<Int, UInt>(ublock[53]);
-     iblock[index(3, 2, 2)] = uint2int<Int, UInt>(ublock[54]);
-     iblock[index(2, 3, 2)] = uint2int<Int, UInt>(ublock[55]);
-     iblock[index(2, 2, 3)] = uint2int<Int, UInt>(ublock[56]);
-     iblock[index(1, 3, 3)] = uint2int<Int, UInt>(ublock[57]);
-     iblock[index(3, 1, 3)] = uint2int<Int, UInt>(ublock[58]);
-     iblock[index(3, 3, 1)] = uint2int<Int, UInt>(ublock[59]);
-     iblock[index(2, 3, 3)] = uint2int<Int, UInt>(ublock[60]);
-     iblock[index(3, 2, 3)] = uint2int<Int, UInt>(ublock[61]);
-     iblock[index(3, 3, 2)] = uint2int<Int, UInt>(ublock[62]);
-     iblock[index(3, 3, 3)] = uint2int<Int, UInt>(ublock[63]);
-#undef index
-  }
+  else
+   {
+    const auto perm = get_perm<BlockSize>();
+    for (int i = 0; i < BlockSize; i++)
+      iblock[perm[i]] = uint2int<Int, UInt>(ublock[i]);
+   }
 }
 
 template <typename UInt, int BlockSize>
@@ -343,10 +366,10 @@ uint decode_int_block(
 }
 
 // decoder specialization for floats and doubles
-template <typename Float, int BlockSize>
+template <typename Scalar, int BlockSize>
 inline 
 uint decode_float_block(
-  Float* fblock,
+  Scalar* fblock,
   BlockReader& reader,
   uint minbits,
   uint maxbits,
@@ -356,17 +379,85 @@ uint decode_float_block(
   uint bits = 1;
   if (reader.read_bit()) {
     // decode block exponent
-    bits += traits<Float>::ebits;
-    int emax = (int)reader.read_bits(bits - 1) - traits<Float>::ebias;
+    bits += traits<Scalar>::ebits;
+    int emax = (int)reader.read_bits(bits - 1) - traits<Scalar>::ebias;
     maxprec = precision<BlockSize>(emax, maxprec, minexp);
     // decode integer block
-    typedef typename traits<Float>::Int Int;
+    typedef typename traits<Scalar>::Int Int;
     Int* iblock = (Int*)fblock;
     bits += decode_int_block<Int, BlockSize>(
         iblock, reader, ::sycl::max(minbits, bits) - bits,
         ::sycl::max(maxbits, bits) - bits, maxprec);
     // perform inverse block-floating-point transform
-    inv_cast<Float, Int, BlockSize>(iblock, fblock, emax);
+    inv_cast<Scalar, Int, BlockSize>(iblock, fblock, emax);
+  }
+  else {
+    // read at least minbits bits
+    if (minbits > bits) {
+      reader.skip(minbits - bits);
+      bits = minbits;
+    }
+  }
+
+  return bits;
+}
+
+// inplace integer and floating-point decoder
+template <typename Int, int BlockSize>
+inline 
+uint decode_int_block(
+  ScalarUnion<Int>* iblock,
+  BlockReader& reader,
+  uint minbits,
+  uint maxbits,
+  uint maxprec)
+{
+  // decode integer coefficients
+  typedef typename traits<Int>::UInt UInt;
+  uint bits = with_maxbits<BlockSize>(maxbits, maxprec)
+                ? decode_ints<UInt, BlockSize>((UInt*)iblock, reader, maxbits, maxprec)
+                : decode_ints_prec<UInt, BlockSize>((UInt*)iblock, reader, maxprec);
+
+  // read at least minbits bits
+  if (minbits > bits) {
+    reader.skip(minbits - bits);
+    bits = minbits;
+  }
+
+  // reorder unsigned coefficients and convert to signed integer
+  inv_order<Int, UInt, BlockSize>(iblock);
+
+  // perform decorrelating transform
+  inv_xform<Int, BlockSize>()((Int*)iblock);
+
+  return bits;
+}
+
+// inplace decoder specialization for floats and doubles
+template <typename Scalar, int BlockSize>
+inline 
+uint decode_float_block(
+  ScalarUnion<Scalar>* fblock,
+  BlockReader& reader,
+  uint minbits,
+  uint maxbits,
+  uint maxprec,
+  int minexp)
+{
+  uint bits = 1;
+  if (reader.read_bit()) {
+    // decode block exponent
+    bits += traits<Scalar>::ebits;
+    int emax = (int)reader.read_bits(bits - 1) - traits<Scalar>::ebias;
+    maxprec = precision<BlockSize>(emax, maxprec, minexp);
+    // decode integer block
+    typedef typename traits<Scalar>::Int Int;
+    Int* iblock = (Int*)fblock;
+    bits += decode_int_block<Int, BlockSize>(
+        iblock, reader, ::sycl::max(minbits, bits) - bits,
+        ::sycl::max(maxbits, bits) - bits, maxprec);
+    // perform inverse block-floating-point transform
+    inv_cast<Scalar, Int, BlockSize>(iblock, (Scalar*)fblock, emax);
   }
   else {
     // read at least minbits bits
@@ -418,7 +509,53 @@ struct decode_block<float, BlockSize> {
 // decoder specialization for doubles
 template <int BlockSize>
 struct decode_block<double, BlockSize> {
-  SYCL_EXTERNAL inline uint operator()(double *fblock, BlockReader &reader,
+  inline 
+  uint operator()(double *fblock, BlockReader &reader,
+                                       uint minbits, uint maxbits, uint maxprec,
+                                       int minexp) const
+  {
+    return decode_float_block<double, BlockSize>(fblock, reader, minbits,
+                                                 maxbits, maxprec, minexp);
+  }
+};
+
+// inplace decoder specialization for ints
+template <int BlockSize>
+struct decode_block<ScalarUnion<int>, BlockSize> {
+  inline 
+  uint operator()(ScalarUnion<int>* iblock, BlockReader& reader, uint minbits, uint maxbits, uint maxprec, int) const
+  {
+    return decode_int_block<int, BlockSize>(iblock, reader, minbits, maxbits, maxprec);
+  }
+};
+
+// inplace decoder specialization for long longs
+template <int BlockSize>
+struct decode_block<ScalarUnion<long long>, BlockSize> {
+  inline 
+  uint operator()(ScalarUnion<long long>* iblock, BlockReader& reader, uint minbits, uint maxbits, uint maxprec, int) const
+  {
+    return decode_int_block<long long, BlockSize>(
+        iblock, reader, minbits, maxbits, maxprec);
+  }
+};
+
+// inplace decoder specialization for floats
+template <int BlockSize>
+struct decode_block<ScalarUnion<float>, BlockSize> {
+  inline 
+  uint operator()(ScalarUnion<float>* fblock, BlockReader& reader, uint minbits, uint maxbits, uint maxprec, int minexp) const
+  {
+    return decode_float_block<float, BlockSize>(fblock, reader, minbits,
+                                                maxbits, maxprec, minexp);
+  }
+};
+
+// inplace decoder specialization for doubles
+template <int BlockSize>
+struct decode_block<ScalarUnion<double>, BlockSize> {
+  inline 
+  uint operator()(ScalarUnion<double> *fblock, BlockReader &reader,
                                        uint minbits, uint maxbits, uint maxprec,
                                        int minexp) const
   {

@@ -84,8 +84,8 @@ decode3_kernel(
 
   // decode blocks assigned to this thread
   for (; block_idx < block_end; block_idx++) {
-    Scalar fblock[ZFP_3D_BLOCK_SIZE] = { 0 };
-    decode_block<Scalar, ZFP_3D_BLOCK_SIZE>()(fblock, reader, minbits, maxbits,
+    ScalarUnion<Scalar> fblock[ZFP_3D_BLOCK_SIZE] = { 0 };
+    decode_block<ScalarUnion<Scalar>, ZFP_3D_BLOCK_SIZE>()(fblock, reader, minbits, maxbits,
                                               maxprec, minexp);
 
     // logical position in 3d array
@@ -102,10 +102,10 @@ decode3_kernel(
     const uint ny = (uint)::sycl::min(size_t(size.y() - y), size_t(4));
     const uint nz = (uint)::sycl::min(size_t(size.z() - z), size_t(4));
     if (nx * ny * nz < ZFP_3D_BLOCK_SIZE)
-      scatter_partial3(fblock, d_data + data_offset, nx, ny, nz, stride.x(),
+      scatter_partial3((Scalar*)fblock, d_data + data_offset, nx, ny, nz, stride.x(),
                        stride.y(), stride.z());
     else
-      scatter3(fblock, d_data + data_offset, stride.x(), stride.y(), stride.z());
+      scatter3((Scalar*)fblock, d_data + data_offset, stride.x(), stride.y(), stride.z());
   }
 
   // record maximum bit offset reached by any thread
@@ -127,7 +127,7 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
 #endif
   );
   // block size is fixed to 32 in this version for hybrid index
-  const int sycl_block_size = 32;
+  const int sycl_block_size = 512;
 
   // number of zfp blocks to decode
   const size_t blocks = ((size[0] + 3) / 4) *

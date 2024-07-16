@@ -2,7 +2,6 @@
 #define ZFP_SYCL_ENCODE_H
 
 #include "shared.h"
-#include <bits/stdc++.h>
 
 namespace zfp {
 namespace sycl {
@@ -230,9 +229,8 @@ UInt int2uint(const Int x)
 
 template <typename Int, typename UInt, int BlockSize>
 inline
-void fwd_order_inplace(ScalarUnion<Int>* block) //Cursed, but less reg. pressure
+void fwd_order(ScalarUnion<Int>* block) //Cursed, but less reg. pressure
 {
-  // const auto perm = get_perm<BlockSize>();
   #define index(x, y, z) ((x) + 4 * ((y) + 4 * (z)))
   block[0].uintVal = int2uint<Int, UInt>(block[index(0, 0, 0)].intVal); // 0<-0
   block[1].uintVal = int2uint<Int, UInt>(block[index(1, 0, 0)].intVal); // 1<-1
@@ -311,6 +309,7 @@ void fwd_order_inplace(ScalarUnion<Int>* block) //Cursed, but less reg. pressure
   block[28].uintVal = int2uint<Int, UInt>(block[index(0, 3, 1)].intVal); // 28<-28
 
   block[63].uintVal = int2uint<Int, UInt>(block[index(3, 3, 3)].intVal); // 63<-63
+  #undef index
 }
 
 template <typename Int, typename UInt, int BlockSize>
@@ -350,75 +349,6 @@ void fwd_order(UInt* ublock, const Int* iblock)
     ublock[15] = int2uint<Int, UInt>(iblock[index(3, 3)]);
 #undef index
   }
-//   else if (BlockSize == 64)
-//   {
-// #define index(x, y, z) ((x) + 4 * ((y) + 4 * (z)))
-//     ublock[0] = int2uint<Int, UInt>(iblock[index(0, 0, 0)]);
-//     ublock[1] = int2uint<Int, UInt>(iblock[index(1, 0, 0)]);
-//     ublock[2] = int2uint<Int, UInt>(iblock[index(0, 1, 0)]);
-//     ublock[3] = int2uint<Int, UInt>(iblock[index(0, 0, 1)]);
-//     ublock[4] = int2uint<Int, UInt>(iblock[index(0, 1, 1)]);
-//     ublock[5] = int2uint<Int, UInt>(iblock[index(1, 0, 1)]);
-//     ublock[6] = int2uint<Int, UInt>(iblock[index(1, 1, 0)]);
-//     ublock[7] = int2uint<Int, UInt>(iblock[index(2, 0, 0)]);
-//     ublock[8] = int2uint<Int, UInt>(iblock[index(0, 2, 0)]);
-//     ublock[9] = int2uint<Int, UInt>(iblock[index(0, 0, 2)]);
-//     ublock[10] = int2uint<Int, UInt>(iblock[index(1, 1, 1)]);
-//     ublock[11] = int2uint<Int, UInt>(iblock[index(2, 1, 0)]);
-//     ublock[12] = int2uint<Int, UInt>(iblock[index(2, 0, 1)]);
-//     ublock[13] = int2uint<Int, UInt>(iblock[index(0, 2, 1)]);
-//     ublock[14] = int2uint<Int, UInt>(iblock[index(1, 2, 0)]);
-//     ublock[15] = int2uint<Int, UInt>(iblock[index(1, 0, 2)]);
-//     ublock[16] = int2uint<Int, UInt>(iblock[index(0, 1, 2)]);
-//     ublock[17] = int2uint<Int, UInt>(iblock[index(3, 0, 0)]);
-//     ublock[18] = int2uint<Int, UInt>(iblock[index(0, 3, 0)]);
-//     ublock[19] = int2uint<Int, UInt>(iblock[index(0, 0, 3)]);
-//     ublock[20] = int2uint<Int, UInt>(iblock[index(2, 1, 1)]);
-//     ublock[21] = int2uint<Int, UInt>(iblock[index(1, 2, 1)]);
-//     ublock[22] = int2uint<Int, UInt>(iblock[index(1, 1, 2)]);
-//     ublock[23] = int2uint<Int, UInt>(iblock[index(0, 2, 2)]);
-//     ublock[24] = int2uint<Int, UInt>(iblock[index(2, 0, 2)]);
-//     ublock[25] = int2uint<Int, UInt>(iblock[index(2, 2, 0)]);
-//     ublock[26] = int2uint<Int, UInt>(iblock[index(3, 1, 0)]);
-//     ublock[27] = int2uint<Int, UInt>(iblock[index(3, 0, 1)]);
-//     ublock[28] = int2uint<Int, UInt>(iblock[index(0, 3, 1)]);
-//     ublock[29] = int2uint<Int, UInt>(iblock[index(1, 3, 0)]);
-//     ublock[30] = int2uint<Int, UInt>(iblock[index(1, 0, 3)]);
-//     ublock[31] = int2uint<Int, UInt>(iblock[index(0, 1, 3)]);
-//     ublock[32] = int2uint<Int, UInt>(iblock[index(1, 2, 2)]);
-//     ublock[33] = int2uint<Int, UInt>(iblock[index(2, 1, 2)]);
-//     ublock[34] = int2uint<Int, UInt>(iblock[index(2, 2, 1)]);
-//     ublock[35] = int2uint<Int, UInt>(iblock[index(3, 1, 1)]);
-//     ublock[36] = int2uint<Int, UInt>(iblock[index(1, 3, 1)]);
-//     ublock[37] = int2uint<Int, UInt>(iblock[index(1, 1, 3)]);
-//     ublock[38] = int2uint<Int, UInt>(iblock[index(3, 2, 0)]);
-//     ublock[39] = int2uint<Int, UInt>(iblock[index(3, 0, 2)]);
-//     ublock[40] = int2uint<Int, UInt>(iblock[index(0, 3, 2)]);
-//     ublock[41] = int2uint<Int, UInt>(iblock[index(2, 3, 0)]);
-//     ublock[42] = int2uint<Int, UInt>(iblock[index(2, 0, 3)]);
-//     ublock[43] = int2uint<Int, UInt>(iblock[index(0, 2, 3)]);
-//     ublock[44] = int2uint<Int, UInt>(iblock[index(2, 2, 2)]);
-//     ublock[45] = int2uint<Int, UInt>(iblock[index(3, 2, 1)]);
-//     ublock[46] = int2uint<Int, UInt>(iblock[index(3, 1, 2)]);
-//     ublock[47] = int2uint<Int, UInt>(iblock[index(1, 3, 2)]);
-//     ublock[48] = int2uint<Int, UInt>(iblock[index(2, 3, 1)]);
-//     ublock[49] = int2uint<Int, UInt>(iblock[index(2, 1, 3)]);
-//     ublock[50] = int2uint<Int, UInt>(iblock[index(1, 2, 3)]);
-//     ublock[51] = int2uint<Int, UInt>(iblock[index(0, 3, 3)]);
-//     ublock[52] = int2uint<Int, UInt>(iblock[index(3, 0, 3)]);
-//     ublock[53] = int2uint<Int, UInt>(iblock[index(3, 3, 0)]);
-//     ublock[54] = int2uint<Int, UInt>(iblock[index(3, 2, 2)]);
-//     ublock[55] = int2uint<Int, UInt>(iblock[index(2, 3, 2)]);
-//     ublock[56] = int2uint<Int, UInt>(iblock[index(2, 2, 3)]);
-//     ublock[57] = int2uint<Int, UInt>(iblock[index(1, 3, 3)]);
-//     ublock[58] = int2uint<Int, UInt>(iblock[index(3, 1, 3)]);
-//     ublock[59] = int2uint<Int, UInt>(iblock[index(3, 3, 1)]);
-//     ublock[60] = int2uint<Int, UInt>(iblock[index(2, 3, 3)]);
-//     ublock[61] = int2uint<Int, UInt>(iblock[index(3, 2, 3)]);
-//     ublock[62] = int2uint<Int, UInt>(iblock[index(3, 3, 2)]);
-//     ublock[63] = int2uint<Int, UInt>(iblock[index(3, 3, 3)]);
-// #undef index
-//   }
   else
   {
     const auto perm = get_perm<BlockSize>();
@@ -560,7 +490,7 @@ uint encode_float_block(
 // common integer and block-floating-point encoder
 template <typename Int, int BlockSize>
 inline 
-uint encode_int_block_inplace(
+uint encode_int_block(
   ScalarUnion<Int>* iblock,
   BlockWriter& writer,
   uint minbits,
@@ -577,7 +507,7 @@ uint encode_int_block_inplace(
 
   // reorder signed coefficients and convert to unsigned integer
   typedef typename traits<Int>::UInt UInt;
-  fwd_order_inplace<Int, UInt, BlockSize>(iblock);
+  fwd_order<Int, UInt, BlockSize>(iblock);
 
   // encode integer coefficients
   uint bits = with_maxbits<BlockSize>(maxbits, maxprec)
@@ -590,7 +520,7 @@ uint encode_int_block_inplace(
 // generic encoder for floating point
 template <typename Scalar, int BlockSize>
 inline 
-uint encode_float_block_inplace(
+uint encode_float_block(
   ScalarUnion<Scalar>* fblock,
   BlockWriter& writer,
   uint minbits,
@@ -613,7 +543,7 @@ uint encode_float_block_inplace(
     fwd_cast<Scalar, Int, BlockSize>((Int*)fblock, (Scalar*)fblock, emax);
     
     // encode integer block
-    bits += encode_int_block_inplace<Int, BlockSize>(
+    bits += encode_int_block<Int, BlockSize>(
         (ScalarUnion<Int>*)fblock, writer, ::sycl::max(minbits, bits) - bits,
         ::sycl::max(maxbits, bits) - bits, maxprec);
   }
@@ -677,7 +607,7 @@ struct encode_block<ScalarUnion<int>, BlockSize> {
   inline 
   uint operator()(ScalarUnion<int>* iblock, BlockWriter& writer, uint minbits, uint maxbits, uint maxprec, int) const
   {
-    return encode_int_block_inplace<int, BlockSize>(iblock, writer, minbits, maxbits,
+    return encode_int_block<int, BlockSize>(iblock, writer, minbits, maxbits,
                                             maxprec);
   }
 };
@@ -688,7 +618,7 @@ struct encode_block<ScalarUnion<long long>, BlockSize> {
   inline 
   uint operator()(ScalarUnion<long long>* iblock, BlockWriter& writer, uint minbits, uint maxbits, uint maxprec, int) const
   {
-    return encode_int_block_inplace<long long, BlockSize>(
+    return encode_int_block<long long, BlockSize>(
         iblock, writer, minbits, maxbits, maxprec);
   }
 };
@@ -699,7 +629,7 @@ struct encode_block<ScalarUnion<float>, BlockSize> {
   inline 
   uint operator()(ScalarUnion<float>* fblock, BlockWriter& writer, uint minbits, uint maxbits, uint maxprec, int minexp) const
   {
-    return encode_float_block_inplace<float, BlockSize>(fblock, writer, minbits,
+    return encode_float_block<float, BlockSize>(fblock, writer, minbits,
                                                 maxbits, maxprec, minexp);
   }
 };
@@ -707,11 +637,12 @@ struct encode_block<ScalarUnion<float>, BlockSize> {
 // encoder specialization for doubles
 template <int BlockSize>
 struct encode_block<ScalarUnion<double>, BlockSize> {
-  inline uint operator()(ScalarUnion<double> *fblock, BlockWriter &writer,
+  inline 
+  uint operator()(ScalarUnion<double> *fblock, BlockWriter &writer,
                                        uint minbits, uint maxbits, uint maxprec,
                                        int minexp) const
   {
-    return encode_float_block_inplace<double, BlockSize>(fblock, writer, minbits,
+    return encode_float_block<double, BlockSize>(fblock, writer, minbits,
                                                  maxbits, maxprec, minexp);
   }
 };
