@@ -294,8 +294,7 @@ void chunk_process_launch(uint* streams,
     int nbitsmax,
     int num_sm)
 {
-    dpct::device_ext& dev_ct1 = dpct::get_current_device();
-    ::sycl::queue q_ct1(zfp_dev_selector);
+    ::sycl::queue q(zfp_dev_selector);
     int maxpad32 = (nbitsmax + 31) / 32;
     void* kernelArgs[] = { (void*)&streams,
                             (void*)&chunk_offsets,
@@ -322,6 +321,8 @@ void chunk_process_launch(uint* streams,
         int error = dpct::experimental::calculate_max_active_wg_per_xecore(
             &max_blocks, tile_size * num_tiles,
             shmem + num_tiles * sizeof(uint), 32, true, true);
+        if(error != 0)
+            printf("Error in calculate_max_active_wg_per_xecore: %d\n", error);
         max_blocks *= num_sm;
         max_blocks = std::min(nstream_chunk, max_blocks);
         ::sycl::range<3> threads(1, num_tiles, tile_size);
@@ -332,11 +333,9 @@ void chunk_process_launch(uint* streams,
         needed.
         */
         {
-            dpct::global_memory<unsigned int, 0> d_sync_ct1(0);
-            unsigned* sync_ct1 = d_sync_ct1.get_ptr(q_ct1);
-            q_ct1.memset(sync_ct1, 0, sizeof(int)).wait();
-            q_ct1
-                .submit([&](::sycl::handler& cgh) {
+            unsigned int* sync_ct1 = malloc_device<unsigned int>(1, q);
+            q.memset(sync_ct1, 0, sizeof(int)).wait();
+            q.submit([&](::sycl::handler& cgh) {
                 ::sycl::local_accessor<uint8_t, 1> dpct_local_acc_ct1(
                     ::sycl::range<1>(shmem), cgh);
                 ::sycl::local_accessor<uint, 1> sm_length_acc_ct1(
@@ -354,7 +353,8 @@ void chunk_process_launch(uint* streams,
                     ::sycl::nd_range<3>(::sycl::range<3>(1, 1, max_blocks) * threads,
                         threads),
                     [=](::sycl::nd_item<3> item_ct1)
-                    [[intel::reqd_sub_group_size(32)]] {
+                    [[intel::reqd_sub_group_size(32)]] 
+                    {
                         auto atm_sync_ct1 = ::sycl::atomic_ref<
                             unsigned int, ::sycl::memory_order::seq_cst,
                             ::sycl::memory_scope::device,
@@ -378,9 +378,11 @@ void chunk_process_launch(uint* streams,
         size_t shmem = (2 * num_tiles * maxpad32 + 2) * sizeof(uint);
         // NOTE: Adding num_tiles * sizeof(uint) to account for locally allocated shared memory in in kernel "concat_bitstreams_chunk".
         // See https://oneapi-src.github.io/SYCLomatic/dev_guide/diagnostic_ref/dpct1111.html
-        dpct::experimental::calculate_max_active_wg_per_xecore(
+        int error = dpct::experimental::calculate_max_active_wg_per_xecore(
             &max_blocks, tile_size * num_tiles,
             shmem + num_tiles * sizeof(uint));
+        if(error != 0)
+            printf("Error in calculate_max_active_wg_per_xecore: %d\n", error);
         max_blocks *= num_sm;
         max_blocks = std::min(nstream_chunk, max_blocks);
         ::sycl::range<3> threads(1, num_tiles, tile_size);
@@ -391,11 +393,9 @@ void chunk_process_launch(uint* streams,
         needed.
         */
         {
-            dpct::global_memory<unsigned int, 0> d_sync_ct1(0);
-            unsigned* sync_ct1 = d_sync_ct1.get_ptr(dpct::get_default_queue());
-            dpct::get_default_queue().memset(sync_ct1, 0, sizeof(int)).wait();
-            q_ct1
-                .submit([&](::sycl::handler& cgh) {
+            unsigned int* sync_ct1 = malloc_device<unsigned int>(1, q);
+            q.memset(sync_ct1, 0, sizeof(int)).wait();
+            q.submit([&](::sycl::handler& cgh) {
                 ::sycl::local_accessor<uint8_t, 1> dpct_local_acc_ct1(
                     ::sycl::range<1>(shmem), cgh);
                 ::sycl::local_accessor<uint, 1> sm_length_acc_ct1(
@@ -437,9 +437,11 @@ void chunk_process_launch(uint* streams,
         size_t shmem = (2 * num_tiles * maxpad32 + 2) * sizeof(uint);
         // NOTE: Adding num_tiles * sizeof(uint) to account for locally allocated shared memory in in kernel "concat_bitstreams_chunk".
         // See https://oneapi-src.github.io/SYCLomatic/dev_guide/diagnostic_ref/dpct1111.html
-        dpct::experimental::calculate_max_active_wg_per_xecore(
+        int error = dpct::experimental::calculate_max_active_wg_per_xecore(
             &max_blocks, tile_size * num_tiles,
             shmem + num_tiles * sizeof(uint));
+        if(error != 0)
+            printf("Error in calculate_max_active_wg_per_xecore: %d\n", error);
         max_blocks = std::min(nstream_chunk, max_blocks);
         ::sycl::range<3> threads(1, num_tiles, tile_size);
         /*
@@ -449,11 +451,9 @@ void chunk_process_launch(uint* streams,
         needed.
         */
         {
-            dpct::global_memory<unsigned int, 0> d_sync_ct1(0);
-            unsigned* sync_ct1 = d_sync_ct1.get_ptr(dpct::get_default_queue());
-            dpct::get_default_queue().memset(sync_ct1, 0, sizeof(int)).wait();
-            q_ct1
-                .submit([&](::sycl::handler& cgh) {
+            unsigned int* sync_ct1 = malloc_device<unsigned int>(1, q);
+            q.memset(sync_ct1, 0, sizeof(int)).wait();
+            q.submit([&](::sycl::handler& cgh) {
                 ::sycl::local_accessor<uint8_t, 1> dpct_local_acc_ct1(
                     ::sycl::range<1>(shmem), cgh);
                 ::sycl::local_accessor<uint, 1> sm_length_acc_ct1(
@@ -495,9 +495,11 @@ void chunk_process_launch(uint* streams,
         size_t shmem = (2 * num_tiles * maxpad32 + 2) * sizeof(uint);
         // NOTE: Adding num_tiles * sizeof(uint) to account for locally allocated shared memory in in kernel "concat_bitstreams_chunk".
         // See https://oneapi-src.github.io/SYCLomatic/dev_guide/diagnostic_ref/dpct1111.html
-        dpct::experimental::calculate_max_active_wg_per_xecore(
+        int error = dpct::experimental::calculate_max_active_wg_per_xecore(
             &max_blocks, tile_size * num_tiles,
             shmem + num_tiles * sizeof(uint));
+        if(error != 0)
+            printf("Error in calculate_max_active_wg_per_xecore: %d\n", error);
         max_blocks *= num_sm;
         max_blocks = std::min(nstream_chunk, max_blocks);
         ::sycl::range<3> threads(1, num_tiles, tile_size);
@@ -508,11 +510,9 @@ void chunk_process_launch(uint* streams,
         needed.
         */
         {
-            dpct::global_memory<unsigned int, 0> d_sync_ct1(0);
-            unsigned* sync_ct1 = d_sync_ct1.get_ptr(dpct::get_default_queue());
-            dpct::get_default_queue().memset(sync_ct1, 0, sizeof(int)).wait();
-            q_ct1
-                .submit([&](::sycl::handler& cgh) {
+            unsigned int* sync_ct1 = malloc_device<unsigned int>(1, q);
+            q.memset(sync_ct1, 0, sizeof(int)).wait();
+            q.submit([&](::sycl::handler& cgh) {
                 ::sycl::local_accessor<uint8_t, 1> dpct_local_acc_ct1(
                     ::sycl::range<1>(shmem), cgh);
                 ::sycl::local_accessor<uint, 1> sm_length_acc_ct1(
@@ -560,7 +560,7 @@ unsigned long long
         size_t processors
     )
 {
-    ::sycl::queue q_ct1(zfp_dev_selector);
+    ::sycl::queue q(zfp_dev_selector);
     unsigned long long bits_written = 0;
     unsigned long long* d_offsets;
     size_t chunk_size;
@@ -581,14 +581,14 @@ unsigned long long
 
             // prefix sum to turn length into offsets
             oneapi::dpl::inclusive_scan(
-                oneapi::dpl::execution::device_policy(q_ct1), d_offsets,
+                oneapi::dpl::execution::device_policy(q), d_offsets,
                 d_offsets + cur_blocks + 1, d_offsets);
 
             // compact the stream array in-place
             chunk_process_launch((uint*)d_stream, d_offsets, i, cur_blocks, last_chunk, maxbits, processors); // This is whats wrong with variable precision mode
         }
         // update compressed size and pad to whole words
-        q_ct1.memcpy(&bits_written, d_offsets, sizeof(unsigned long long)).wait();
+        q.memcpy(&bits_written, d_offsets, sizeof(unsigned long long)).wait();
         bits_written = round_up(bits_written, sizeof(Word) * CHAR_BIT);
 
         // free temporary buffers

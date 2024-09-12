@@ -137,8 +137,7 @@ helper function to migrate __shfl_xor_sync.
 
 
   // determine whether ptr points to shared memory
-  inline bool is_usm_ptr(const void *ptr){
-    return false;//TODO
+  inline bool is_device_ptr(const void *ptr){
     dpct::pointer_attributes atts;
     try {
       atts.init(ptr);

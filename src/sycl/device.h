@@ -118,7 +118,7 @@ catch (::sycl::exception const &exc) {
 Word* setup_device_stream_compress(zfp_stream* stream)
 {
   Word* d_stream = (Word*)stream->stream->begin;
-  if (!is_usm_ptr(d_stream)) {
+  if (!is_device_ptr(d_stream)) {
     // allocate device memory for compressed data
     size_t size = stream_capacity(stream->stream);
     device_malloc(&d_stream, size, "stream");
@@ -130,7 +130,7 @@ Word* setup_device_stream_compress(zfp_stream* stream)
 Word* setup_device_stream_decompress(zfp_stream* stream)
 {
   Word* d_stream = (Word*)stream->stream->begin;
-  if (!is_usm_ptr(d_stream)) {
+  if (!is_device_ptr(d_stream)) {
     // copy compressed data to device memory
     size_t size = stream_capacity(stream->stream);
     device_copy_from_host(&d_stream, size, stream->stream->begin, "stream");
@@ -142,7 +142,7 @@ Word* setup_device_stream_decompress(zfp_stream* stream)
 ushort* setup_device_index_compress(zfp_stream* stream, const zfp_field* field)
 {
   ushort* d_index = stream->index ? (ushort*)stream->index->data : NULL;
-  if (!is_usm_ptr(d_index)) {
+  if (!is_device_ptr(d_index)) {
     // allocate device memory for block index
     size_t size = zfp_field_blocks(field) * sizeof(ushort);
     device_malloc(&d_index, size, "index");
@@ -154,7 +154,7 @@ ushort* setup_device_index_compress(zfp_stream* stream, const zfp_field* field)
 Word* setup_device_index_decompress(zfp_stream* stream)
 {
   Word* d_index = (Word*)stream->index->data;
-  if (!is_usm_ptr(d_index)) {
+  if (!is_device_ptr(d_index)) {
     // copy index to device memory
     size_t size = stream->index->size;
     device_copy_from_host(&d_index, size, stream->index->data, "index");
@@ -181,7 +181,7 @@ bool setup_device_chunking(size_t* chunk_size, unsigned long long** d_offsets, s
 void* setup_device_field_compress(const zfp_field* field, void*& d_begin)
 {
   void* d_data = field->data;
-  if (is_usm_ptr(d_data)) {
+  if (is_device_ptr(d_data)) {
     // field already resides on device
     d_begin = zfp_field_begin(field);
     return d_data;
@@ -205,7 +205,7 @@ void* setup_device_field_compress(const zfp_field* field, void*& d_begin)
 void* setup_device_field_decompress(const zfp_field* field, void*& d_begin)
 {
   void* d_data = field->data;
-  if (is_usm_ptr(d_data)) {
+  if (is_device_ptr(d_data)) {
     // field has already been allocated on device
     d_begin = zfp_field_begin(field);
     return d_data;
