@@ -564,10 +564,8 @@ unsigned long long
     unsigned long long bits_written = 0;
     unsigned long long* d_offsets;
     size_t chunk_size;
-    size_t lcubtemp;
-    void* d_cubtemp;
 
-    if (internal::setup_device_chunking(&chunk_size, &d_offsets, &lcubtemp, &d_cubtemp, processors)) {
+    if (internal::setup_device_chunking(&chunk_size, &d_offsets, processors)) {
         // in-place compact variable-length blocks stored as fixed-length records
         for (size_t i = 0; i < blocks; i += chunk_size) {
             int cur_blocks = chunk_size;
@@ -593,7 +591,6 @@ unsigned long long
 
         // free temporary buffers
         internal::cleanup_device(NULL, d_offsets);
-        internal::cleanup_device(NULL, d_cubtemp);
     }
 
     return bits_written;
