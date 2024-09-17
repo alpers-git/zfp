@@ -163,7 +163,7 @@ Word* setup_device_index_decompress(zfp_stream* stream)
   return d_index;
 }
 
-bool setup_device_chunking(size_t* chunk_size, unsigned long long** d_offsets, size_t* lcubtemp, void** d_cubtemp, uint processors)
+bool setup_device_chunking(size_t* chunk_size, unsigned long long** d_offsets, uint processors)
 {
   queue q(zfp_dev_selector);
   // Assuming 1 thread = 1 ZFP block,
@@ -173,7 +173,6 @@ bool setup_device_chunking(size_t* chunk_size, unsigned long long** d_offsets, s
   if (!device_malloc(d_offsets, size, "offsets"))
     return false;
   q.memset(*d_offsets, 0, size).wait(); // ensure offsets are zeroed
-  //Removed cub temp memory allocation stuff
 
   return true;
 }
