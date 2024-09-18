@@ -364,8 +364,8 @@ void chunk_process_launch(uint* streams,
                             streams_ct0, offsets_ct1, first_stream_chunk_ct2,
                             nstreams_chunk_ct3, last_chunk_ct4, maxbits_ct5,
                             maxpad32_ct6, item_ct1, atm_sync_ct1,
-                            dpct_local_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>(),
-                            sm_length_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>());
+                            dpct_local_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>().get(),
+                            sm_length_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>().get());
                     });
                     })
                 .wait();
@@ -423,8 +423,8 @@ void chunk_process_launch(uint* streams,
                             streams_ct0, offsets_ct1, first_stream_chunk_ct2,
                             nstreams_chunk_ct3, last_chunk_ct4, maxbits_ct5,
                             maxpad32_ct6, item_ct1, atm_sync_ct1,
-                            dpct_local_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>(),
-                            sm_length_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>());
+                            dpct_local_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>().get(),
+                            sm_length_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>().get());
                     });
                     })
                 .wait();
@@ -481,8 +481,8 @@ void chunk_process_launch(uint* streams,
                             streams_ct0, offsets_ct1, first_stream_chunk_ct2,
                             nstreams_chunk_ct3, last_chunk_ct4, maxbits_ct5,
                             maxpad32_ct6, item_ct1, atm_sync_ct1,
-                            dpct_local_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>(),
-                            sm_length_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>());
+                            dpct_local_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>().get(),
+                            sm_length_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>().get());
                     });
                     })
                 .wait();
@@ -540,8 +540,8 @@ void chunk_process_launch(uint* streams,
                             streams_ct0, offsets_ct1, first_stream_chunk_ct2,
                             nstreams_chunk_ct3, last_chunk_ct4, maxbits_ct5,
                             maxpad32_ct6, item_ct1, atm_sync_ct1,
-                            dpct_local_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>(),
-                            sm_length_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>());
+                            dpct_local_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>().get(),
+                            sm_length_acc_ct1.get_multi_ptr<::sycl::access::decorated::yes>().get());
                     });
                     })
                 .wait();
