@@ -452,12 +452,11 @@ uint decode_float_block(
     maxprec = precision<BlockSize>(emax, maxprec, minexp);
     // decode integer block
     typedef typename traits<Scalar>::Int Int;
-    Int* iblock = (Int*)fblock;
     bits += decode_int_block<Int, BlockSize>(
-        iblock, reader, ::sycl::max(minbits, bits) - bits,
+        (ScalarUnion<Int>*)fblock, reader, ::sycl::max(minbits, bits) - bits,
         ::sycl::max(maxbits, bits) - bits, maxprec);
     // perform inverse block-floating-point transform
-    inv_cast<Scalar, Int, BlockSize>(iblock, (Scalar*)fblock, emax);
+    inv_cast<Scalar, Int, BlockSize>((Int*)fblock, (Scalar*)fblock, emax);
   }
   else {
     // read at least minbits bits

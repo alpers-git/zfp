@@ -99,7 +99,6 @@ bool device_copy_from_host(T** d_pointer, size_t size, void* h_pointer,
   if (!device_malloc(d_pointer, size, what))
     return false;
   ::sycl::queue(zfp_dev_selector).memcpy(*d_pointer, h_pointer, size).wait();
-  //std::memcpy(*d_pointer, h_pointer, size);//! use this instead of q.memcpy: Reported. A driver bug
   return true;
 }
 catch (::sycl::exception const &exc) {
