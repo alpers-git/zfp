@@ -412,8 +412,11 @@ uint decode_int_block(
   uint maxbits,
   uint maxprec)
 {
+
   // decode integer coefficients
   typedef typename traits<Int>::UInt UInt;
+  for(size_t i =0; i < BlockSize; i++)
+      iblock[i] = (UInt)0;
   uint bits = with_maxbits<BlockSize>(maxbits, maxprec)
                 ? decode_ints<UInt, BlockSize>((UInt*)iblock, reader, maxbits, maxprec)
                 : decode_ints_prec<UInt, BlockSize>((UInt*)iblock, reader, maxprec);
@@ -425,7 +428,7 @@ uint decode_int_block(
   }
 
   // reorder unsigned coefficients and convert to signed integer
-  inv_order<Int, UInt, BlockSize>(iblock);
+  inv_order<Int, UInt, BlockSize>((ScalarUnion<Int>*)iblock);
 
   // perform decorrelating transform
   inv_xform<Int, BlockSize>()((Int*)iblock);
