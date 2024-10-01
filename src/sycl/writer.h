@@ -27,15 +27,14 @@ private:
 public:
   typedef unsigned long long int Offset;
 
-  SYCL_EXTERNAL
-  BlockWriter(Word *data, Offset offset = 0) :
+    BlockWriter(Word *data, Offset offset = 0) :
     begin(data)
   {
     wseek(offset);
   }
 
   // return bit offset to next bit to be written
-  SYCL_EXTERNAL inline Offset wtell() const {
+  inline Offset wtell() const {
     return word_size * (Offset)(ptr - begin) + bits;
   }
 
@@ -56,7 +55,7 @@ public:
   }
 
   // write single bit (must be 0 or 1)
-  SYCL_EXTERNAL inline uint write_bit(uint bit)
+  inline uint write_bit(uint bit)
   {
     buffer += (Word)bit << bits;
     if (++bits == word_size) {
@@ -68,7 +67,7 @@ public:
   }
 
   // write 0 <= n <= 64 low bits of value and return remaining bits
-  SYCL_EXTERNAL inline uint64 write_bits(uint64 value, uint n)
+  inline uint64 write_bits(uint64 value, uint n)
   {
     // append bit string to buffer
     buffer += (Word)(value << bits);
@@ -107,7 +106,7 @@ public:
   }
 
   // write any remaining buffered bits and align stream on next word boundary
-  SYCL_EXTERNAL inline uint flush()
+  inline uint flush()
   {
     uint count = (word_size - bits) % word_size;
     if (count)

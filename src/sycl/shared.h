@@ -72,7 +72,7 @@ size_t count_up(size_t size, size_t unit)
 // true if max compressed size exceeds maxbits
 template <int BlockSize>
 inline 
-bool with_maxbits(uint maxbits, uint maxprec)
+bool with_maxbits(const uint maxbits, const uint maxprec)
 {
   return (maxprec + 1) * BlockSize - 1 > maxbits;
 }
@@ -127,7 +127,7 @@ const unsigned char* get_perm<64>()
 
 // maximum number of bit planes to encode/decode
 inline 
-uint precision(int maxexp, uint maxprec, int minexp, int dims)
+uint precision(const int maxexp, const uint maxprec, const int minexp, const int dims)
 {
 #if (ZFP_ROUNDING_MODE != ZFP_ROUND_NEVER) && defined(ZFP_WITH_TIGHT_ERROR)
   return min(maxprec, max(0, maxexp - minexp + 2 * dims + 1));
@@ -139,25 +139,25 @@ uint precision(int maxexp, uint maxprec, int minexp, int dims)
 
 template <int BlockSize>
 inline 
-uint precision(int maxexp, uint maxprec, int minexp);
+uint precision(const int maxexp, const uint maxprec, const int minexp);
 
 template <>
 inline 
-uint precision<4>(int maxexp, uint maxprec, int minexp)
+uint precision<4>(const int maxexp, const uint maxprec, const int minexp)
 {
   return precision(maxexp, maxprec, minexp, 1);
 }
 
 template <>
 inline 
-uint precision<16>(int maxexp, uint maxprec, int minexp)
+uint precision<16>(const int maxexp, const uint maxprec, const int minexp)
 {
   return precision(maxexp, maxprec, minexp, 2);
 }
 
 template <>
 inline 
-uint precision<64>(int maxexp, uint maxprec, int minexp)
+uint precision<64>(const int maxexp, const uint maxprec, const int minexp)
 {
   return precision(maxexp, maxprec, minexp, 3);
 }

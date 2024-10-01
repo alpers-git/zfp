@@ -37,8 +37,6 @@ void scatter_partial3(const Scalar* q, Scalar* p, uint nx, uint ny, uint nz, ptr
 
 // decode kernel
 template <typename Scalar>
-
-// avoid register spillage
 void
 decode3_kernel(
   Scalar* d_data,
@@ -147,7 +145,6 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
 
 
   // launch GPU kernel
-  /*DPCT1049:17: Resolved*/
   auto kernel = q.submit([&](::sycl::handler& cgh) {
     ::sycl::local_accessor<uint64, 1> offset_acc_ct1(::sycl::range<1>(sycl_block_size), cgh);
 

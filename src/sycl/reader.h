@@ -24,13 +24,13 @@ private:
 public:
   typedef unsigned long long int Offset;
 
-  SYCL_EXTERNAL BlockReader(const Word *data, Offset offset = 0) : begin(data)
+  BlockReader(const Word *data, Offset offset = 0) : begin(data)
   {
     rseek(offset);
   }
 
   // return bit offset to next bit to be read
-  SYCL_EXTERNAL inline Offset rtell() const {
+  inline Offset rtell() const {
     return word_size * (Offset)(ptr - begin) - bits;
   }
 
@@ -51,7 +51,7 @@ public:
   }
 
   // read single bit (0 or 1)
-  SYCL_EXTERNAL inline uint read_bit()
+  inline uint read_bit()
   {
     uint bit;
     if (!bits) {
@@ -65,7 +65,7 @@ public:
   }
 
   // read 0 <= n <= 64 bits
-  SYCL_EXTERNAL inline uint64 read_bits(uint n)
+  inline uint64 read_bits(const uint n)
   {
     uint64 value = buffer;
     if (bits < n) {
@@ -99,7 +99,7 @@ public:
   }
 
   // skip over the next n bits (n >= 0)
-  SYCL_EXTERNAL inline void skip(Offset n) { rseek(rtell() + n); }
+  inline void skip(Offset n) { rseek(rtell() + n); }
 
   // align stream on next word boundary
   inline 
