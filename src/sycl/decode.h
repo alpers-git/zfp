@@ -139,7 +139,7 @@ Int uint2int(UInt x)
 
 template <typename Int, typename UInt, int BlockSize>
 inline 
-void inv_order(ScalarUnion<Int>* block)
+void inv_order(InplaceScalar<Int>* block)
 {
   #define index(x, y, z) ((x) + 4 * ((y) + 4 * (z)))
   block[index(0, 0, 0)].intVal = uint2int<Int, UInt>(block[0].uintVal); // 0<-0
@@ -406,7 +406,7 @@ uint decode_float_block(
 template <typename Int, int BlockSize>
 inline 
 uint decode_int_block(
-  ScalarUnion<Int>* iblock,
+  InplaceScalar<Int>* iblock,
   BlockReader& reader,
   uint minbits,
   uint maxbits,
@@ -428,7 +428,7 @@ uint decode_int_block(
   }
 
   // reorder unsigned coefficients and convert to signed integer
-  inv_order<Int, UInt, BlockSize>((ScalarUnion<Int>*)iblock);
+  inv_order<Int, UInt, BlockSize>((InplaceScalar<Int>*)iblock);
 
   // perform decorrelating transform
   inv_xform<Int, BlockSize>()((Int*)iblock);
@@ -440,7 +440,7 @@ uint decode_int_block(
 template <typename Scalar, int BlockSize>
 inline 
 uint decode_float_block(
-  ScalarUnion<Scalar>* fblock,
+  InplaceScalar<Scalar>* fblock,
   BlockReader& reader,
   uint minbits,
   uint maxbits,
@@ -456,7 +456,7 @@ uint decode_float_block(
     // decode integer block
     typedef typename traits<Scalar>::Int Int;
     bits += decode_int_block<Int, BlockSize>(
-        (ScalarUnion<Int>*)fblock, reader, ::sycl::max(minbits, bits) - bits,
+        (InplaceScalar<Int>*)fblock, reader, ::sycl::max(minbits, bits) - bits,
         ::sycl::max(maxbits, bits) - bits, maxprec);
     // perform inverse block-floating-point transform
     inv_cast<Scalar, Int, BlockSize>((Int*)fblock, (Scalar*)fblock, emax);
@@ -523,9 +523,9 @@ struct decode_block<double, BlockSize> {
 
 // inplace decoder specialization for ints
 template <int BlockSize>
-struct decode_block<ScalarUnion<int>, BlockSize> {
+struct decode_block<InplaceScalar<int>, BlockSize> {
   inline 
-  uint operator()(ScalarUnion<int>* iblock, BlockReader& reader, uint minbits, uint maxbits, uint maxprec, int) const
+  uint operator()(InplaceScalar<int>* iblock, BlockReader& reader, uint minbits, uint maxbits, uint maxprec, int) const
   {
     return decode_int_block<int, BlockSize>(iblock, reader, minbits, maxbits, maxprec);
   }
@@ -533,9 +533,9 @@ struct decode_block<ScalarUnion<int>, BlockSize> {
 
 // inplace decoder specialization for long longs
 template <int BlockSize>
-struct decode_block<ScalarUnion<long long>, BlockSize> {
+struct decode_block<InplaceScalar<long long>, BlockSize> {
   inline 
-  uint operator()(ScalarUnion<long long>* iblock, BlockReader& reader, uint minbits, uint maxbits, uint maxprec, int) const
+  uint operator()(InplaceScalar<long long>* iblock, BlockReader& reader, uint minbits, uint maxbits, uint maxprec, int) const
   {
     return decode_int_block<long long, BlockSize>(
         iblock, reader, minbits, maxbits, maxprec);
@@ -544,9 +544,9 @@ struct decode_block<ScalarUnion<long long>, BlockSize> {
 
 // inplace decoder specialization for floats
 template <int BlockSize>
-struct decode_block<ScalarUnion<float>, BlockSize> {
+struct decode_block<InplaceScalar<float>, BlockSize> {
   inline 
-  uint operator()(ScalarUnion<float>* fblock, BlockReader& reader, uint minbits, uint maxbits, uint maxprec, int minexp) const
+  uint operator()(InplaceScalar<float>* fblock, BlockReader& reader, uint minbits, uint maxbits, uint maxprec, int minexp) const
   {
     return decode_float_block<float, BlockSize>(fblock, reader, minbits,
                                                 maxbits, maxprec, minexp);
@@ -555,9 +555,9 @@ struct decode_block<ScalarUnion<float>, BlockSize> {
 
 // inplace decoder specialization for doubles
 template <int BlockSize>
-struct decode_block<ScalarUnion<double>, BlockSize> {
+struct decode_block<InplaceScalar<double>, BlockSize> {
   inline 
-  uint operator()(ScalarUnion<double> *fblock, BlockReader &reader,
+  uint operator()(InplaceScalar<double> *fblock, BlockReader &reader,
                                        uint minbits, uint maxbits, uint maxprec,
                                        int minexp) const
   {

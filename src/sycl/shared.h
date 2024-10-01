@@ -44,13 +44,12 @@ typedef ::sycl::long3 ptrdiff3;
 
 //create a union of types Scalar, Int, and UInt
 template <typename Scalar>
-union ScalarUnion{
+union InplaceScalar{
   typedef Scalar ScalarType;
   Scalar scalar;
   traits<Scalar>::Int intVal;
   traits<Scalar>::UInt uintVal;
-  ScalarUnion(Scalar s) : scalar(s) {}
-  ScalarUnion() {}
+  InplaceScalar(Scalar s = 0) : scalar(s) {}
 };
 
 // round size up to the next multiple of unit

@@ -86,7 +86,7 @@ int max_exponent(const Scalar* p)
 
 template <typename Scalar, int BlockSize>
 inline 
-int max_exponent(const ScalarUnion<Scalar>* p)
+int max_exponent(const InplaceScalar<Scalar>* p)
 {
   Scalar max_val = 0;
   for (int i = 0; i < BlockSize; i++) {
@@ -229,7 +229,7 @@ UInt int2uint(const Int x)
 
 template <typename Int, typename UInt, int BlockSize>
 inline
-void fwd_order(ScalarUnion<Int>* block) //Cursed, but less reg. pressure
+void fwd_order(InplaceScalar<Int>* block) //Cursed, but less reg. pressure
 {
   #define index(x, y, z) ((x) + 4 * ((y) + 4 * (z)))
   block[0].uintVal = int2uint<Int, UInt>(block[index(0, 0, 0)].intVal); // 0<-0
@@ -491,7 +491,7 @@ uint encode_float_block(
 template <typename Int, int BlockSize>
 inline 
 uint encode_int_block(
-  ScalarUnion<Int>* iblock,
+  InplaceScalar<Int>* iblock,
   BlockWriter& writer,
   uint minbits,
   uint maxbits,
@@ -521,7 +521,7 @@ uint encode_int_block(
 template <typename Scalar, int BlockSize>
 inline 
 uint encode_float_block(
-  ScalarUnion<Scalar>* fblock,
+  InplaceScalar<Scalar>* fblock,
   BlockWriter& writer,
   uint minbits,
   uint maxbits,
@@ -544,7 +544,7 @@ uint encode_float_block(
     
     // encode integer block
     bits += encode_int_block<Int, BlockSize>(
-        (ScalarUnion<Int>*)fblock, writer, ::sycl::max(minbits, bits) - bits,
+        (InplaceScalar<Int>*)fblock, writer, ::sycl::max(minbits, bits) - bits,
         ::sycl::max(maxbits, bits) - bits, maxprec);
   }
 
@@ -603,9 +603,9 @@ struct encode_block<double, BlockSize> {
 
 // inplace encoder specialization for ints
 template <int BlockSize>
-struct encode_block<ScalarUnion<int>, BlockSize> {
+struct encode_block<InplaceScalar<int>, BlockSize> {
   inline 
-  uint operator()(ScalarUnion<int>* iblock, BlockWriter& writer, uint minbits, uint maxbits, uint maxprec, int) const
+  uint operator()(InplaceScalar<int>* iblock, BlockWriter& writer, uint minbits, uint maxbits, uint maxprec, int) const
   {
     return encode_int_block<int, BlockSize>(iblock, writer, minbits, maxbits,
                                             maxprec);
@@ -614,9 +614,9 @@ struct encode_block<ScalarUnion<int>, BlockSize> {
 
 // inplace encoder specialization for long longs
 template <int BlockSize>
-struct encode_block<ScalarUnion<long long>, BlockSize> {
+struct encode_block<InplaceScalar<long long>, BlockSize> {
   inline 
-  uint operator()(ScalarUnion<long long>* iblock, BlockWriter& writer, uint minbits, uint maxbits, uint maxprec, int) const
+  uint operator()(InplaceScalar<long long>* iblock, BlockWriter& writer, uint minbits, uint maxbits, uint maxprec, int) const
   {
     return encode_int_block<long long, BlockSize>(
         iblock, writer, minbits, maxbits, maxprec);
@@ -625,9 +625,9 @@ struct encode_block<ScalarUnion<long long>, BlockSize> {
 
 // inplace encoder specialization for floats
 template <int BlockSize>
-struct encode_block<ScalarUnion<float>, BlockSize> {
+struct encode_block<InplaceScalar<float>, BlockSize> {
   inline 
-  uint operator()(ScalarUnion<float>* fblock, BlockWriter& writer, uint minbits, uint maxbits, uint maxprec, int minexp) const
+  uint operator()(InplaceScalar<float>* fblock, BlockWriter& writer, uint minbits, uint maxbits, uint maxprec, int minexp) const
   {
     return encode_float_block<float, BlockSize>(fblock, writer, minbits,
                                                 maxbits, maxprec, minexp);
@@ -636,9 +636,9 @@ struct encode_block<ScalarUnion<float>, BlockSize> {
 
 // encoder specialization for doubles
 template <int BlockSize>
-struct encode_block<ScalarUnion<double>, BlockSize> {
+struct encode_block<InplaceScalar<double>, BlockSize> {
   inline 
-  uint operator()(ScalarUnion<double> *fblock, BlockWriter &writer,
+  uint operator()(InplaceScalar<double> *fblock, BlockWriter &writer,
                                        uint minbits, uint maxbits, uint maxprec,
                                        int minexp) const
   {

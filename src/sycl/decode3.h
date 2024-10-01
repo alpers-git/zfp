@@ -82,8 +82,8 @@ decode3_kernel(
 
   // decode blocks assigned to this thread
   for (; block_idx < block_end; block_idx++) {
-    ScalarUnion<Scalar> fblock[ZFP_3D_BLOCK_SIZE] = { 0 };
-    decode_block<ScalarUnion<Scalar>, ZFP_3D_BLOCK_SIZE>()(fblock, reader, minbits, maxbits,
+    InplaceScalar<Scalar> fblock[ZFP_3D_BLOCK_SIZE] = { 0 };
+    decode_block<InplaceScalar<Scalar>, ZFP_3D_BLOCK_SIZE>()(fblock, reader, minbits, maxbits,
                                               maxprec, minexp);
 
     // logical position in 3d array
