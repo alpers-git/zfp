@@ -48,7 +48,7 @@ decode2_kernel(
   uint granularity
 ,
   const ::sycl::nd_item<1> &item_ct1,
-  ::sycl::local_accessor<uint64, 1> offset)
+  ::sycl::local_accessor<uint64, 1> offset)//todo: remove offset
 {
   const size_t chunk_idx = item_ct1.get_global_linear_id();
 
@@ -71,7 +71,7 @@ decode2_kernel(
   if (minbits == maxbits)
     bit_offset = chunk_idx * maxbits;
   else
-    bit_offset = block_offset(d_index, index_type, chunk_idx, item_ct1, offset);
+    bit_offset = block_offset(d_index, index_type, chunk_idx, item_ct1);
   BlockReader reader(d_stream, bit_offset);
 
   // decode blocks assigned to this thread

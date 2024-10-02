@@ -9,7 +9,7 @@ namespace internal {
 
 template <typename Scalar>
 inline 
-void gather3(InplaceScalar<Scalar>* q, const Scalar* p, ptrdiff_t sx, ptrdiff_t sy, ptrdiff_t sz)
+void gather3(Inplace<Scalar>* q, const Scalar* p, ptrdiff_t sx, ptrdiff_t sy, ptrdiff_t sz)
 {
   for (uint z = 0; z < 4; z++, p += sz - 4 * sy)
     for (uint y = 0; y < 4; y++, p += sy - 4 * sx)
@@ -19,7 +19,7 @@ void gather3(InplaceScalar<Scalar>* q, const Scalar* p, ptrdiff_t sx, ptrdiff_t 
 
 template <typename Scalar>
 inline 
-void gather_partial3(InplaceScalar<Scalar>* q, const Scalar* p, uint nx, uint ny, uint nz, ptrdiff_t sx, ptrdiff_t sy, ptrdiff_t sz)
+void gather_partial3(Inplace<Scalar>* q, const Scalar* p, uint nx, uint ny, uint nz, ptrdiff_t sx, ptrdiff_t sy, ptrdiff_t sz)
 {
   for (uint z = 0; z < 4; z++)
     if (z < nz) {
@@ -82,7 +82,7 @@ encode3_kernel(
   const ptrdiff_t offset = x * stride.x() + y * stride.y() + z * stride.z();
 
   // gather data into a contiguous block
-  InplaceScalar<Scalar> fblock[ZFP_3D_BLOCK_SIZE];
+  Inplace<Scalar> fblock[ZFP_3D_BLOCK_SIZE];
   const uint nx = (uint)::sycl::min(size_t(size.x() - x), size_t(4));
   const uint ny = (uint)::sycl::min(size_t(size.y() - y), size_t(4));
   const uint nz = (uint)::sycl::min(size_t(size.z() - z), size_t(4));
@@ -96,7 +96,7 @@ encode3_kernel(
   BlockWriter::Offset bit_offset = block_idx * maxbits;
   BlockWriter writer(d_stream, bit_offset);
 
-  uint bits = encode_block<InplaceScalar<Scalar>, ZFP_3D_BLOCK_SIZE>()(
+  uint bits = encode_block<Inplace<Scalar>, ZFP_3D_BLOCK_SIZE>()(
       fblock, writer, minbits, maxbits, maxprec, minexp);
 
   if (d_index)
@@ -150,7 +150,7 @@ encode3(
     cgh.depends_on({e1});
     cgh.parallel_for(kernel_range,
       [=](::sycl::nd_item<1> item_ct1)
-      [[intel::reqd_sub_group_size(16)]] {
+      [[intel::reqd_sub_group_size(SG_SIZE)]] {
 
         encode3_kernel<Scalar>(
           d_data, data_size, data_stride,

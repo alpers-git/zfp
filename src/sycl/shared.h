@@ -13,6 +13,12 @@
   #include "timer.h"
 #endif
 
+#if !defined(ZFP_WITH_SYCL_DEVICE) || ZFP_WITH_SYCL_DEVICE != PVC
+#define SG_SIZE 8
+#else
+#define SG_SIZE 16
+#endif
+
 // we need to know about bitstream, but we don't want duplicate symbols
 #ifndef inline_
   #define inline_ inline
@@ -36,20 +42,79 @@ typedef ::sycl::ulong2 size2;
 typedef ::sycl::ulong3 size3;
 typedef ::sycl::long2 ptrdiff2;
 typedef ::sycl::long3 ptrdiff3;
+typedef ::sycl::int2 int2;
+typedef ::sycl::int3 int3;
 
 #define make_size2(x, y) ::sycl::ulong2(x, y)
 #define make_ptrdiff2(x, y) ::sycl::long2(x, y)
 #define make_size3(x, y, z) ::sycl::ulong3(x, y, z)
 #define make_ptrdiff3(x, y, z) ::sycl::long3(x, y, z)
+#define make_int2(x, y) ::sycl::int2(x, y)
+#define make_int3(x, y, z) ::sycl::int3(x, y, z)
 
 //create a union of types Scalar, Int, and UInt
 template <typename Scalar>
-union InplaceScalar{
+union Inplace{
   typedef Scalar ScalarType;
   Scalar scalar;
   traits<Scalar>::Int intVal;
   traits<Scalar>::UInt uintVal;
-  InplaceScalar(Scalar s = 0) : scalar(s) {}
+  Inplace(Scalar s = 0) : scalar(s) {}
+};
+
+//Split the bigger size arrays into smaller arrays
+//to avoid register spillage
+template <typename T, int BlockSize>
+class SplitMem {
+public:
+    T& operator[](const int i) { return reg[i]; }
+    const T& operator[](const int i) const { return reg[i]; }
+private:
+    T reg[BlockSize];
+};
+
+template<>
+class SplitMem<float, 64> {
+public:
+    float& operator[](const int i) { 
+        if (i < 16) return reg[i];
+        else if (i < 32) return reg2[i - 16];
+        else if (i < 48) return reg3[i - 32];
+        else return reg4[i - 48];
+    }
+    const float& operator[](const int i) const { 
+        if (i < 16) return reg[i];
+        else if (i < 32) return reg2[i - 16];
+        else if (i < 48) return reg3[i - 32];
+        else return reg4[i - 48];
+    }
+private:
+    float reg[16];
+    float reg2[16];
+    float reg3[16];
+    float reg4[16];
+};
+
+template<>
+class SplitMem<Inplace<float>, 64> {
+public:
+    Inplace<float>& operator[](const int i) { 
+        if (i < 16) return reg[i];
+        else if (i < 32) return reg2[i - 16];
+        else if (i < 48) return reg3[i - 32];
+        else return reg4[i - 48];
+    }
+    const Inplace<float>& operator[](const int i) const { 
+        if (i < 16) return reg[i];
+        else if (i < 32) return reg2[i - 16];
+        else if (i < 48) return reg3[i - 32];
+        else return reg4[i - 48];
+    }
+private:
+    Inplace<float> reg[16];
+    Inplace<float> reg2[16];
+    Inplace<float> reg3[16];
+    Inplace<float> reg4[16];
 };
 
 // round size up to the next multiple of unit
