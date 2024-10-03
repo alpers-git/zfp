@@ -361,27 +361,32 @@ void fwd_order(UInt* ublock, const Int* iblock)
 
 template <typename UInt, int BlockSize>
 inline 
-uint encode_ints(UInt* ublock, BlockWriter& writer, uint maxbits, uint maxprec)
+uint encode_ints(UInt const * const ublock, BlockWriter& writer, const uint maxbits, const uint maxprec)
 {
-  const uint intprec = traits<UInt>::precision;
-  const uint kmin = intprec > maxprec ? intprec - maxprec : 0;
-  uint bits = maxbits;
+  constexpr int intprec = traits<UInt>::precision;
+  const int kmin = ::sycl::max<int>(intprec - (int)maxprec, 0);//intprec > maxprec ? intprec - maxprec : 0;
+  int bits = maxbits;
 
-  for (uint k = intprec, n = 0; bits && k-- > kmin;) {
+  int n = 0;
+  UInt mask = (UInt)1 << (intprec-1);
+  for (int k = intprec-1; bits && k >= kmin; k--, mask >>= 1) {
     // step 1: extract bit plane #k to x
     uint64 x = 0;
 
-#pragma unroll BlockSize
-    for (int i = 0; i < BlockSize; i++)
-      x += (uint64)((ublock[i] >> k) & 1u) << i;
+    // #pragma unroll BlockSize
+    for (int i = 0; i < BlockSize; i++) {
+      if (ublock[i] & mask) x |= (uint64)1 << i;
+      //x += (uint64)((ublock[i] >> k) & 1u) << i;
+    }
     // step 2: encode first n bits of bit plane
-    uint m = ::sycl::min(n, bits);
+    const int m = ::sycl::min(n, bits);
     bits -= m;
     x = writer.write_bits(x, m);
     // step 3: unary run-length encode remainder of bit plane
-    for (; n < BlockSize && bits && (bits--, writer.write_bit(!!x)); x >>= 1, n++)
-      for (; n < BlockSize - 1 && bits && (bits--, !writer.write_bit(x & 1u)); x >>= 1, n++)
-        ;
+    for (; n < BlockSize && bits && (bits--, writer.write_bit(!!x)); x >>= 1, n++) {
+      for (; n < BlockSize - 1 && bits && (bits--, !writer.write_bit(x & 1u)); x >>= 1, n++) {
+      }
+    }
   }
 
   // output any buffered bits
@@ -392,21 +397,29 @@ uint encode_ints(UInt* ublock, BlockWriter& writer, uint maxbits, uint maxprec)
 
 template <typename UInt, int BlockSize>
 inline 
-uint encode_ints_prec(UInt* ublock, BlockWriter& writer, uint maxprec)
+uint encode_ints_prec(UInt const * const ublock, BlockWriter& writer, uint maxprec)
 {
   const BlockWriter::Offset offset = writer.wtell();
-  const uint intprec = traits<UInt>::precision;
-  const uint kmin = intprec > maxprec ? intprec - maxprec : 0;
+  constexpr int intprec = traits<UInt>::precision;
+  const int kmin = ::sycl::max<int>(intprec - (int)maxprec, 0);//intprec > maxprec ? intprec - maxprec : 0;
 
-  for (uint k = intprec, n = 0; k-- > kmin;) {
+  int n = 0;
+  UInt mask = (UInt)1 << (intprec-1);
+  for (int k = intprec-1; k >= kmin; k--, mask >>= 1) {
     // step 1: extract bit plane #k to x
     uint64 x = 0;
     
-    #pragma unroll BlockSize
-    for (int i = 0; i < BlockSize; i++)
-      x += (uint64)((ublock[i] >> k) & 1u) << i;
+    
+    //#pragma unroll BlockSize
+    for (int i = 0; i < BlockSize; i++) {
+        if (ublock[i] & mask) x |= (uint64)1 << i;
+        
+        //x += (uint64)((ublock[i] >> k) & 1u) << i;
+    }
+       
     // step 2: encode first n bits of bit plane
     x = writer.write_bits(x, n);
+
     // step 3: unary run-length encode remainder of bit plane
     for (; n < BlockSize && writer.write_bit(!!x); x >>= 1, n++)
       for (; n < BlockSize - 1 && !writer.write_bit(x & 1u); x >>= 1, n++)
@@ -414,7 +427,7 @@ uint encode_ints_prec(UInt* ublock, BlockWriter& writer, uint maxprec)
   }
 
   // compute number of bits written
-  uint bits = (uint)(writer.wtell() - offset);
+  const uint bits = (uint)(writer.wtell() - offset);
 
   // output any buffered bits
   writer.flush();

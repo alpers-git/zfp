@@ -502,25 +502,25 @@ uint decode_ints(SplitMem<Inplace<Scalar>, BlockSize>& fblock, BlockReader& read
 
 template <typename UInt, int BlockSize>
 inline 
-uint decode_ints_prec(UInt* ublock, BlockReader& reader, const uint maxprec)
+uint decode_ints_prec(UInt* const ublock, BlockReader& reader, const uint maxprec)
 {
   const BlockReader::Offset offset = reader.rtell();
-  const uint intprec = traits<UInt>::precision;
-  const uint kmin = intprec > maxprec ? intprec - maxprec : 0;
-  uint k, n;
+  constexpr int intprec = traits<UInt>::precision;
+  const int kmin = ::sycl::max<int>(intprec - maxprec, 0);//intprec > maxprec ? intprec - maxprec : 0;
+  int k;
+  int n = 0;
+  UInt mask = (UInt)1 << (intprec-1);
 
-  for (k = intprec, n = 0; k-- > kmin;) {
+  for (k = intprec-1; k >= kmin; k--, mask >>= 1) {
     // decode bit plane
-    ::uint64 x = reader.read_bits(n);
-    for (; n < BlockSize && reader.read_bit(); x += (::uint64)1 << n, n++)
+    uint64 x = reader.read_bits(n);
+    for (; n < BlockSize && reader.read_bit(); x += (uint64)1 << n, n++)
       for (; n < BlockSize - 1 && !reader.read_bit(); n++)
         ;
 
-    // deposit bit plane (use fixed bound to prevent warp divergence)
-    
-#pragma unroll BlockSize
-    for (int i = 0; i < BlockSize; i++, x >>= 1)
-      ublock[i] += (UInt)(x & 1u) << k;
+    for (int i = 0; i < BlockSize; i++) {
+        if (x & ((uint64)1 << i)) ublock[i] |= mask;
+    }
   }
 
 #if ZFP_ROUNDING_MODE == ZFP_ROUND_LAST
