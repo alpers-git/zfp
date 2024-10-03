@@ -13,12 +13,6 @@
   #include "timer.h"
 #endif
 
-#if !defined(ZFP_WITH_SYCL_DEVICE) || ZFP_WITH_SYCL_DEVICE != PVC
-#define SG_SIZE 8
-#else
-#define SG_SIZE 16
-#endif
-
 // we need to know about bitstream, but we don't want duplicate symbols
 #ifndef inline_
   #define inline_ inline
