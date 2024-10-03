@@ -47,8 +47,7 @@ decode2_kernel(
   zfp_index_type index_type,
   uint granularity
 ,
-  const ::sycl::nd_item<1> &item_ct1,
-  ::sycl::local_accessor<uint64, 1> offset)//todo: remove offset
+  const ::sycl::nd_item<1> &item_ct1)
 {
   const size_t chunk_idx = item_ct1.get_global_linear_id();
 
@@ -136,7 +135,6 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   // launch GPU kernel
   /*DPCT1049:17: Resolved*/
   auto kernel = q.submit([&](::sycl::handler& cgh) {
-    ::sycl::local_accessor<uint64, 1> offset_acc_ct1(::sycl::range<1>(sycl_block_size), cgh);
 
     auto data_size = 
       make_size2(size[0], size[1]);
@@ -149,7 +147,7 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
           d_data, data_size, data_stride, 
           d_stream, minbits, maxbits, maxprec, 
           minexp, offset, d_index, index_type,
-          granularity, item_ct1, offset_acc_ct1);
+          granularity, item_ct1);
       });
     });
   kernel.wait();
