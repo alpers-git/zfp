@@ -15,6 +15,14 @@ if(ZFP_WITH_SYCL)
   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -Rno-debug-disables-optimization")
   set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
   set (CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3")
+
+  if(ZFP_WITH_SYCL_DEVICE STREQUAL "PVC")
+    set(SG_SIZE 16)
+  else()
+    set(SG_SIZE 8)
+  endif()
+  add_definitions(-DSG_SIZE=${SG_SIZE})
+  add_definitions(-DZFP_WITH_SYCL_DEVICE=${ZFP_WITH_SYCL_DEVICE})
 endif()
 
 # Enable MACOSX_RPATH by default
