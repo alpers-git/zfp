@@ -263,6 +263,129 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   return *offset;
 }
 
+
+// launch a different kernel for 65-bit types to reduce reg-spill
+template <>
+unsigned long long
+decode3(double *d_data, const size_t size[], const ptrdiff_t stride[],
+        const zfp_exec_params_sycl *params, const Word *d_stream, uint minbits,
+        uint maxbits, uint maxprec, int minexp, const Word *d_index,
+        zfp_index_type index_type, uint granularity)
+{
+  ::sycl::queue q(zfp::sycl::internal::zfp_dev_selector
+#ifdef ZFP_WITH_SYCL_PROFILE
+  , ::sycl::property_list{::sycl::property::queue::enable_profiling()}
+#endif
+  );
+  // block size is fixed to 32 in this version for hybrid index
+  const int sycl_block_size = 512;
+
+  const int3 b = make_int3((size[0] + 3) / 4, 
+                            (size[1] + 3) / 4, 
+                            (size[2] + 3) / 4);
+  // number of zfp blocks to decode
+  const size_t blocks = (size_t) b.x() * b.y() * b.z();
+
+  // number of chunks of blocks
+  const size_t chunks = (blocks + granularity - 1) / granularity;
+
+  // determine execution range for sycl kernel
+  auto kernel_range = calculate_kernel_size(params, chunks, sycl_block_size);
+
+  // storage for maximum bit offset; needed to position stream
+  unsigned long long int* offset;
+  offset = (unsigned long long int*)::sycl::malloc_shared(
+      sizeof(*offset), q);
+
+
+  // launch GPU kernel
+  auto kernel = q.submit([&](::sycl::handler& cgh) {
+
+    auto data_size = 
+      make_size3(size[0], size[1], size[2]);
+    auto data_stride =
+      make_ptrdiff3(stride[0], stride[1], stride[2]);
+
+    cgh.parallel_for(kernel_range,
+      [=](::sycl::nd_item<1> item_ct1)
+      [[intel::reqd_sub_group_size(SG_SIZE)]] {
+        decode3_kernel<double>(
+          d_data, data_size, data_stride,
+          d_stream, minbits, maxbits, maxprec, 
+          minexp, offset, d_index, index_type,
+          granularity, item_ct1);
+      });
+    });
+  kernel.wait();
+#ifdef ZFP_WITH_SYCL_PROFILE
+  Timer::print_throughput<double>(kernel, "Decode", "decode3",
+    ::sycl::range<3>(size[0], size[1], size[2]));
+#endif
+
+  return *offset;
+}
+
+template <>
+unsigned long long
+decode3(long long int *d_data, const size_t size[], const ptrdiff_t stride[],
+        const zfp_exec_params_sycl *params, const Word *d_stream, uint minbits,
+        uint maxbits, uint maxprec, int minexp, const Word *d_index,
+        zfp_index_type index_type, uint granularity)
+{
+  ::sycl::queue q(zfp::sycl::internal::zfp_dev_selector
+#ifdef ZFP_WITH_SYCL_PROFILE
+  , ::sycl::property_list{::sycl::property::queue::enable_profiling()}
+#endif
+  );
+  // block size is fixed to 32 in this version for hybrid index
+  const int sycl_block_size = 512;
+
+  const int3 b = make_int3((size[0] + 3) / 4, 
+                            (size[1] + 3) / 4, 
+                            (size[2] + 3) / 4);
+  // number of zfp blocks to decode
+  const size_t blocks = (size_t) b.x() * b.y() * b.z();
+
+  // number of chunks of blocks
+  const size_t chunks = (blocks + granularity - 1) / granularity;
+
+  // determine execution range for sycl kernel
+  auto kernel_range = calculate_kernel_size(params, chunks, sycl_block_size);
+
+  // storage for maximum bit offset; needed to position stream
+  unsigned long long int* offset;
+  offset = (unsigned long long int*)::sycl::malloc_shared(
+      sizeof(*offset), q);
+
+
+  // launch GPU kernel
+  auto kernel = q.submit([&](::sycl::handler& cgh) {
+
+    auto data_size = 
+      make_size3(size[0], size[1], size[2]);
+    auto data_stride =
+      make_ptrdiff3(stride[0], stride[1], stride[2]);
+
+    cgh.parallel_for(kernel_range,
+      [=](::sycl::nd_item<1> item_ct1)
+      [[intel::reqd_sub_group_size(SG_SIZE)]] {
+        decode3_kernel<long long int>(
+          d_data, data_size, data_stride,
+          d_stream, minbits, maxbits, maxprec, 
+          minexp, offset, d_index, index_type,
+          granularity, item_ct1);
+      });
+    });
+  kernel.wait();
+#ifdef ZFP_WITH_SYCL_PROFILE
+  Timer::print_throughput<long long int>(kernel, "Decode", "decode3",
+    ::sycl::range<3>(size[0], size[1], size[2]));
+#endif
+
+  return *offset;
+}
+
+
 } // namespace internal
 } // namespace sycl
 } // namespace zfp
