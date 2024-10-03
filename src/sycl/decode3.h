@@ -264,7 +264,7 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
 }
 
 
-// launch a different kernel for 65-bit types to reduce reg-spill
+// launch a different kernel for 64-bit types to reduce reg-spill
 template <>
 unsigned long long
 decode3(double *d_data, const size_t size[], const ptrdiff_t stride[],
