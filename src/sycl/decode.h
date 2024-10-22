@@ -942,7 +942,7 @@ decode2(
   uint granularity
 );
 
-template <typename T>
+template <typename T, int SgSize>
 unsigned long long
 decode3(
   T* d_data,
@@ -958,6 +958,7 @@ decode3(
   zfp_index_type index_type,
   uint granularity
 );
+
 
 // compute bit offset to compressed block
 //TODO: this function seems very optimized for CUDA consider refactoring
@@ -1018,8 +1019,16 @@ decode(
       bits_read = internal::decode2<T>(d_data, size, stride, params, d_stream, minbits, maxbits, maxprec, minexp, d_index, index_type, granularity);
       break;
     case 3:
-      bits_read = internal::decode3<T>(d_data, size, stride, params, d_stream, minbits, maxbits, maxprec, minexp, d_index, index_type, granularity);
-      break;
+      switch (params->min_sub_group_size) {
+        case 8:
+          bits_read = internal::decode3<T, 8>(d_data, size, stride, params, d_stream, minbits, maxbits, maxprec, minexp, d_index, index_type, granularity);
+          break;
+        case 16:
+          bits_read = internal::decode3<T, 16>(d_data, size, stride, params, d_stream, minbits, maxbits, maxprec, minexp, d_index, index_type, granularity);
+          break;
+        default:
+          throw std::runtime_error("Unsupported sub-group size");
+      }
     default:
       break;
   }

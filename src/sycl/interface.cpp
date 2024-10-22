@@ -45,8 +45,12 @@ zfp_internal_sycl_init(zfp_exec_params_sycl* params) try {
           << dev.get_info<::sycl::info::device::driver_version>()
           << " max compute units: "
           << dev.get_info<::sycl::info::device::max_compute_units>()
-          << " and max work group size: "
+          << " max work group: " 
           << dev.get_info<::sycl::info::device::max_work_group_size>()
+          << " and sub-group range: "
+          << dev.get_info<::sycl::info::device::sub_group_sizes>()[0]
+          << "-"
+          << dev.get_info<::sycl::info::device::sub_group_sizes>()[2]
           << std::endl;
       #endif
     } catch (sycl::exception const &exc) {
@@ -59,20 +63,11 @@ zfp_internal_sycl_init(zfp_exec_params_sycl* params) try {
   //cache device properties
   params->processors = dev.get_info<::sycl::info::device::max_compute_units>();
   sycl::id<3> groups = dev.get_info<sycl::ext::oneapi::experimental::info::device::max_work_groups<3>>();
-  /*
-  DPCT1022:37: Resolved
-  */
   params->grid_size[0] = groups[2];
-  /*
-  DPCT1022:38: Resolved
-  */
   params->grid_size[1] = groups[1];
-  /*
-  DPCT1022:39: Resolved
-  */
   params->grid_size[2] = groups[0];
-
   params->max_work_group_size = dev.get_info<::sycl::info::device::max_work_group_size>();
+  params->min_sub_group_size = dev.get_info<::sycl::info::device::sub_group_sizes>()[0];
 
   // launch device warm-up kernel
   return  (zfp_bool)zfp::sycl::internal::device_init();

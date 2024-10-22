@@ -203,7 +203,8 @@ decode3_kernel(
 }
 
 // launch decode kernel
-template <typename Scalar>
+/*======================= Generic template for all types =======================*/
+template <typename Scalar, int SgSize>
 unsigned long long
 decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
         const zfp_exec_params_sycl *params, const Word *d_stream, uint minbits,
@@ -215,8 +216,8 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   , ::sycl::property_list{::sycl::property::queue::enable_profiling()}
 #endif
   );
-  // block size is fixed to 32 in this version for hybrid index
-  const int sycl_block_size = 512;
+
+  const int sycl_block_size = SgSize;
 
   const int3 b = make_int3((size[0] + 3) / 4, 
                             (size[1] + 3) / 4, 
@@ -246,7 +247,7 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
 
     cgh.parallel_for(kernel_range,
       [=](::sycl::nd_item<1> item_ct1)
-      [[intel::reqd_sub_group_size(SG_SIZE)]] {
+      [[intel::reqd_sub_group_size(SgSize)]] {
         decode3_kernel<Scalar>(
           d_data, data_size, data_stride, b,
           d_stream, minbits, maxbits, maxprec, 
@@ -264,8 +265,8 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
 }
 
 
-// launch a different kernel for 64-bit types to reduce reg-spill
-template <>
+/*======================= 64-bit template specialization =======================*/
+template <int SgSize>
 unsigned long long
 decode3(double *d_data, const size_t size[], const ptrdiff_t stride[],
         const zfp_exec_params_sycl *params, const Word *d_stream, uint minbits,
@@ -278,7 +279,7 @@ decode3(double *d_data, const size_t size[], const ptrdiff_t stride[],
 #endif
   );
   // block size is fixed to 32 in this version for hybrid index
-  const int sycl_block_size = 512;
+  const int sycl_block_size = SgSize;
 
   const int3 b = make_int3((size[0] + 3) / 4, 
                             (size[1] + 3) / 4, 
@@ -308,7 +309,7 @@ decode3(double *d_data, const size_t size[], const ptrdiff_t stride[],
 
     cgh.parallel_for(kernel_range,
       [=](::sycl::nd_item<1> item_ct1)
-      [[intel::reqd_sub_group_size(SG_SIZE)]] {
+      [[intel::reqd_sub_group_size(SgSize)]] {
         decode3_kernel<double>(
           d_data, data_size, data_stride,
           d_stream, minbits, maxbits, maxprec, 
@@ -325,7 +326,8 @@ decode3(double *d_data, const size_t size[], const ptrdiff_t stride[],
   return *offset;
 }
 
-template <>
+/*======================= 64-bit template specialization =======================*/
+template <int SgSize>
 unsigned long long
 decode3(long long int *d_data, const size_t size[], const ptrdiff_t stride[],
         const zfp_exec_params_sycl *params, const Word *d_stream, uint minbits,
@@ -338,7 +340,7 @@ decode3(long long int *d_data, const size_t size[], const ptrdiff_t stride[],
 #endif
   );
   // block size is fixed to 32 in this version for hybrid index
-  const int sycl_block_size = 512;
+  const int sycl_block_size = SgSize;
 
   const int3 b = make_int3((size[0] + 3) / 4, 
                             (size[1] + 3) / 4, 
@@ -368,7 +370,7 @@ decode3(long long int *d_data, const size_t size[], const ptrdiff_t stride[],
 
     cgh.parallel_for(kernel_range,
       [=](::sycl::nd_item<1> item_ct1)
-      [[intel::reqd_sub_group_size(SG_SIZE)]] {
+      [[intel::reqd_sub_group_size(SgSize)]] {
         decode3_kernel<long long int>(
           d_data, data_size, data_stride,
           d_stream, minbits, maxbits, maxprec, 

@@ -6,22 +6,19 @@ endif()
 if(ZFP_WITH_SYCL)
   set(CMAKE_CXX_STANDARD 17)
   include(cmake/FindSYCL.cmake)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -frename-registers -fno-rtti")
-  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffast-math -ipo -fsycl -fsycl-device-code-split=per_kernel")
-  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl-targets=spir64_gen")
-  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xsycl-target-backend \"-device ${ZFP_WITH_SYCL_DEVICE} -options -ze-intel-enable-auto-large-GRF-mode\"")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-rtti")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ipo -fsycl -fsycl-device-code-split=per_kernel")
+  if(DEFINED ZFP_WITH_SYCL_DEVICE AND NOT ZFP_WITH_SYCL_DEVICE STREQUAL "") #if the device is set it triggers AOT compilation
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl-targets=spir64_gen -Xsycl-target-backend \"-device ${ZFP_WITH_SYCL_DEVICE} -options -ze-intel-enable-small-GRF-mode\"")
+  else() # otherwise it triggers JIT compilation
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl-targets=spir64 -Xsycl-target-backend \"-options -ze-intel-enable-small-GRF-mode\"")
+  endif()
   
   set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Rno-debug-disables-optimization")
   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -Rno-debug-disables-optimization")
   set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
   set (CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3")
 
-  if(ZFP_WITH_SYCL_DEVICE STREQUAL "PVC")
-    set(SG_SIZE 16)
-  else()
-    set(SG_SIZE 8)
-  endif()
-  add_definitions(-DSG_SIZE=${SG_SIZE})
   add_definitions(-DZFP_WITH_SYCL_DEVICE=${ZFP_WITH_SYCL_DEVICE})
 endif()
 
@@ -200,7 +197,7 @@ mark_as_advanced(ZFP_HIP_PROFILE)
 option(ZFP_WITH_SYCL_PROFILE "Report SYCL throughput" OFF)
 mark_as_advanced(ZFP_SYCL_PROFILE)
 
-option(ZFP_WITH_SYCL_DEVICE "Set the SYCL device for ZFP" "pvc")
+option(ZFP_WITH_SYCL_DEVICE "Set the SYCL device for ZFP")
 mark_as_advanced(ZFP_SYCL_DEVICE)
 
 option(ZFP_WITH_SYCL_DEVICE_INFO "Report current SYCL device info" OFF)

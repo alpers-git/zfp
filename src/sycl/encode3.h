@@ -104,7 +104,7 @@ encode3_kernel(
 }
 
 // launch encode kernel
-template <typename Scalar>
+template <typename Scalar, int SgSize>
 unsigned long long
 encode3(
   const Scalar* d_data,
@@ -124,7 +124,7 @@ encode3(
   , ::sycl::property_list{::sycl::property::queue::enable_profiling()}
 #endif
   );
-  const int sycl_block_size = 256;
+  const int sycl_block_size = SgSize;
 
   // number of zfp blocks to encode
   const size_t blocks = ((size[0] + 3) / 4) *
@@ -150,7 +150,7 @@ encode3(
     cgh.depends_on({e1});
     cgh.parallel_for(kernel_range,
       [=](::sycl::nd_item<1> item_ct1)
-      [[intel::reqd_sub_group_size(SG_SIZE)]] {
+      [[intel::reqd_sub_group_size(SgSize)]] {
 
         encode3_kernel<Scalar>(
           d_data, data_size, data_stride,
