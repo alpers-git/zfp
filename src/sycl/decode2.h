@@ -101,7 +101,7 @@ decode2_kernel(
 }
 
 // launch decode kernel
-template <typename Scalar>
+template <typename Scalar, int SgSize>
 unsigned long long
 decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
         const zfp_exec_params_sycl *params, const Word *d_stream, uint minbits,
@@ -114,7 +114,7 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
 #endif
   );
   // block size is fixed to 32 in this version for hybrid index
-  const int sycl_block_size = 32;
+  const int sycl_block_size = SgSize;
 
   // number of zfp blocks to decode
   const size_t blocks = ((size[0] + 3) / 4) *
@@ -142,7 +142,8 @@ decode2(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
       make_ptrdiff2(stride[0], stride[1]);
 
     cgh.parallel_for(kernel_range,
-      [=](::sycl::nd_item<1> item_ct1) {
+      [=](::sycl::nd_item<1> item_ct1)
+      [[intel::reqd_sub_group_size(SgSize)]] {
         decode2_kernel<Scalar>(
           d_data, data_size, data_stride, 
           d_stream, minbits, maxbits, maxprec, 

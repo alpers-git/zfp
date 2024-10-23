@@ -925,7 +925,7 @@ decode1(
   uint granularity
 );
 
-template <typename T>
+template <typename T, int SgSize>
 unsigned long long
 decode2(
   T* d_data,
@@ -1016,7 +1016,16 @@ decode(
       bits_read = internal::decode1<T>(d_data, size, stride, params, d_stream, minbits, maxbits, maxprec, minexp, d_index, index_type, granularity);
       break;
     case 2:
-      bits_read = internal::decode2<T>(d_data, size, stride, params, d_stream, minbits, maxbits, maxprec, minexp, d_index, index_type, granularity);
+      switch (params->min_sub_group_size) {
+        case 8:
+          bits_read = internal::decode2<T, 8>(d_data, size, stride, params, d_stream, minbits, maxbits, maxprec, minexp, d_index, index_type, granularity);
+        break;
+        case 16:
+          bits_read = internal::decode2<T, 16>(d_data, size, stride, params, d_stream, minbits, maxbits, maxprec, minexp, d_index, index_type, granularity);
+        break;
+        default:
+          throw std::runtime_error("Unsupported sub-group size");
+      }
       break;
     case 3:
       switch (params->min_sub_group_size) {

@@ -676,7 +676,7 @@ encode1(
   int minexp
 );
 
-template <typename T>
+template <typename T, int SgSize>
 unsigned long long
 encode2(
   const T* d_data,
@@ -734,7 +734,18 @@ encode(
       bits_written = internal::encode1<T>(d_data, size, stride, params, d_stream, d_index, minbits, maxbits, maxprec, minexp);
       break;
     case 2:
-      bits_written = internal::encode2<T>(d_data, size, stride, params, d_stream, d_index, minbits, maxbits, maxprec, minexp);
+      switch (params->min_sub_group_size)
+      {
+      case 8:
+        bits_written = internal::encode2<T, 8>(d_data, size, stride, params, d_stream, d_index, minbits, maxbits, maxprec, minexp);
+        break;
+      case 16:
+        bits_written = internal::encode2<T, 16>(d_data, size, stride, params, d_stream, d_index, minbits, maxbits, maxprec, minexp);
+        break;
+      default:
+        throw std::runtime_error("Unsupported sub-group size");
+        break;
+      }
       break;
     case 3:
       switch (params->min_sub_group_size)
