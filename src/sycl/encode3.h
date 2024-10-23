@@ -124,7 +124,7 @@ encode3(
   , ::sycl::property_list{::sycl::property::queue::enable_profiling()}
 #endif
   );
-  const int sycl_block_size = SgSize;
+  const int sycl_block_size = SgSize * 2; //TODO: ADJUST FOR PVC
 
   // number of zfp blocks to encode
   const size_t blocks = ((size[0] + 3) / 4) *
