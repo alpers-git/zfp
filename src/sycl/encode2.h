@@ -113,7 +113,7 @@ encode2(
   , ::sycl::property_list{::sycl::property::queue::enable_profiling()}
 #endif
   );
-  const int sycl_block_size = SgSize * 2;//TODO: ADJUST FOR PVC
+  const int sycl_block_size = SgSize;
 
   // number of zfp blocks to encode
   const size_t blocks = ((size[0] + 3) / 4) *
@@ -137,8 +137,7 @@ encode2(
 
     cgh.depends_on({e1});
     cgh.parallel_for(kernel_range,
-      [=](::sycl::nd_item<1> item_ct1)
-      [[intel::reqd_sub_group_size(SgSize)]] {
+      [=](::sycl::nd_item<1> item_ct1) {
         encode2_kernel<Scalar>(
             d_data, data_size, data_stride,
             d_stream, d_index, minbits, maxbits,

@@ -104,8 +104,7 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
   , ::sycl::property_list{::sycl::property::queue::enable_profiling()}
 #endif
   );
-  // block size is fixed to 32 in this version for hybrid index
-  const int sycl_block_size = 32;
+  const int sycl_block_size = 64;
 
   // number of zfp blocks to decode
   const size_t blocks = (size[0] + 3) / 4;
