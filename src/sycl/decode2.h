@@ -29,9 +29,20 @@ void scatter_partial2(const Scalar* q, Scalar* p, uint nx, uint ny, ptrdiff_t sx
     }
 }
 
+template <typename Scalar, int BlockSize>
+inline 
+void scatter2(const SplitMem<Inplace<Scalar>, BlockSize> q, Scalar* const p, const uint nx, 
+    const uint ny, const ptrdiff_t sx, const ptrdiff_t sy)
+{
+    for (uint y = 0; y < ny; y++) {
+        for (uint x = 0; x < nx; x++) {
+            p[x*sx + y*sy] = q[x + 4 * y].scalar;
+        }
+    }
+}
+
 // decode kernel
 template <typename Scalar>
-
 void
 decode2_kernel(
   Scalar* d_data,
@@ -98,6 +109,73 @@ decode2_kernel(
 
   if(block_idx == blocks)
     *max_offset = reader.rtell();
+}
+
+// decode kernel
+template <typename Scalar>
+void
+decode2_kernel(
+  Scalar* d_data,
+  size2 size,
+  ptrdiff2 stride,
+  int2 b,
+  const Word* d_stream,
+  uint minbits,
+  uint maxbits,
+  uint maxprec,
+  int minexp,
+  unsigned long long int* max_offset,
+  const Word* d_index,
+  zfp_index_type index_type,
+  uint granularity
+,
+  const ::sycl::nd_item<1> &item_ct1)
+{
+  #ifdef __SYCL_DEVICE_ONLY__  
+  const int block_idx = item_ct1.get_global_linear_id();
+
+  const int blocks = b.x() * b.y();
+  // return if thread has no blocks assigned
+  if (block_idx >= blocks)
+    return;
+
+  // compute bit offset to compressed block
+  unsigned long long int bit_offset;
+  if (minbits == maxbits)
+      bit_offset = block_idx * maxbits;
+  else if (index_type == zfp_index_offset)
+      bit_offset = d_index[block_idx];
+  else 
+      bit_offset = block_offset(d_index, index_type, block_idx, item_ct1);
+      
+  // logical position in 3d array
+  const int x = (block_idx % b.x()) * 4; 
+  const int y = ((block_idx/b.x()) % b.y()) * 4;
+
+  // offset into field
+  const ptrdiff_t data_offset = x * stride.x() + y * stride.y();
+  auto d_data_offset = d_data + data_offset;
+
+  // scatter data from contiguous block
+  const uint nx = std::min<uint>(size.x() - x, 4);
+  const uint ny = std::min<uint>(size.y() - y, 4);
+
+  BlockReader reader(d_stream, bit_offset);
+
+  // decode blocks assigned to this thread
+  SplitMem<Inplace<Scalar>, ZFP_2D_BLOCK_SIZE> fblock;
+  for (int iter = 0; iter < ZFP_2D_BLOCK_SIZE; iter++) {
+      fblock[iter].scalar = (Scalar)0;
+  }
+
+  decode_block<SplitMem<Inplace<Scalar>, ZFP_2D_BLOCK_SIZE>, ZFP_2D_BLOCK_SIZE>()(fblock, reader, minbits, maxbits,
+                                            maxprec, minexp);
+
+  scatter3(fblock, d_data_offset, nx, ny, stride.x(), stride.y());
+
+  // record maximum bit offset reached by any thread
+  if(block_idx == blocks-1) max_offset[0] = reader.rtell();
+  #endif
 }
 
 // launch decode kernel

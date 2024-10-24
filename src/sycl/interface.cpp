@@ -50,7 +50,7 @@ zfp_internal_sycl_init(zfp_exec_params_sycl* params) try {
           << " and sub-group range: "
           << dev.get_info<::sycl::info::device::sub_group_sizes>()[0]
           << "-"
-          << dev.get_info<::sycl::info::device::sub_group_sizes>()[2]
+          << dev.get_info<::sycl::info::device::sub_group_sizes>()[dev.get_info<::sycl::info::device::sub_group_sizes>().size()-1]
           << std::endl;
       #endif
     } catch (sycl::exception const &exc) {
