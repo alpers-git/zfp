@@ -137,7 +137,8 @@ encode2(
 
     cgh.depends_on({e1});
     cgh.parallel_for(kernel_range,
-      [=](::sycl::nd_item<1> item_ct1) {
+      [=](::sycl::nd_item<1> item_ct1)
+        [[intel::reqd_sub_group_size(32)]] {
         encode2_kernel<Scalar>(
             d_data, data_size, data_stride,
             d_stream, d_index, minbits, maxbits,
