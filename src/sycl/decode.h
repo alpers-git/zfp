@@ -211,12 +211,6 @@ template <typename Int, typename UInt, int BlockSize>
 inline 
 void inv_order(const UInt* ublock, Int* iblock)
 {
-//   const auto perm = get_perm<BlockSize>();
-
-
-// #pragma unroll BlockSize
-//   for (int i = 0; i < BlockSize; i++)
-//     iblock[perm[i]] = uint2int<Int, UInt>(ublock[i]);
   if constexpr(BlockSize == 4)
   {
     iblock[0] = uint2int<Int, UInt>(ublock[0]);

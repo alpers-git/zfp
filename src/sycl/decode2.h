@@ -76,8 +76,8 @@ decode2_kernel(
   // decode blocks assigned to this thread 
   //TODO:FIX ME
   for (; block_idx < block_end; block_idx++) {
-    /*Inplace<*/Scalar/*>*/ fblock[ZFP_2D_BLOCK_SIZE] = { 0 };
-    decode_block</*Inplace<*/Scalar/*>*/, ZFP_2D_BLOCK_SIZE>()(fblock, reader, minbits, maxbits,
+    Inplace<Scalar> fblock[ZFP_2D_BLOCK_SIZE] = { 0 };
+    decode_block<Inplace<Scalar>, ZFP_2D_BLOCK_SIZE>()(fblock, reader, minbits, maxbits,
                                               maxprec, minexp);
 
     // logical position in 2d array
