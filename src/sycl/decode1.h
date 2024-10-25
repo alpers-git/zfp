@@ -129,7 +129,8 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
     auto data_stride = stride[0];
 
     cgh.parallel_for(kernel_range,
-      [=](::sycl::nd_item<1> item_ct1) {
+      [=](::sycl::nd_item<1> item_ct1)
+      [[intel::reqd_sub_group_size(32)]] {
         decode1_kernel<Scalar>(
           d_data, data_size, data_stride, 
           d_stream, minbits, maxbits, maxprec, 
