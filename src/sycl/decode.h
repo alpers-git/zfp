@@ -209,8 +209,139 @@ Int uint2int(UInt x)
 
 template <typename Int, typename UInt, int BlockSize>
 inline 
+void inv_order(const UInt* ublock, Int* iblock)
+{
+//   const auto perm = get_perm<BlockSize>();
+
+
+// #pragma unroll BlockSize
+//   for (int i = 0; i < BlockSize; i++)
+//     iblock[perm[i]] = uint2int<Int, UInt>(ublock[i]);
+  if constexpr(BlockSize == 4)
+  {
+    iblock[0] = uint2int<Int, UInt>(ublock[0]);
+    iblock[1] = uint2int<Int, UInt>(ublock[1]);
+    iblock[2] = uint2int<Int, UInt>(ublock[2]);
+    iblock[3] = uint2int<Int, UInt>(ublock[3]);
+  }
+  else if (BlockSize == 16)
+  {
+#define index(i, j) ((i) + 4 * (j))
+    iblock[index(0, 0)] = uint2int<Int, UInt>(ublock[0]);
+    iblock[index(1, 0)] = uint2int<Int, UInt>(ublock[1]);
+    iblock[index(0, 1)] = uint2int<Int, UInt>(ublock[2]);
+    iblock[index(1, 1)] = uint2int<Int, UInt>(ublock[3]);
+    iblock[index(2, 0)] = uint2int<Int, UInt>(ublock[4]);
+    iblock[index(0, 2)] = uint2int<Int, UInt>(ublock[5]);
+    iblock[index(2, 1)] = uint2int<Int, UInt>(ublock[6]);
+    iblock[index(1, 2)] = uint2int<Int, UInt>(ublock[7]);
+    iblock[index(3, 0)] = uint2int<Int, UInt>(ublock[8]);
+    iblock[index(0, 3)] = uint2int<Int, UInt>(ublock[9]);
+    iblock[index(2, 2)] = uint2int<Int, UInt>(ublock[10]);
+    iblock[index(3, 1)] = uint2int<Int, UInt>(ublock[11]);
+    iblock[index(1, 3)] = uint2int<Int, UInt>(ublock[12]);
+    iblock[index(3, 2)] = uint2int<Int, UInt>(ublock[13]);
+    iblock[index(2, 3)] = uint2int<Int, UInt>(ublock[14]);
+    iblock[index(3, 3)] = uint2int<Int, UInt>(ublock[15]);
+#undef index
+  }
+  else
+   {
+    const auto perm = get_perm<BlockSize>();
+    for (int i = 0; i < BlockSize; i++)
+      iblock[perm[i]] = uint2int<Int, UInt>(ublock[i]);
+   }
+}
+
+template <typename Int, typename UInt, int BlockSize>
+inline
 void inv_order(Inplace<Int>* block)
 {
+  if constexpr(BlockSize == 4)
+  {
+    block[0].intVal = uint2int<Int, UInt>(block[0].uintVal);
+    block[1].intVal = uint2int<Int, UInt>(block[1].uintVal);
+    block[2].intVal = uint2int<Int, UInt>(block[2].uintVal);
+    block[3].intVal = uint2int<Int, UInt>(block[3].uintVal);
+  }
+  else if (BlockSize == 16)
+  {
+#define index(x, y) ((x) + 4 * (y))
+    block[index(0, 0)].intVal = uint2int<Int, UInt>(block[0].uintVal); // 0<-0
+    block[index(1, 0)].intVal = uint2int<Int, UInt>(block[1].uintVal); // 1<-1
+
+    UInt temp = block[index(0, 1)].uintVal; // hold 4s value
+    block[index(0, 1)].intVal = uint2int<Int, UInt>(block[2].uintVal); // 4<-2
+    block[index(2, 0)].intVal = uint2int<Int, UInt>(temp);  //2<-4
+
+    temp = block[index(1, 1)].uintVal; // hold 5s value
+    block[index(1, 1)].intVal = uint2int<Int, UInt>(block[3].uintVal); // 5<-3
+    block[index(3, 0)].intVal = uint2int<Int, UInt>(block[8].uintVal); // 3<-8
+    block[index(0, 2)].intVal = uint2int<Int, UInt>(temp); // 8<-5
+
+    block[index(2, 1)].intVal = uint2int<Int, UInt>(block[6].uintVal); // 6<-6
+
+    temp = block[index(1, 2)].uintVal; // hold 9s value
+    block[index(1, 2)].intVal = uint2int<Int, UInt>(block[7].uintVal); // 9<-7
+    block[index(3, 1)].intVal = uint2int<Int, UInt>(block[11].uintVal); // 7<-11
+    block[index(3, 2)].intVal = uint2int<Int, UInt>(block[13].uintVal); // 11<-13
+    block[index(1, 3)].intVal = uint2int<Int, UInt>(block[12].uintVal); // 13<-12
+    block[index(0, 3)].intVal = uint2int<Int, UInt>(temp); // 12<-9
+
+    block[index(2, 2)].intVal = uint2int<Int, UInt>(block[10].uintVal); // 10<-10
+    
+    block[index(2, 3)].intVal = uint2int<Int, UInt>(block[14].uintVal);//14
+
+    block[index(3, 3)].intVal = uint2int<Int, UInt>(block[15].uintVal);//15
+#undef index
+  }
+  else
+   {
+    const auto perm = get_perm<BlockSize>();
+    for (int i = 0; i < BlockSize; i++)
+      block[perm[i]].intVal = uint2int<Int, UInt>(block[i].uintVal);
+   }
+}
+
+// template <typename Int, typename UInt, int BlockSize>
+// inline typename std::enable_if<BlockSize == 16>::type inv_order(Inplace<Int>* block)
+// {
+//   static_assert(BlockSize == 16, "inv_order is only implemented for BlockSize = 16.");
+//   #define index(x, y) ((x) + 4 * (y))
+//   block[index(0, 0)].intVal = uint2int<Int, UInt>(block[0].uintVal); // 0<-0
+//   block[index(1, 0)].intVal = uint2int<Int, UInt>(block[1].uintVal); // 1<-1
+
+//   UInt temp = block[index(0, 1)].uintVal; // hold 4s value
+//   block[index(0, 1)].intVal = uint2int<Int, UInt>(block[2].uintVal); // 4<-2
+//   block[index(2, 0)].intVal = uint2int<Int, UInt>(temp);  //2<-4
+
+//   temp = block[index(1, 1)].uintVal; // hold 5s value
+//   block[index(1, 1)].intVal = uint2int<Int, UInt>(block[3].uintVal); // 5<-3
+//   block[index(3, 0)].intVal = uint2int<Int, UInt>(block[8].uintVal); // 3<-8
+//   block[index(0, 2)].intVal = uint2int<Int, UInt>(temp); // 8<-5
+
+//   block[index(2, 1)].intVal = uint2int<Int, UInt>(block[6].uintVal); // 6<-6
+
+//   temp = block[index(1, 2)].uintVal; // hold 9s value
+//   block[index(1, 2)].intVal = uint2int<Int, UInt>(block[7].uintVal); // 9<-7
+//   block[index(3, 1)].intVal = uint2int<Int, UInt>(block[11].uintVal); // 7<-11
+//   block[index(3, 2)].intVal = uint2int<Int, UInt>(block[13].uintVal); // 11<-13
+//   block[index(1, 3)].intVal = uint2int<Int, UInt>(block[12].uintVal); // 13<-12
+//   block[index(2, 2)].intVal = uint2int<Int, UInt>(temp); // 12<-9
+
+//   block[index(2, 2)].intVal = uint2int<Int, UInt>(block[10].uintVal); // 10<-10
+  
+//   block[index(2, 3)].intVal = uint2int<Int, UInt>(block[14].uintVal);//14
+
+//   block[index(3, 3)].intVal = uint2int<Int, UInt>(block[15].uintVal);//15
+
+// }
+
+
+template <typename Int, typename UInt, int BlockSize>
+inline typename std::enable_if<BlockSize == 64>::type inv_order(Inplace<Int>* block)
+{
+  static_assert(BlockSize == 64, "inv_order is only implemented for BlockSize = 64.");
   #define index(x, y, z) ((x) + 4 * ((y) + 4 * (z)))
   block[index(0, 0, 0)].intVal = uint2int<Int, UInt>(block[0].uintVal); // 0<-0
   block[index(1, 0, 0)].intVal = uint2int<Int, UInt>(block[1].uintVal); // 1<-1
@@ -293,9 +424,15 @@ void inv_order(Inplace<Int>* block)
   #undef index
 }
 
+// template <typename Scalar, int BlockSize>
+// inline 
+// void inv_order(SplitMem<Inplace<Scalar>, BlockSize>& block)
+// {
+//   //Not implemented
+// }
 
 template <typename Scalar, int BlockSize>
-inline 
+inline
 void inv_order(SplitMem<Inplace<Scalar>, BlockSize>& block)
 {
   #define index(x, y, z) ((x) + 4 * ((y) + 4 * (z)))
@@ -380,52 +517,6 @@ void inv_order(SplitMem<Inplace<Scalar>, BlockSize>& block)
 
   block[index(3, 3, 3)].intVal = uint2int<Int, UInt>(block[63].uintVal); // 63<-63
   #undef index
-}
-
-template <typename Int, typename UInt, int BlockSize>
-inline 
-void inv_order(const UInt* ublock, Int* iblock)
-{
-//   const auto perm = get_perm<BlockSize>();
-
-
-// #pragma unroll BlockSize
-//   for (int i = 0; i < BlockSize; i++)
-//     iblock[perm[i]] = uint2int<Int, UInt>(ublock[i]);
-  if constexpr(BlockSize == 4)
-  {
-    iblock[0] = uint2int<Int, UInt>(ublock[0]);
-    iblock[1] = uint2int<Int, UInt>(ublock[1]);
-    iblock[2] = uint2int<Int, UInt>(ublock[2]);
-    iblock[3] = uint2int<Int, UInt>(ublock[3]);
-  }
-  else if (BlockSize == 16)
-  {
-#define index(i, j) ((i) + 4 * (j))
-    iblock[index(0, 0)] = uint2int<Int, UInt>(ublock[0]);
-    iblock[index(1, 0)] = uint2int<Int, UInt>(ublock[1]);
-    iblock[index(0, 1)] = uint2int<Int, UInt>(ublock[2]);
-    iblock[index(1, 1)] = uint2int<Int, UInt>(ublock[3]);
-    iblock[index(2, 0)] = uint2int<Int, UInt>(ublock[4]);
-    iblock[index(0, 2)] = uint2int<Int, UInt>(ublock[5]);
-    iblock[index(2, 1)] = uint2int<Int, UInt>(ublock[6]);
-    iblock[index(1, 2)] = uint2int<Int, UInt>(ublock[7]);
-    iblock[index(3, 0)] = uint2int<Int, UInt>(ublock[8]);
-    iblock[index(0, 3)] = uint2int<Int, UInt>(ublock[9]);
-    iblock[index(2, 2)] = uint2int<Int, UInt>(ublock[10]);
-    iblock[index(3, 1)] = uint2int<Int, UInt>(ublock[11]);
-    iblock[index(1, 3)] = uint2int<Int, UInt>(ublock[12]);
-    iblock[index(3, 2)] = uint2int<Int, UInt>(ublock[13]);
-    iblock[index(2, 3)] = uint2int<Int, UInt>(ublock[14]);
-    iblock[index(3, 3)] = uint2int<Int, UInt>(ublock[15]);
-#undef index
-  }
-  else
-   {
-    const auto perm = get_perm<BlockSize>();
-    for (int i = 0; i < BlockSize; i++)
-      iblock[perm[i]] = uint2int<Int, UInt>(ublock[i]);
-   }
 }
 
 template <typename UInt, int BlockSize>
@@ -552,8 +643,6 @@ uint decode_ints_prec(SplitMem<Inplace<Scalar>, BlockSize>& fblock, BlockReader&
         ;
 
     // deposit bit plane (use fixed bound to prevent warp divergence)
-    //#pragma unroll 4
-    //#pragma nounroll
     for (int i = 0; i < BlockSize; i++) {
         if (x & ((uint64)1 << i)) fblock[i].uintVal |= mask;
     }
