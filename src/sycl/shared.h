@@ -54,7 +54,7 @@ union Inplace{
   traits<Scalar>::Int intVal;
   traits<Scalar>::UInt uintVal;
   Inplace(Scalar s) : scalar(s) {}
-  Inplace() {}
+  Inplace() {scalar = 0;}
 };
 
 //Split the bigger size arrays into smaller arrays
