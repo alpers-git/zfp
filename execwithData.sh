@@ -45,5 +45,6 @@ for dims in "${dims_list[@]}"; do
   for r in "${r_values[@]}"; do
     echo "Running with dimensions: $dims and r=$r..."
     ./bin/zfp $mode_flag -i "$input_file" -z "$compressed_file" -o "$output_file" $dims -r $r -s $sycl_flag
+    ./bin/zfp $mode_flag -i "$input_file" -z "$compressed_file" -o "$output_file" $dims -r $r -s
   done
 done
