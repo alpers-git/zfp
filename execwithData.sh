@@ -19,9 +19,11 @@ dim2=$((dim_y * dim_z))
 # Validate file extension and set mode (-f or -d) and r_values
 if [[ "$input_file" == *.f32 ]]; then
   mode_flag="-f"
+  extension=".f32"
   r_values=(1 2 4 8 16 32)
 elif [[ "$input_file" == *.d64 ]]; then
   mode_flag="-d"
+  extension=".d64"
   r_values=(1 2 4 8 16 32 64)
 else
   echo "Error: Input file must have a .f32 or .d64 extension."
@@ -36,8 +38,8 @@ dims_list=(
 )
 
 # Base command components
-compressed_file="compressed.f32.zfp"
-output_file="uncompressed.f32.zfp.out"
+compressed_file="compressed$extension.zfp"
+output_file="uncompressed$extension.zfp.out"
 sycl_flag="-x sycl"
 
 # Nested loops: Iterate over both dimensionalities and r parameters
