@@ -151,23 +151,23 @@ struct inv_xform<Int, 64> {
   }
 };
 
-template <>
-struct inv_xform<SplitMem<Inplace<float>, 64>, 64> {
+template <typename Int>
+struct inv_xform<SplitMem<Inplace<Int>, 64>, 64> {
   inline 
-  void operator()(SplitMem<Inplace<float>, 64>& p) const
+  void operator()(SplitMem<Inplace<Int>, 64>& p) const
   {
     // transform along z
     for (uint y = 0; y < 4; y++)
       for (uint x = 0; x < 4; x++)
-        inv_lift<float, 16, 64>(p, 1 * x + 4 * y);
+        inv_lift<Int, 16, 64>(p, 1 * x + 4 * y);
     // transform along y
     for (uint x = 0; x < 4; x++)
       for (uint z = 0; z < 4; z++)
-        inv_lift<float, 4, 64>(p, 16 * z + 1 * x);
+        inv_lift<Int, 4, 64>(p, 16 * z + 1 * x);
     // transform along x
     for (uint z = 0; z < 4; z++)
       for (uint y = 0; y < 4; y++)
-        inv_lift<float, 1, 64>(p, 4 * y + 16 * z);
+        inv_lift<Int, 1, 64>(p, 4 * y + 16 * z);
   }
 };
 
@@ -967,7 +967,8 @@ struct decode_block<SplitMem<Inplace<double>, BlockSize>, BlockSize> {
   uint operator()(SplitMem<Inplace<double>, BlockSize>& fblock, BlockReader& reader, const uint minbits, const uint maxbits, const uint maxprec, const int minexp) const
   {
     
-    return 0;
+    return decode_float_block<double, BlockSize>(fblock, reader, minbits,
+                                            maxbits, maxprec, minexp);
   }
 };
 
@@ -976,7 +977,7 @@ struct decode_block<SplitMem<Inplace<int>, BlockSize>, BlockSize> {
   inline 
   uint operator()(SplitMem<Inplace<int>, BlockSize>& fblock, BlockReader& reader, const uint minbits, const uint maxbits, const uint maxprec, const int minexp) const
   {
-    return 0;
+    return decode_int_block<int, BlockSize>(fblock, reader, minbits, maxbits, maxprec);
   }
 };
 
@@ -986,7 +987,7 @@ struct decode_block<SplitMem<Inplace<long long>, BlockSize>, BlockSize> {
   inline 
   uint operator()(SplitMem<Inplace<long long>, BlockSize>& fblock, BlockReader& reader, const uint minbits, const uint maxbits, const uint maxprec, const int minexp) const
   {
-    return 0;
+    return decode_int_block<long long, BlockSize>(fblock, reader, minbits, maxbits, maxprec);
   }
 };
 
