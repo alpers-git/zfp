@@ -8,7 +8,7 @@ if(ZFP_WITH_SYCL)
   include(cmake/FindSYCL.cmake)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-rtti")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ipo -fsycl -fsycl-device-code-split=per_kernel")
-  if(DEFINED ZFP_WITH_SYCL_DEVICE AND NOT ZFP_WITH_SYCL_DEVICE STREQUAL "") #if the device is set it triggers AOT compilation
+  if(DEFINED ZFP_WITH_SYCL_DEVICE AND NOT (ZFP_WITH_SYCL_DEVICE STREQUAL "" OR ZFP_WITH_SYCL_DEVICE STREQUAL "OFF")) #if the device is set it triggers AOT compilation
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl-targets=spir64_gen -Xsycl-target-backend \"-device ${ZFP_WITH_SYCL_DEVICE} -options -ze-intel-enable-small-GRF-mode\"")
   else() # otherwise it triggers JIT compilation
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl-targets=spir64 -Xsycl-target-backend \"-options -ze-intel-enable-small-GRF-mode\"")
