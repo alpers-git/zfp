@@ -1,4 +1,5 @@
 #include <sycl/sycl.hpp>
+#include <sycl/ext/intel/experimental/grf_size_properties.hpp>
 #ifndef ZFP_SYCL_DECODE3_H
 #define ZFP_SYCL_DECODE3_H
 
@@ -244,7 +245,10 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
     auto data_stride =
       make_ptrdiff3(stride[0], stride[1], stride[2]);
 
-    cgh.parallel_for(kernel_range,
+    if constexpr (std::is_integral<Scalar>::value || std::is_same<Scalar, float>::value) //32-bit
+    {
+      syclex::properties kernel_properties{intelex::grf_size<128>};//use small grf mode
+      cgh.parallel_for(kernel_range, kernel_properties,
       [=](::sycl::nd_item<1> item_ct1)
       [[intel::reqd_sub_group_size(SgSize)]] {
         decode3_kernel<Scalar>(
@@ -253,6 +257,20 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
           minexp, offset, d_index, index_type,
           /*granularity,*/ item_ct1);
       });
+    }
+    else
+    {
+      syclex::properties kernel_properties{intelex::grf_size<256>};//use large grf mode
+      cgh.parallel_for(kernel_range, kernel_properties,
+      [=](::sycl::nd_item<1> item_ct1)
+      [[intel::reqd_sub_group_size(SgSize)]] {
+        decode3_kernel<Scalar>(
+          d_data, data_size, data_stride, b,
+          d_stream, minbits, maxbits, maxprec, 
+          minexp, offset, d_index, index_type,
+          /*granularity,*/ item_ct1);
+      });
+    }
     });
   kernel.wait();
 #ifdef ZFP_WITH_SYCL_PROFILE

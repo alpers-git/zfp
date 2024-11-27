@@ -3,9 +3,11 @@
 
 
 #include <sycl/sycl.hpp>
+#include <sycl/ext/intel/experimental/grf_size_properties.hpp>
 #include <dpct/dpct.hpp>
 #include <cmath>
 #include <cstdio>
+#include <type_traits>
 #include "zfp.h"
 #include "traits.h"
 #include "constants.h"
@@ -31,6 +33,9 @@ typedef unsigned long long Word;
 namespace zfp {
 namespace sycl {
 namespace internal {
+
+namespace syclex = ::sycl::ext::oneapi::experimental;
+namespace intelex = ::sycl::ext::intel::experimental;
 
 typedef ::sycl::ulong2 size2;
 typedef ::sycl::ulong3 size3;

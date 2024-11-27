@@ -148,7 +148,10 @@ encode3(
       make_ptrdiff3(stride[0], stride[1], stride[2]);
 
     cgh.depends_on({e1});
-    cgh.parallel_for(kernel_range,
+    if constexpr (std::is_integral<Scalar>::value || std::is_same<Scalar, float>::value) //32-bit
+    {
+      syclex::properties kernel_properties{intelex::grf_size<128>};//use small grf mode
+      cgh.parallel_for(kernel_range, kernel_properties,
       [=](::sycl::nd_item<1> item_ct1)
       [[intel::reqd_sub_group_size(SgSize)]] {
 
@@ -157,6 +160,20 @@ encode3(
           d_stream,d_index, minbits, maxbits,
           maxprec, minexp, item_ct1);
       });
+    }
+    else //64-bit
+    {
+      syclex::properties kernel_properties{intelex::grf_size<256>}; //use large grf mode
+      cgh.parallel_for(kernel_range, kernel_properties,
+      [=](::sycl::nd_item<1> item_ct1)
+      [[intel::reqd_sub_group_size(SgSize)]] {
+
+        encode3_kernel<Scalar>(
+          d_data, data_size, data_stride,
+          d_stream,d_index, minbits, maxbits,
+          maxprec, minexp, item_ct1);
+      });
+    }
   });
   kernel.wait();
 #ifdef ZFP_WITH_SYCL_PROFILE
