@@ -267,10 +267,10 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
       [=](::sycl::nd_item<1> item_ct1)
       [[intel::reqd_sub_group_size(SgSize)]] {
         decode3_kernel<Scalar>(
-          d_data, data_size, data_stride,
+          d_data, data_size, data_stride, b,
           d_stream, minbits, maxbits, maxprec, 
           minexp, offset, d_index, index_type,
-          granularity, item_ct1);
+          /*granularity,*/ item_ct1);
       });
     }
     });
