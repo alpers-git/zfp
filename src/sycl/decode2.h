@@ -31,7 +31,6 @@ void scatter_partial2(const Scalar* q, Scalar* p, uint nx, uint ny, ptrdiff_t sx
 
 // decode kernel
 template <typename Scalar>
-
 void
 decode2_kernel(
   Scalar* d_data,

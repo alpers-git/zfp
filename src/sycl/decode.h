@@ -289,141 +289,99 @@ void inv_order(Inplace<Int>* block)
     block[index(3, 3)].intVal = uint2int<Int, UInt>(block[15].uintVal);//15
 #undef index
   }
-  else
+  else if (BlockSize == 64)
+   {
+    // const auto perm = get_perm<BlockSize>();
+    // for (int i = 0; i < BlockSize; i++)
+    //   block[perm[i]].intVal = uint2int<Int, UInt>(block[i].uintVal);
+    #define index(x, y, z) ((x) + 4 * ((y) + 4 * (z)))
+    block[index(0, 0, 0)].intVal = uint2int<Int, UInt>(block[0].uintVal); // 0<-0
+    block[index(1, 0, 0)].intVal = uint2int<Int, UInt>(block[1].uintVal); // 1<-1
+
+    UInt temp = block[index(0, 1, 0)].uintVal; // hold 4s value
+    block[index(0, 1, 0)].intVal = uint2int<Int, UInt>(block[2].uintVal); // 4<-2
+    block[index(2, 0, 0)].intVal = uint2int<Int, UInt>(block[index(3, 1, 0)].uintVal); // 2<-7
+    block[index(3, 1, 0)].intVal = uint2int<Int, UInt>(block[index(2, 2, 1)].uintVal); // 7<-26
+    block[index(2, 2, 1)].intVal = uint2int<Int, UInt>(block[index(2, 0, 2)].uintVal); // 26<-34
+    block[index(2, 0, 2)].intVal = uint2int<Int, UInt>(block[index(0, 2, 1)].uintVal); // 34<-24
+    block[index(0, 2, 1)].intVal = uint2int<Int, UInt>(block[index(1, 3, 0)].uintVal); // 24<-13
+    block[index(1, 3, 0)].intVal = uint2int<Int, UInt>(block[index(1, 3, 1)].uintVal); // 13<-29
+    block[index(1, 3, 1)].intVal = uint2int<Int, UInt>(block[index(0, 1, 2)].uintVal); // 29<-36
+    block[index(0, 1, 2)].intVal = uint2int<Int, UInt>(block[index(0, 0, 1)].uintVal); // 36<-16
+    block[index(0, 0, 1)].intVal = uint2int<Int, UInt>(block[index(3, 0, 0)].uintVal); // 16<-3 
+    block[index(3, 0, 0)].intVal = uint2int<Int, UInt>(block[index(1, 0, 1)].uintVal); // 3<-17
+    block[index(1, 0, 1)].intVal = uint2int<Int, UInt>(block[index(1, 1, 0)].uintVal); // 17<-5 
+    block[index(1, 1, 0)].intVal = uint2int<Int, UInt>(block[index(2, 1, 0)].uintVal); // 5<-6 
+    block[index(2, 1, 0)].intVal = uint2int<Int, UInt>(block[index(3, 2, 0)].uintVal); // 6<-11
+    block[index(3, 2, 0)].intVal = uint2int<Int, UInt>(block[index(2, 1, 2)].uintVal); // 11<-38
+    block[index(2, 1, 2)].intVal = uint2int<Int, UInt>(block[index(1, 0, 2)].uintVal); // 38<-33
+    block[index(1, 0, 2)].intVal = uint2int<Int, UInt>(block[index(3, 3, 0)].uintVal); // 33<-15
+    block[index(3, 3, 0)].intVal = uint2int<Int, UInt>(block[index(1, 1, 3)].uintVal); // 15<-53
+    block[index(1, 1, 3)].intVal = uint2int<Int, UInt>(block[index(1, 1, 2)].uintVal); // 53<-37
+    block[index(1, 1, 2)].intVal = uint2int<Int, UInt>(block[index(2, 1, 1)].uintVal); // 37<-22
+    block[index(2, 1, 1)].intVal = uint2int<Int, UInt>(block[index(0, 1, 1)].uintVal); // 22<-20
+    block[index(0, 1, 1)].intVal = uint2int<Int, UInt>(temp); // 20<-4   
+
+    block[index(0, 2, 0)].intVal = uint2int<Int, UInt>(block[8].intVal); // 8<-8
+
+    
+    temp = block[index(0, 0, 2)].uintVal; // hold 32s value
+    block[index(0, 0, 2)].intVal = uint2int<Int, UInt>(block[9].uintVal); // 32<-9
+    block[index(1, 2, 0)].intVal = uint2int<Int, UInt>(block[index(2, 3, 0)].uintVal);// 9<-14
+    block[index(2, 3, 0)].intVal = uint2int<Int, UInt>(block[index(1, 2, 2)].uintVal); // 14<-41
+    block[index(1, 2, 2)].intVal = uint2int<Int, UInt>(temp); // 41<-32
+
+    temp = block[index(1, 1, 1)].uintVal; // hold 21s value 
+    block[index(1, 1, 1)].intVal = uint2int<Int, UInt>(block[10].uintVal); // 21<-10
+    block[index(2, 2, 0)].intVal = uint2int<Int, UInt>(block[index(1, 2, 1)].uintVal); // 10<-25
+    block[index(1, 2, 1)].intVal = uint2int<Int, UInt>(temp); // 25<-21
+
+    temp = block[index(2, 0, 1)].uintVal; // hold 18s value
+    block[index(2, 0, 1)].intVal = uint2int<Int, UInt>(block[12].uintVal); // 18<-12
+    block[index(0, 3, 0)].intVal = uint2int<Int, UInt>(temp); // 12<-18
+
+    temp = block[index(0, 0, 3)].uintVal; // hold 48s value
+    block[index(0, 0, 3)].intVal = uint2int<Int, UInt>(block[19].uintVal); // 48<-19
+    block[index(3, 0, 1)].intVal = uint2int<Int, UInt>(block[index(3, 2, 1)].uintVal); // 19<-27
+    block[index(3, 2, 1)].intVal = uint2int<Int, UInt>(block[index(1, 3, 2)].uintVal); // 27<-45
+    block[index(1, 3, 2)].intVal = uint2int<Int, UInt>(block[index(3, 3, 2)].uintVal); // 45<-47
+    block[index(3, 3, 2)].intVal = uint2int<Int, UInt>(block[index(2, 3, 3)].uintVal); // 47<-62
+    block[index(2, 3, 3)].intVal = uint2int<Int, UInt>(block[index(0, 3, 3)].uintVal); // 62<-60
+    block[index(0, 3, 3)].intVal = uint2int<Int, UInt>(block[index(3, 0, 3)].uintVal); // 60<-51
+    block[index(3, 0, 3)].intVal = uint2int<Int, UInt>(block[index(0, 1, 3)].uintVal); // 51<-52
+    block[index(0, 1, 3)].intVal = uint2int<Int, UInt>(block[index(3, 3, 1)].uintVal); // 52<-31
+    block[index(3, 3, 1)].intVal = uint2int<Int, UInt>(block[index(3, 2, 3)].uintVal); // 31<-59
+    block[index(3, 2, 3)].intVal = uint2int<Int, UInt>(block[index(1, 3, 3)].uintVal); // 59<-61
+    block[index(1, 3, 3)].intVal = uint2int<Int, UInt>(block[index(1, 2, 3)].uintVal); // 61<-57
+    block[index(1, 2, 3)].intVal = uint2int<Int, UInt>(block[index(2, 0, 3)].uintVal); // 57<-50
+    block[index(2, 0, 3)].intVal = uint2int<Int, UInt>(block[index(2, 2, 2)].uintVal); // 50<-42
+    block[index(2, 2, 2)].intVal = uint2int<Int, UInt>(block[index(0, 3, 2)].uintVal); // 42<-44
+    block[index(0, 3, 2)].intVal = uint2int<Int, UInt>(block[index(0, 2, 2)].uintVal); // 44<-40
+    block[index(0, 2, 2)].intVal = uint2int<Int, UInt>(block[index(3, 1, 1)].uintVal); // 40<-23
+    block[index(3, 1, 1)].intVal = uint2int<Int, UInt>(block[index(3, 0, 2)].uintVal); // 23<-35
+    block[index(3, 0, 2)].intVal = uint2int<Int, UInt>(block[index(3, 1, 2)].uintVal); // 35<-39
+    block[index(3, 1, 2)].intVal = uint2int<Int, UInt>(block[index(2, 3, 2)].uintVal); // 39<-46
+    block[index(2, 3, 2)].intVal = uint2int<Int, UInt>(block[index(3, 1, 3)].uintVal); // 46<-55
+    block[index(3, 1, 3)].intVal = uint2int<Int, UInt>(block[index(2, 2, 3)].uintVal); // 55<-58
+    block[index(2, 2, 3)].intVal = uint2int<Int, UInt>(block[index(0, 2, 3)].uintVal); // 58<-56
+    block[index(0, 2, 3)].intVal = uint2int<Int, UInt>(block[index(3, 2, 2)].uintVal); // 56<-43
+    block[index(3, 2, 2)].intVal = uint2int<Int, UInt>(block[index(2, 1, 3)].uintVal); // 43<-54
+    block[index(2, 1, 3)].intVal = uint2int<Int, UInt>(block[index(1, 0, 3)].uintVal); // 54<-49
+    block[index(1, 0, 3)].intVal = uint2int<Int, UInt>(block[index(2, 3, 1)].uintVal); // 49<-30
+    block[index(2, 3, 1)].intVal = uint2int<Int, UInt>(temp); // 30<-48
+
+    block[index(0, 3, 1)].intVal = uint2int<Int, UInt>(block[28].uintVal); // 28<-28
+
+    block[index(3, 3, 3)].intVal = uint2int<Int, UInt>(block[63].uintVal); // 63<-63
+    #undef index
+   }
+   else
    {
     const auto perm = get_perm<BlockSize>();
     for (int i = 0; i < BlockSize; i++)
       block[perm[i]].intVal = uint2int<Int, UInt>(block[i].uintVal);
    }
 }
-
-// template <typename Int, typename UInt, int BlockSize>
-// inline typename std::enable_if<BlockSize == 16>::type inv_order(Inplace<Int>* block)
-// {
-//   static_assert(BlockSize == 16, "inv_order is only implemented for BlockSize = 16.");
-//   #define index(x, y) ((x) + 4 * (y))
-//   block[index(0, 0)].intVal = uint2int<Int, UInt>(block[0].uintVal); // 0<-0
-//   block[index(1, 0)].intVal = uint2int<Int, UInt>(block[1].uintVal); // 1<-1
-
-//   UInt temp = block[index(0, 1)].uintVal; // hold 4s value
-//   block[index(0, 1)].intVal = uint2int<Int, UInt>(block[2].uintVal); // 4<-2
-//   block[index(2, 0)].intVal = uint2int<Int, UInt>(temp);  //2<-4
-
-//   temp = block[index(1, 1)].uintVal; // hold 5s value
-//   block[index(1, 1)].intVal = uint2int<Int, UInt>(block[3].uintVal); // 5<-3
-//   block[index(3, 0)].intVal = uint2int<Int, UInt>(block[8].uintVal); // 3<-8
-//   block[index(0, 2)].intVal = uint2int<Int, UInt>(temp); // 8<-5
-
-//   block[index(2, 1)].intVal = uint2int<Int, UInt>(block[6].uintVal); // 6<-6
-
-//   temp = block[index(1, 2)].uintVal; // hold 9s value
-//   block[index(1, 2)].intVal = uint2int<Int, UInt>(block[7].uintVal); // 9<-7
-//   block[index(3, 1)].intVal = uint2int<Int, UInt>(block[11].uintVal); // 7<-11
-//   block[index(3, 2)].intVal = uint2int<Int, UInt>(block[13].uintVal); // 11<-13
-//   block[index(1, 3)].intVal = uint2int<Int, UInt>(block[12].uintVal); // 13<-12
-//   block[index(2, 2)].intVal = uint2int<Int, UInt>(temp); // 12<-9
-
-//   block[index(2, 2)].intVal = uint2int<Int, UInt>(block[10].uintVal); // 10<-10
-  
-//   block[index(2, 3)].intVal = uint2int<Int, UInt>(block[14].uintVal);//14
-
-//   block[index(3, 3)].intVal = uint2int<Int, UInt>(block[15].uintVal);//15
-
-// }
-
-
-template <typename Int, typename UInt, int BlockSize>
-inline typename std::enable_if<BlockSize == 64>::type inv_order(Inplace<Int>* block)
-{
-  static_assert(BlockSize == 64, "inv_order is only implemented for BlockSize = 64.");
-  #define index(x, y, z) ((x) + 4 * ((y) + 4 * (z)))
-  block[index(0, 0, 0)].intVal = uint2int<Int, UInt>(block[0].uintVal); // 0<-0
-  block[index(1, 0, 0)].intVal = uint2int<Int, UInt>(block[1].uintVal); // 1<-1
-
-  UInt temp = block[index(0, 1, 0)].uintVal; // hold 4s value
-  block[index(0, 1, 0)].intVal = uint2int<Int, UInt>(block[2].uintVal); // 4<-2
-  block[index(2, 0, 0)].intVal = uint2int<Int, UInt>(block[index(3, 1, 0)].uintVal); // 2<-7
-  block[index(3, 1, 0)].intVal = uint2int<Int, UInt>(block[index(2, 2, 1)].uintVal); // 7<-26
-  block[index(2, 2, 1)].intVal = uint2int<Int, UInt>(block[index(2, 0, 2)].uintVal); // 26<-34
-  block[index(2, 0, 2)].intVal = uint2int<Int, UInt>(block[index(0, 2, 1)].uintVal); // 34<-24
-  block[index(0, 2, 1)].intVal = uint2int<Int, UInt>(block[index(1, 3, 0)].uintVal); // 24<-13
-  block[index(1, 3, 0)].intVal = uint2int<Int, UInt>(block[index(1, 3, 1)].uintVal); // 13<-29
-  block[index(1, 3, 1)].intVal = uint2int<Int, UInt>(block[index(0, 1, 2)].uintVal); // 29<-36
-  block[index(0, 1, 2)].intVal = uint2int<Int, UInt>(block[index(0, 0, 1)].uintVal); // 36<-16
-  block[index(0, 0, 1)].intVal = uint2int<Int, UInt>(block[index(3, 0, 0)].uintVal); // 16<-3 
-  block[index(3, 0, 0)].intVal = uint2int<Int, UInt>(block[index(1, 0, 1)].uintVal); // 3<-17
-  block[index(1, 0, 1)].intVal = uint2int<Int, UInt>(block[index(1, 1, 0)].uintVal); // 17<-5 
-  block[index(1, 1, 0)].intVal = uint2int<Int, UInt>(block[index(2, 1, 0)].uintVal); // 5<-6 
-  block[index(2, 1, 0)].intVal = uint2int<Int, UInt>(block[index(3, 2, 0)].uintVal); // 6<-11
-  block[index(3, 2, 0)].intVal = uint2int<Int, UInt>(block[index(2, 1, 2)].uintVal); // 11<-38
-  block[index(2, 1, 2)].intVal = uint2int<Int, UInt>(block[index(1, 0, 2)].uintVal); // 38<-33
-  block[index(1, 0, 2)].intVal = uint2int<Int, UInt>(block[index(3, 3, 0)].uintVal); // 33<-15
-  block[index(3, 3, 0)].intVal = uint2int<Int, UInt>(block[index(1, 1, 3)].uintVal); // 15<-53
-  block[index(1, 1, 3)].intVal = uint2int<Int, UInt>(block[index(1, 1, 2)].uintVal); // 53<-37
-  block[index(1, 1, 2)].intVal = uint2int<Int, UInt>(block[index(2, 1, 1)].uintVal); // 37<-22
-  block[index(2, 1, 1)].intVal = uint2int<Int, UInt>(block[index(0, 1, 1)].uintVal); // 22<-20
-  block[index(0, 1, 1)].intVal = uint2int<Int, UInt>(temp); // 20<-4   
-
-  block[index(0, 2, 0)].intVal = uint2int<Int, UInt>(block[8].intVal); // 8<-8
-
-  
-  temp = block[index(0, 0, 2)].uintVal; // hold 32s value
-  block[index(0, 0, 2)].intVal = uint2int<Int, UInt>(block[9].uintVal); // 32<-9
-  block[index(1, 2, 0)].intVal = uint2int<Int, UInt>(block[index(2, 3, 0)].uintVal);// 9<-14
-  block[index(2, 3, 0)].intVal = uint2int<Int, UInt>(block[index(1, 2, 2)].uintVal); // 14<-41
-  block[index(1, 2, 2)].intVal = uint2int<Int, UInt>(temp); // 41<-32
-
-  temp = block[index(1, 1, 1)].uintVal; // hold 21s value 
-  block[index(1, 1, 1)].intVal = uint2int<Int, UInt>(block[10].uintVal); // 21<-10
-  block[index(2, 2, 0)].intVal = uint2int<Int, UInt>(block[index(1, 2, 1)].uintVal); // 10<-25
-  block[index(1, 2, 1)].intVal = uint2int<Int, UInt>(temp); // 25<-21
-
-  temp = block[index(2, 0, 1)].uintVal; // hold 18s value
-  block[index(2, 0, 1)].intVal = uint2int<Int, UInt>(block[12].uintVal); // 18<-12
-  block[index(0, 3, 0)].intVal = uint2int<Int, UInt>(temp); // 12<-18
-
-  temp = block[index(0, 0, 3)].uintVal; // hold 48s value
-  block[index(0, 0, 3)].intVal = uint2int<Int, UInt>(block[19].uintVal); // 48<-19
-  block[index(3, 0, 1)].intVal = uint2int<Int, UInt>(block[index(3, 2, 1)].uintVal); // 19<-27
-  block[index(3, 2, 1)].intVal = uint2int<Int, UInt>(block[index(1, 3, 2)].uintVal); // 27<-45
-  block[index(1, 3, 2)].intVal = uint2int<Int, UInt>(block[index(3, 3, 2)].uintVal); // 45<-47
-  block[index(3, 3, 2)].intVal = uint2int<Int, UInt>(block[index(2, 3, 3)].uintVal); // 47<-62
-  block[index(2, 3, 3)].intVal = uint2int<Int, UInt>(block[index(0, 3, 3)].uintVal); // 62<-60
-  block[index(0, 3, 3)].intVal = uint2int<Int, UInt>(block[index(3, 0, 3)].uintVal); // 60<-51
-  block[index(3, 0, 3)].intVal = uint2int<Int, UInt>(block[index(0, 1, 3)].uintVal); // 51<-52
-  block[index(0, 1, 3)].intVal = uint2int<Int, UInt>(block[index(3, 3, 1)].uintVal); // 52<-31
-  block[index(3, 3, 1)].intVal = uint2int<Int, UInt>(block[index(3, 2, 3)].uintVal); // 31<-59
-  block[index(3, 2, 3)].intVal = uint2int<Int, UInt>(block[index(1, 3, 3)].uintVal); // 59<-61
-  block[index(1, 3, 3)].intVal = uint2int<Int, UInt>(block[index(1, 2, 3)].uintVal); // 61<-57
-  block[index(1, 2, 3)].intVal = uint2int<Int, UInt>(block[index(2, 0, 3)].uintVal); // 57<-50
-  block[index(2, 0, 3)].intVal = uint2int<Int, UInt>(block[index(2, 2, 2)].uintVal); // 50<-42
-  block[index(2, 2, 2)].intVal = uint2int<Int, UInt>(block[index(0, 3, 2)].uintVal); // 42<-44
-  block[index(0, 3, 2)].intVal = uint2int<Int, UInt>(block[index(0, 2, 2)].uintVal); // 44<-40
-  block[index(0, 2, 2)].intVal = uint2int<Int, UInt>(block[index(3, 1, 1)].uintVal); // 40<-23
-  block[index(3, 1, 1)].intVal = uint2int<Int, UInt>(block[index(3, 0, 2)].uintVal); // 23<-35
-  block[index(3, 0, 2)].intVal = uint2int<Int, UInt>(block[index(3, 1, 2)].uintVal); // 35<-39
-  block[index(3, 1, 2)].intVal = uint2int<Int, UInt>(block[index(2, 3, 2)].uintVal); // 39<-46
-  block[index(2, 3, 2)].intVal = uint2int<Int, UInt>(block[index(3, 1, 3)].uintVal); // 46<-55
-  block[index(3, 1, 3)].intVal = uint2int<Int, UInt>(block[index(2, 2, 3)].uintVal); // 55<-58
-  block[index(2, 2, 3)].intVal = uint2int<Int, UInt>(block[index(0, 2, 3)].uintVal); // 58<-56
-  block[index(0, 2, 3)].intVal = uint2int<Int, UInt>(block[index(3, 2, 2)].uintVal); // 56<-43
-  block[index(3, 2, 2)].intVal = uint2int<Int, UInt>(block[index(2, 1, 3)].uintVal); // 43<-54
-  block[index(2, 1, 3)].intVal = uint2int<Int, UInt>(block[index(1, 0, 3)].uintVal); // 54<-49
-  block[index(1, 0, 3)].intVal = uint2int<Int, UInt>(block[index(2, 3, 1)].uintVal); // 49<-30
-  block[index(2, 3, 1)].intVal = uint2int<Int, UInt>(temp); // 30<-48
-
-  block[index(0, 3, 1)].intVal = uint2int<Int, UInt>(block[28].uintVal); // 28<-28
-
-  block[index(3, 3, 3)].intVal = uint2int<Int, UInt>(block[63].uintVal); // 63<-63
-  #undef index
-}
-
-// template <typename Scalar, int BlockSize>
-// inline 
-// void inv_order(SplitMem<Inplace<Scalar>, BlockSize>& block)
-// {
-//   //Not implemented
-// }
 
 template <typename Scalar, int BlockSize>
 inline

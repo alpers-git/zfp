@@ -70,6 +70,7 @@ decode3_kernel(
 ,
   const ::sycl::nd_item<1> &item_ct1)
 {
+  #ifdef __SYCL_DEVICE_ONLY__
   const size_t chunk_idx = item_ct1.get_global_linear_id();
 
   // number of zfp blocks
@@ -124,6 +125,7 @@ decode3_kernel(
   // record maximum bit offset reached by any thread
   if(block_idx == blocks)
     *max_offset = reader.rtell();
+#endif
 }
 
 // decode kernel register spill optimized
@@ -265,10 +267,10 @@ decode3(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
       [=](::sycl::nd_item<1> item_ct1)
       [[intel::reqd_sub_group_size(SgSize)]] {
         decode3_kernel<Scalar>(
-          d_data, data_size, data_stride, b,
+          d_data, data_size, data_stride,
           d_stream, minbits, maxbits, maxprec, 
           minexp, offset, d_index, index_type,
-          /*granularity,*/ item_ct1);
+          granularity, item_ct1);
       });
     }
     });
