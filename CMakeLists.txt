@@ -20,6 +20,9 @@ if(ZFP_WITH_SYCL)
   set (CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3")
 
   add_definitions(-DZFP_WITH_SYCL_DEVICE=${ZFP_WITH_SYCL_DEVICE})
+  if(NOT("${ZFP_WITH_SYCL_DEVICE}" STREQUAL "PVC" OR "${ZFP_WITH_SYCL_DEVICE}" STREQUAL "pvc"))
+    add_definitions(-DDISABLE_BLOCK_8)
+  endif()
 endif()
 
 # Enable MACOSX_RPATH by default

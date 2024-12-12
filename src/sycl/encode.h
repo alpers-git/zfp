@@ -736,9 +736,11 @@ encode(
     case 2:
       switch (params->min_sub_group_size)
       {
+#ifdef DISABLE_BLOCK_8
       case 8:
         bits_written = internal::encode2<T, 8>(d_data, size, stride, params, d_stream, d_index, minbits, maxbits, maxprec, minexp);
         break;
+#endif
       case 16:
         bits_written = internal::encode2<T, 16>(d_data, size, stride, params, d_stream, d_index, minbits, maxbits, maxprec, minexp);
         break;
@@ -750,9 +752,11 @@ encode(
     case 3:
       switch (params->min_sub_group_size)
       {
+#ifdef DISABLE_BLOCK_8
       case 8:
         bits_written = internal::encode3<T, 8>(d_data, size, stride, params, d_stream, d_index, minbits, maxbits, maxprec, minexp);
         break;
+#endif
       case 16:
         bits_written = internal::encode3<T, 16>(d_data, size, stride, params, d_stream, d_index, minbits, maxbits, maxprec, minexp);
         break;

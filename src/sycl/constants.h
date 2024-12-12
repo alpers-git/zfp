@@ -9,14 +9,14 @@ namespace internal {
 
 using namespace ::sycl::ext::oneapi::experimental;
 
-// inline constexpr unsigned char perm_1[]={0, 1, 2, 3};
-inline static constexpr device_global<unsigned char[4]> perm_1{0, 1, 2, 3};
+inline constexpr unsigned char perm_1[]={0, 1, 2, 3};
+// inline static constexpr device_global<unsigned char[4]> perm_1{0, 1, 2, 3};
 
 #define index(i, j) ((i) + 4 * (j))
 
 // order coefficients (i, j) by i + j, then i^2 + j^2
-// inline constexpr unsigned char perm_2[]=
-inline static constexpr device_global<unsigned char[16]>perm_2
+inline constexpr unsigned char perm_2[]=
+// inline static constexpr device_global<unsigned char[16]>perm_2
 {
                                    index(0, 0), //  0 : 0
 
@@ -49,8 +49,8 @@ inline static constexpr device_global<unsigned char[16]>perm_2
 #define index(x, y, z) ((x) + 4 * ((y) + 4 * (z)))
 
 // order coefficients (i, j, k) by i + j + k, then i^2 + j^2 + k^2
-// inline constexpr unsigned char perm_3[]=
-inline static constexpr device_global<unsigned char[64]> perm_3
+inline constexpr unsigned char perm_3[]=
+// inline static constexpr device_global<unsigned char[64]> perm_3
 {
                                    index(0, 0, 0), //  0 : 0
 

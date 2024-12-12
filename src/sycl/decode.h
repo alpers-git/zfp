@@ -1059,9 +1059,11 @@ decode(
       break;
     case 2:
       switch (params->min_sub_group_size) {
+#ifdef DISABLE_BLOCK_8
         case 8:
           bits_read = internal::decode2<T, 8>(d_data, size, stride, params, d_stream, minbits, maxbits, maxprec, minexp, d_index, index_type, granularity);
         break;
+#endif
         case 16:
           bits_read = internal::decode2<T, 16>(d_data, size, stride, params, d_stream, minbits, maxbits, maxprec, minexp, d_index, index_type, granularity);
         break;
@@ -1071,10 +1073,11 @@ decode(
       break;
     case 3:
       switch (params->min_sub_group_size) {
+#ifdef DISABLE_BLOCK_8
         case 8:
           bits_read = internal::decode3<T, 8>(d_data, size, stride, params, d_stream, minbits, maxbits, maxprec, minexp, d_index, index_type, granularity);
           break;
-        case 16:
+#endif
           bits_read = internal::decode3<T, 16>(d_data, size, stride, params, d_stream, minbits, maxbits, maxprec, minexp, d_index, index_type, granularity);
           break;
         default:

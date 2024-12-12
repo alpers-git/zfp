@@ -172,21 +172,21 @@ template <>
 inline 
 const unsigned char* get_perm<4>()
 {
-  return perm_1.get();
+  return perm_1;
 }
 
 template <>
 inline 
 const unsigned char* get_perm<16>()
 {
-  return perm_2.get();
+  return perm_2;
 }
 
 template <>
 inline 
 const unsigned char* get_perm<64>()
 {
-  return perm_3.get();
+  return perm_3;
 }
 
 // maximum number of bit planes to encode/decode
