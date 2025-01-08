@@ -1062,7 +1062,7 @@ decode(
 #ifdef DISABLE_BLOCK_8
         case 8:
           bits_read = internal::decode2<T, 8>(d_data, size, stride, params, d_stream, minbits, maxbits, maxprec, minexp, d_index, index_type, granularity);
-        break;
+          break;
 #endif
         case 16:
           bits_read = internal::decode2<T, 16>(d_data, size, stride, params, d_stream, minbits, maxbits, maxprec, minexp, d_index, index_type, granularity);
@@ -1078,6 +1078,7 @@ decode(
           bits_read = internal::decode3<T, 8>(d_data, size, stride, params, d_stream, minbits, maxbits, maxprec, minexp, d_index, index_type, granularity);
           break;
 #endif
+        case 16:
           bits_read = internal::decode3<T, 16>(d_data, size, stride, params, d_stream, minbits, maxbits, maxprec, minexp, d_index, index_type, granularity);
           break;
         default:
