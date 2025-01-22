@@ -19,7 +19,9 @@ void scatter3(const Scalar* q, Scalar* p, ptrdiff_t sx, ptrdiff_t sy, ptrdiff_t 
 
 template <typename Scalar>
 inline 
-void scatter_partial3(const Scalar* q, Scalar* p, uint nx, uint ny, uint nz, ptrdiff_t sx, ptrdiff_t sy, ptrdiff_t sz)
+void scatter_partial3(const Scalar* q, Scalar* p, 
+                    uint nx, uint ny, uint nz, 
+                    ptrdiff_t sx, ptrdiff_t sy, ptrdiff_t sz)
 {
   for (uint z = 0; z < 4; z++)
     if (z < nz) {
@@ -38,9 +40,9 @@ void scatter_partial3(const Scalar* q, Scalar* p, uint nx, uint ny, uint nz, ptr
 
 template <typename Scalar, int BlockSize>
 inline 
-void scatter3(const SplitMem<Inplace<Scalar>, BlockSize> q, Scalar* const p, const uint nx, 
-    const uint ny, const uint nz, 
-    const ptrdiff_t sx, const ptrdiff_t sy, const ptrdiff_t sz)
+void scatter3(const SplitMem<Inplace<Scalar>, BlockSize>& q, Scalar* const p, 
+                  const uint nx, const uint ny, const uint nz, 
+                  const ptrdiff_t sx, const ptrdiff_t sy, const ptrdiff_t sz)
 {
     for (uint z = 0; z < nz; z++) {
         for (uint y = 0; y < ny; y++) {
@@ -98,9 +100,14 @@ decode3_kernel(
 
   // decode blocks assigned to this thread
   for (; block_idx < block_end; block_idx++) {
-    Inplace<Scalar> fblock[ZFP_3D_BLOCK_SIZE] = { 0 };
-    decode_block<Inplace<Scalar>, ZFP_3D_BLOCK_SIZE>()(fblock, reader, minbits, maxbits,
-                                              maxprec, minexp);
+
+    SplitMem<Inplace<Scalar>, ZFP_3D_BLOCK_SIZE> fblock;
+    for (int iter = 0; iter < ZFP_3D_BLOCK_SIZE; iter++) {
+        fblock[iter].scalar = (Scalar)0;
+    }
+
+    decode_block<SplitMem<Inplace<Scalar>, ZFP_3D_BLOCK_SIZE>, ZFP_3D_BLOCK_SIZE>()(
+                                            fblock, reader, minbits, maxbits, maxprec, minexp);
 
     // logical position in 3d array
     size_t pos = block_idx;
@@ -115,11 +122,9 @@ decode3_kernel(
     const uint nx = (uint)::sycl::min(size_t(size.x() - x), size_t(4));
     const uint ny = (uint)::sycl::min(size_t(size.y() - y), size_t(4));
     const uint nz = (uint)::sycl::min(size_t(size.z() - z), size_t(4));
-    if (nx * ny * nz < ZFP_3D_BLOCK_SIZE)
-      scatter_partial3((Scalar*)fblock, d_data + data_offset, nx, ny, nz, stride.x(),
-                       stride.y(), stride.z());
-    else
-      scatter3((Scalar*)fblock, d_data + data_offset, stride.x(), stride.y(), stride.z());
+
+    scatter3(fblock, d_data + data_offset, nx, ny, nz, 
+                    stride.x(), stride.y(), stride.z());
   }
 
   // record maximum bit offset reached by any thread
@@ -149,12 +154,8 @@ decode3_kernel(
   const ::sycl::nd_item<1> &item_ct1)
 {
   #ifdef __SYCL_DEVICE_ONLY__
-    const int block_idx = item_ct1.get_global_linear_id();
-
-    // number of zfp blocks. Since each block holds 64 values, 
-    // having more than 2147483647 blocks (max int value) does not make sense.
-    // since it would be ~64*2*10^9*sizeof(type) bytes (even for 1 byte types that is 128GB)
-    // We therefore stick to int for block_idx and blocks
+    const size_t block_idx = item_ct1.get_global_linear_id();
+    
     const int blocks = b.x() * b.y() * b.z();
 
     // return if thread has no blocks assigned
@@ -185,23 +186,18 @@ decode3_kernel(
     const uint nz = std::min<uint>(size.z() - z, 4);
 
     BlockReader reader(d_stream, bit_offset);
-    //std::array<ScalarUnion<Scalar>, ZFP_3D_BLOCK_SIZE> fblock = {(Scalar)0};
-    
-    //offset slm for each thread, +1 to avoid bank conflicts
-    //ScalarUnion<Scalar>* const fblock = &fblock_slm[item_ct1.get_sub_group().get_local_linear_id() * ZFP_3D_BLOCK_SIZE];
     SplitMem<Inplace<Scalar>, ZFP_3D_BLOCK_SIZE> fblock;
     for (int iter = 0; iter < ZFP_3D_BLOCK_SIZE; iter++) {
         fblock[iter].scalar = (Scalar)0;
     }
 
-    decode_block<SplitMem<Inplace<Scalar>, ZFP_3D_BLOCK_SIZE>, ZFP_3D_BLOCK_SIZE>()(fblock, reader, minbits, maxbits,
-                                              maxprec, minexp);
+    decode_block<SplitMem<Inplace<Scalar>, ZFP_3D_BLOCK_SIZE>, ZFP_3D_BLOCK_SIZE>()(
+                                            fblock, reader, minbits, maxbits, maxprec, minexp);
 
-    
-    scatter3(fblock, d_data_offset, nx, ny, nz, stride.x(), stride.y(), stride.z());
+    scatter3(fblock, d_data + data_offset, nx, ny, nz, stride.x(), stride.y(), stride.z());
 
     // record maximum bit offset reached by any thread
-    if(block_idx == blocks-1) max_offset[0] = reader.rtell();
+    if(block_idx == blocks-1) *max_offset = reader.rtell();
 #endif
 }
 
