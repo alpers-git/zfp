@@ -53,22 +53,16 @@ template <class Scalar, int s, int BlockSize>
 inline 
 void inv_lift(SplitMem<Inplace<Scalar>, BlockSize>& p, int offset)
 {
-  // non-orthogonal transform
-  //       ( 4  6 -4 -1) (x)
-  // 1/4 * ( 4  2  4  5) (y)
-  //       ( 4 -2  4 -5) (z)
-  //       ( 4 -6 -4  1) (w)
-
   auto x = p[offset].intVal;
   auto y = p[offset+s].intVal;
   auto z = p[offset+2*s].intVal;
   auto w = p[offset+3*s].intVal;
 
   y += w >> 1; w -= y >> 1;
-  y += w; w <<= 1; w -= y;
-  z += x; x <<= 1; x -= z;
-  y += z; z <<= 1; z -= y;
-  w += x; x <<= 1; x -= w;
+  y += w; w -= y - w;
+  z += x; x -= z - x;
+  y += z; z -= y - z;
+  w += x; x -= w - x;
 
   p[offset].intVal = x;
   p[offset+s].intVal = y;
@@ -87,16 +81,29 @@ void inv_lift(Int* p)
   z = *p; p += s;
   w = *p; p += s;
 
-  // non-orthogonal transform
-  //       ( 4  6 -4 -1) (x)
-  // 1/4 * ( 4  2  4  5) (y)
-  //       ( 4 -2  4 -5) (z)
-  //       ( 4 -6 -4  1) (w)
+  /*
+  ** non-orthogonal transform
+  **
+  **       ( 4  6 -4 -1) (x)
+  ** 1/4 * ( 4  2  4  5) (y)
+  **       ( 4 -2  4 -5) (z)
+  **       ( 4 -6 -4  1) (w)
+  **
+  ** original lifted version, which invokes UB due to signed left shift and
+  ** integer overflow:
+  **
+  ** y += w >> 1; w -= y >> 1;
+  ** y += w; w <<= 1; w -= y;
+  ** z += x; x <<= 1; x -= z;
+  ** y += z; z <<= 1; z -= y;
+  ** w += x; x <<= 1; x -= w;
+  */
+
   y += w >> 1; w -= y >> 1;
-  y += w; w <<= 1; w -= y;
-  z += x; x <<= 1; x -= z;
-  y += z; z <<= 1; z -= y;
-  w += x; x <<= 1; x -= w;
+  y += w; w -= y - w;
+  z += x; x -= z - x;
+  y += z; z -= y - z;
+  w += x; x -= w - x;
 
   p -= s; *p = w;
   p -= s; *p = z;
