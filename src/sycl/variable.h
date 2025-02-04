@@ -565,7 +565,7 @@ unsigned long long
     unsigned long long* d_offsets;
     size_t chunk_size;
 
-    if (internal::setup_device_chunking(&chunk_size, &d_offsets, processors)) {
+    if (internal::setup_device_compact(&chunk_size, &d_offsets, processors)) {
         // in-place compact variable-length blocks stored as fixed-length records
         for (size_t i = 0; i < blocks; i += chunk_size) {
             int cur_blocks = chunk_size;
