@@ -24,12 +24,19 @@ using namespace ::sycl;
 bool device_init()
 {
   bool success = true;
+  queue q(zfp_dev_selector);
+  unsigned int* d_word;
   try {
     // Get a SYCL device queue
-    queue q(zfp_dev_selector);
     // allocate a buffer to store the magic number on the device
-    unsigned int* d_word = malloc_device<unsigned int>(1, q);
+    d_word = malloc_device<unsigned int>(1, q);
+   }  
+  catch (exception const& e) {
+      std::cerr << "zfp::sycl : zfp device init - sycl::malloc_device : " << e.what() << std::endl;
+      success = false;
+  }
 
+  try {
     //launch a kernel to initialize the magic number
     q.submit([&](handler& cgh) {
       cgh.single_task<class device_init_kernel>([=]() {
@@ -37,21 +44,36 @@ bool device_init()
         });
     });
     q.wait();
+  }  
+  catch (exception const& e) {
+      std::cerr << "zfp::sycl : zfp device init - kernel: " << e.what() << std::endl;
+      success = false;
+  }
 
+  unsigned int h_word;
+  try {
     // copy the magic number back to the host
-    unsigned int h_word;
     q.memcpy(&h_word, d_word, sizeof(unsigned int)).wait();
 
-    if (h_word != ZFP_MAGIC) {
-      std::cerr << "zfp_sycl : zfp device init failed" << std::endl;
-      success = false;
-    }
   }  
-catch (exception const& e) {
-    std::cerr << "zfp_sycl : zfp device init " << e.what() << std::endl;
+  catch (exception const& e) {
+      std::cerr << "zfp::sycl : zfp device init - memcpy : " << e.what() << std::endl;
+      success = false;
+  }
+
+  if (h_word != ZFP_MAGIC) {
+    std::cerr << "zfp::sycl : zfp device init - memcpy : ZFP_MAGIC mismatch" << std::endl;
     success = false;
   }
 
+  try {
+    // free the device buffer
+    ::sycl::free(d_word, q);
+  }
+  catch (exception const& e) {
+      std::cerr << "zfp::sycl : zfp device init - sycl::free : " << e.what() << std::endl;
+      success = false;
+  }
 
   return success;
 }
