@@ -97,16 +97,12 @@ zfp_internal_sycl_compress(zfp_stream* stream, const zfp_field* field)
   }
 
   // determine field dimensions
-  size_t size[3];
-  size[0] = field->nx;
-  size[1] = field->ny;
-  size[2] = field->nz;
+ // determine field dimensions and strides
+  size_t size[3] = {};
+  zfp_field_size(field, size);
 
-  // determine field strides
-  ptrdiff_t stride[3];
-  stride[0] = field->sx ? field->sx : 1;
-  stride[1] = field->sy ? field->sy : (ptrdiff_t)field->nx;
-  stride[2] = field->sz ? field->sz : (ptrdiff_t)field->nx * (ptrdiff_t)field->ny;
+  ptrdiff_t stride[3] = {};
+  zfp_field_stride(field, stride);
 
   // copy field to device if not already there
   void* d_begin = NULL;
@@ -151,7 +147,7 @@ zfp_internal_sycl_compress(zfp_stream* stream, const zfp_field* field)
     bits_written = zfp::sycl::internal::compact_stream(d_stream, maxbits, d_index, blocks, params->processors);
   }
 
-  const size_t stream_bytes = zfp::sycl::internal::round_up((bits_written + CHAR_BIT - 1) / CHAR_BIT, sizeof(Word));
+  const size_t stream_bytes = zfp::sycl::internal::count_up(bits_written, sizeof(Word) * CHAR_BIT) * sizeof(Word);
 
   if (d_index) {
     const size_t size = zfp_field_blocks(field) * sizeof(ushort);
@@ -173,17 +169,24 @@ zfp_internal_sycl_compress(zfp_stream* stream, const zfp_field* field)
 size_t
 zfp_internal_sycl_decompress(zfp_stream* stream, zfp_field* field)
 {
-  // determine field dimensions
-  size_t size[3];
-  size[0] = field->nx;
-  size[1] = field->ny;
-  size[2] = field->nz;
+  switch (zfp_field_dimensionality(field)) {
+    case 1:
+    case 2:
+    case 3:
+      break;
+    default:
+#ifdef ZFP_DEBUG
+      std::cerr << "zfp::sycl : field dimensionality not supported" << std::endl;
+#endif
+      return 0;
+  }
 
-  // determine field strides
-  ptrdiff_t stride[3];
-  stride[0] = field->sx ? field->sx : 1;
-  stride[1] = field->sy ? field->sy : (ptrdiff_t)field->nx;
-  stride[2] = field->sz ? field->sz : (ptrdiff_t)field->nx * (ptrdiff_t)field->ny;
+  // determine field dimensions and strides
+  size_t size[3] = {};
+  zfp_field_size(field, size);
+
+  ptrdiff_t stride[3] = {};
+  zfp_field_stride(field, stride);
 
   void* d_begin;
   void* d_data = zfp::sycl::internal::setup_device_field_decompress(field, d_begin);
@@ -208,14 +211,14 @@ zfp_internal_sycl_decompress(zfp_stream* stream, zfp_field* field)
     case zfp_mode_fixed_accuracy:
       if (!stream->index) {
 #ifdef ZFP_DEBUG
-        std::cerr << "zfp_sycl : variable-rate decompression requires block index" << std::endl;
+        std::cerr << "zfp::sycl : variable-rate decompression requires block index" << std::endl;
 #endif
         return 0;
       }
       index_type = stream->index->type;
       if (index_type != zfp_index_offset && index_type != zfp_index_hybrid) {
 #ifdef ZFP_DEBUG
-        std::cerr << "zfp_sycl : index type not supported on GPU" << std::endl;
+        std::cerr << "zfp::sycl : index type not supported on GPU" << std::endl;
 #endif
         return 0;
       }
@@ -225,7 +228,7 @@ zfp_internal_sycl_decompress(zfp_stream* stream, zfp_field* field)
     default:
       // TODO: clean up device to avoid memory leak
 #ifdef ZFP_DEBUG
-      std::cerr << "zfp_sycl : compression mode not supported on GPU" << std::endl;
+      std::cerr << "zfp::sycl : compression mode not supported on GPU" << std::endl;
 #endif
       return 0;
   }
