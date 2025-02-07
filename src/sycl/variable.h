@@ -20,11 +20,10 @@ copy_length_kernel(
   unsigned long long* d_offset, // block offsets; first is base of prefix sum
   const ushort* d_length,       // block lengths in bits
   uint blocks_per_chunk         ,
-  const ::sycl::nd_item<3> &item_ct1// number of blocks in chunk to process
+  const ::sycl::nd_item<1> &item_ct1// number of blocks in chunk to process
 )
 {
-  const uint block = item_ct1.get_local_id(2) +
-                     item_ct1.get_group(2) * item_ct1.get_local_range(2);
+  const uint block = item_ct1.get_global_linear_id();
   if (block < blocks_per_chunk)
     d_offset[block + 1] = d_length[block];
 }
@@ -37,23 +36,24 @@ copy_length_launch(
   uint blocks_per_chunk         // number of blocks in chunk to process
 )
 {
-  const dpct::dim3 blocks((int)count_up(blocks_per_chunk, 1024), 1, 1);
+  ::sycl::nd_range<1> launch_grid(count_up(blocks_per_chunk, 1024) * 1024, 1024);
+  ::sycl::queue q(zfp::sycl::internal::zfp_dev_selector);
   /*
   DPCT1049:5: The work-group size passed to the SYCL kernel may exceed the
   limit. To get the device limit, query info::device::max_work_group_size.
   Adjust the work-group size if needed.
   */
-  dpct::get_in_order_queue().parallel_for(
-      ::sycl::nd_range<3>(blocks * ::sycl::range<3>(1, 1, 1024),
-                        ::sycl::range<3>(1, 1, 1024)),
-      [=](::sycl::nd_item<3> item_ct1) {
+  q.submit([&](::sycl::handler &cgh) {
+    cgh.parallel_for(
+      launch_grid,
+      [=](::sycl::nd_item<1> item_ct1) {
         copy_length_kernel(d_offset, d_length, blocks_per_chunk, item_ct1);
       });
+  });
 }
 
 // load a single unaligned block to a 32-bit aligned slot in shared memory
 template <int tile_size>
-
 inline void
 load_block(
   uint32* sm_stream,         // shared-memory buffer of 32-bit aligned slots
@@ -92,7 +92,6 @@ load_block(
 
 // copy a single block from its 32-bit aligned slot to its compacted location
 template <int tile_size>
-
 inline void
 copy_block(
   uint32* sm_out,                 // shared-memory pointer to compacted chunk
@@ -192,10 +191,11 @@ compact_stream_kernel(
   size_t first_block,    // global index of first block in chunk
   uint blocks_per_chunk, // number of blocks per chunk
   uint bits_per_slot,    // number of bits per fixed-size slot holding a block
-  uint words_per_slot    ,
+  uint words_per_slot,   // number of 32-bit words per slot
+
   const ::sycl::nd_item<3> &item_ct1,
   ::sycl::atomic_ref<unsigned int, ::sycl::memory_order::seq_cst, ::sycl::memory_scope::device, ::sycl::access::address_space::global_space> &sync_ct1,
-  uint8_t *dpct_local// number of 32-bit words per slot
+  uint8_t *dpct_local
 )
 {
   // In-place stream compaction of variable-length blocks initially stored in
@@ -322,8 +322,7 @@ bool compact_stream_launch(
     uint bits_per_slot,           // fixed-size slot size in bits
     uint processors               // number of device multiprocessors
     ) try {
-  dpct::device_ext &dev_ct1 = dpct::get_current_device();
-  ::sycl::queue &q_ct1 = dev_ct1.in_order_queue();
+  ::sycl::queue q(zfp::sycl::internal::zfp_dev_selector);
   // Assign number of threads ("tile_size") per zfp block in proportion to
   // bits_per_slot.  Compromise between coalescing, keeping threads active,
   // and limiting shared memory usage.  The total dynamic shared memory used
@@ -342,23 +341,13 @@ bool compact_stream_launch(
   "dpct::experimental::calculate_max_active_wg_per_xecore" base on the target
   function "compact_stream_kernel<tile_size, num_tiles>".
   */
- int dpct_placeholder = 0; // TODO: remove this when kernel is fixed
   dpct::experimental::calculate_max_active_wg_per_xecore(
-      &thread_blocks, tile_size * num_tiles,
-      shmem + dpct_placeholder /* total share local memory size */);
+      &thread_blocks, tile_size * num_tiles, shmem);
   thread_blocks *= processors;
   thread_blocks =
       std::min(thread_blocks, (int)count_up(blocks_per_chunk, num_tiles));
 
-  void* kernel_args[] = {
-    (void *)&d_stream,
-    (void *)&d_offset,
-    (void *)&first_block,
-    (void *)&blocks_per_chunk,
-    (void *)&bits_per_slot,
-    (void *)&words_per_slot
-  };
-
+//TODO: FIX HERE
   /*
   DPCT1049:8: The work-group size passed to the SYCL kernel may exceed the
   limit. To get the device limit, query info::device::max_work_group_size.
@@ -370,17 +359,22 @@ bool compact_stream_launch(
   According to the kernel function definition, adjusting the dimension of the
   ::sycl::nd_item may also be required.
   */
-//   return [&]() {
-//     q_ct1.parallel_for(
-//         ::sycl::nd_range<3>(::sycl::range<3>(1, 1, thread_blocks) *
-//                               ::sycl::range<3>(1, num_tiles, tile_size),
-//                           ::sycl::range<3>(1, num_tiles, tile_size)),
-//         [=](::sycl::nd_item<3> item_ct1) {
-//           ((void *)compact_stream_kernel<tile_size, num_tiles>)();
-//         });
-//     return 0;
-//   }() == 0;
-//TODO: FIX HERE
+  // q.submit([&](::sycl::handler &cgh) {
+  //   auto d_scratch_mem = ::sycl::malloc_device<uint8_t>(sizeof(int)*10, q);
+  //   // ::sycl::atomic_ref<unsigned int, ::sycl::memory_order::seq_cst,
+  //   //                ::sycl::memory_scope::device, 
+  //   //                ::sycl::access::address_space::global_space> sync_ct1(d_scratch_mem);
+  //   ::sycl::local_accessor<uint8_t, 1> shared_mem_acc(::sycl::range<1>(shmem), cgh);
+  //   cgh.parallel_for(
+  //       ::sycl::nd_range<3>(::sycl::range<3>(1, 1, thread_blocks) *
+  //                               ::sycl::range<3>(1, num_tiles, tile_size),
+  //                           ::sycl::range<3>(1, num_tiles, tile_size)),
+  //       [=](::sycl::nd_item<3> item_ct1) {
+  //         compact_stream_kernel<tile_size, num_tiles>(
+  //             d_stream, d_offset, first_block, blocks_per_chunk, bits_per_slot,
+  //             words_per_slot, item_ct1, d_scratch_mem, shared_mem_acc.get_pointer());
+  //       });
+  // }).wait();
 }
 catch (::sycl::exception const &exc) {
   std::cerr << exc.what() << "Exception caught at file:" << __FILE__
@@ -447,13 +441,10 @@ compact_stream(
   size_t processors       // number of device multiprocessors
 )
 {
-  dpct::device_ext &dev_ct1 = dpct::get_current_device();
-  ::sycl::queue &q_ct1 = dev_ct1.in_order_queue();
+  ::sycl::queue q(zfp::sycl::internal::zfp_dev_selector);
   bool success = true;
   unsigned long long* d_offset;
-  void* d_cubtmp;
   size_t blocks_per_chunk;
-  size_t cubtmp_size;
 
   if (!setup_device_compact(&blocks_per_chunk, &d_offset, processors))
     return 0;
@@ -467,7 +458,7 @@ compact_stream(
     copy_length_launch(d_offset, d_length + block, chunk_size);
 
     // compute prefix sum to turn block lengths into offsets
-    oneapi::dpl::inclusive_scan(oneapi::dpl::execution::device_policy(q_ct1),
+    oneapi::dpl::inclusive_scan(oneapi::dpl::execution::device_policy(q),
                                 d_offset, d_offset + chunk_size + 1, d_offset);
 
     // compact the stream in place
@@ -477,17 +468,16 @@ compact_stream(
   // update compressed size and pad to whole words
   unsigned long long bits_written = 0;
   if (success) {
-    q_ct1.parallel_for(
+    q.parallel_for(
         ::sycl::nd_range<3>(::sycl::range<3>(1, 1, 1), ::sycl::range<3>(1, 1, 1)),
         [=](::sycl::nd_item<3> item_ct1) {
           align_stream_kernel(d_stream, d_offset);
         });
-    q_ct1.memcpy(&bits_written, d_offset, sizeof(bits_written)).wait();
+    q.memcpy(&bits_written, d_offset, sizeof(bits_written)).wait();
   }
 
   // free temporary buffers
   cleanup_device(d_offset);
-  cleanup_device(d_cubtmp);
 
   return bits_written;
 }
