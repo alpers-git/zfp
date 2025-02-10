@@ -353,7 +353,7 @@ bool compact_stream_launch(
   /*
   DPCT1123:9: Resolved
   */
-  auto d_sync_mem = ::sycl::malloc_device<unsigned int>(100, q); // Allocate atomic sync variable
+  auto d_sync_mem = ::sycl::malloc_device<unsigned int>(1, q); // Allocate atomic sync variable
   // Ensure memory is initialized
   q.memset(d_sync_mem, 0, sizeof(unsigned int)).wait();
 //TODO: FIX HERE
