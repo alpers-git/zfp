@@ -182,8 +182,6 @@ store_subchunk(
 
 // cooperative kernel for stream compaction of one chunk of blocks
 template <int tile_size, int num_tiles>
-
-
 void
 compact_stream_kernel(
   uint32* __restrict__ d_stream,             // compressed bit stream
@@ -195,7 +193,7 @@ compact_stream_kernel(
 
   const ::sycl::nd_item<3> &item_ct1,
   ::sycl::atomic_ref<unsigned int, ::sycl::memory_order::seq_cst, ::sycl::memory_scope::device, ::sycl::access::address_space::global_space> &sync_ct1,
-  uint8_t *dpct_local
+  uint8_t* slm
 )
 {
   // In-place stream compaction of variable-length blocks initially stored in
@@ -221,7 +219,7 @@ compact_stream_kernel(
   // The caller must launch dim3(tile_size, num_tiles, 1) threads per thread
   // block.  The caller also allocates shared memory for sm_in and sm_out.
 
-  auto sm_in = (uint32 *)dpct_local;
+  auto sm_in = (uint32 *)slm;
   // sm_out[num_tiles * words_per_slot + 2]
   uint32* sm_out = sm_in + num_tiles * words_per_slot;
   // thread within thread block
@@ -332,7 +330,7 @@ bool compact_stream_launch(
   // ("num_tiles") is set to ensure that shared memory is at most 48 KB.
 
   const uint words_per_slot = count_up(bits_per_slot, 32);
-  const size_t shmem = (2 * num_tiles * words_per_slot + 2) * sizeof(uint32);
+  const size_t slm_size = (2 * num_tiles * words_per_slot + 2) * sizeof(uint32);
 
   // compute number of blocks to process concurrently
   int thread_blocks = 0;
@@ -342,44 +340,45 @@ bool compact_stream_launch(
   function "compact_stream_kernel<tile_size, num_tiles>".
   */
   dpct::experimental::calculate_max_active_wg_per_xecore(
-      &thread_blocks, tile_size * num_tiles, shmem);
+      &thread_blocks, tile_size * num_tiles, slm_size);
   thread_blocks *= processors;
   thread_blocks =
       std::min(thread_blocks, (int)count_up(blocks_per_chunk, num_tiles));
 
-//TODO: FIX HERE
   /*
-  DPCT1049:8: The work-group size passed to the SYCL kernel may exceed the
+  TODO: DPCT1049:8: The work-group size passed to the SYCL kernel may exceed the
   limit. To get the device limit, query info::device::max_work_group_size.
   Adjust the work-group size if needed.
   */
   /*
-  DPCT1123:9: The kernel function pointer cannot be used in the device code. You
-  need to call the kernel function with the correct argument(s) directly.
-  According to the kernel function definition, adjusting the dimension of the
-  ::sycl::nd_item may also be required.
+  DPCT1123:9: Resolved
   */
-  // q.submit([&](::sycl::handler &cgh) {
-  //   auto d_scratch_mem = ::sycl::malloc_device<uint8_t>(sizeof(int)*10, q);
-  //   // ::sycl::atomic_ref<unsigned int, ::sycl::memory_order::seq_cst,
-  //   //                ::sycl::memory_scope::device, 
-  //   //                ::sycl::access::address_space::global_space> sync_ct1(d_scratch_mem);
-  //   ::sycl::local_accessor<uint8_t, 1> shared_mem_acc(::sycl::range<1>(shmem), cgh);
-  //   cgh.parallel_for(
-  //       ::sycl::nd_range<3>(::sycl::range<3>(1, 1, thread_blocks) *
-  //                               ::sycl::range<3>(1, num_tiles, tile_size),
-  //                           ::sycl::range<3>(1, num_tiles, tile_size)),
-  //       [=](::sycl::nd_item<3> item_ct1) {
-  //         compact_stream_kernel<tile_size, num_tiles>(
-  //             d_stream, d_offset, first_block, blocks_per_chunk, bits_per_slot,
-  //             words_per_slot, item_ct1, d_scratch_mem, shared_mem_acc.get_pointer());
-  //       });
-  // }).wait();
+  auto d_sync_mem = ::sycl::malloc_device<unsigned int>(100, q); // Allocate atomic sync variable
+  // Ensure memory is initialized
+  q.memset(d_sync_mem, 0, sizeof(unsigned int)).wait();
+//TODO: FIX HERE
+  q.submit([&](::sycl::handler &cgh) {
+    ::sycl::local_accessor<uint8_t, 1> slm_accessor(::sycl::range<1>(slm_size), cgh);
+    cgh.parallel_for(
+        ::sycl::nd_range<3>(::sycl::range<3>(1, 1, thread_blocks) *
+                                ::sycl::range<3>(1, num_tiles, tile_size),
+                            ::sycl::range<3>(1, num_tiles, tile_size)),
+        [=](::sycl::nd_item<3> item_ct1) {
+          ::sycl::atomic_ref<unsigned int, // Wrap atomic variable
+            ::sycl::memory_order::seq_cst, 
+            ::sycl::memory_scope::device, 
+            ::sycl::access::address_space::global_space> sync_ct1(*d_sync_mem); 
+          compact_stream_kernel<tile_size, num_tiles>(
+              d_stream, d_offset, first_block, blocks_per_chunk, bits_per_slot,
+              words_per_slot, item_ct1, sync_ct1, slm_accessor.get_pointer());
+        });
+  }).wait();
+  return true;
 }
 catch (::sycl::exception const &exc) {
   std::cerr << exc.what() << "Exception caught at file:" << __FILE__
             << ", line:" << __LINE__ << std::endl;
-  std::exit(1);
+  return false;
 }
 
 // compact a single chunk of blocks
@@ -408,7 +407,6 @@ compact_stream_chunk(
 
   // zfp blocks are at most ZFP_MAX_BITS = 16658 bits < 2084 bytes;
   // should never arrive here
-
   return false;
 }
 
