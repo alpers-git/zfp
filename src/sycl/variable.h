@@ -187,6 +187,149 @@ store_subchunk(
 // cooperative kernel for stream compaction of one chunk of blocks
 template <int tile_size, int num_tiles>
 void
+load_subchunk_kernel(
+    uint32* __restrict__ d_stream,             // compressed bit stream
+    unsigned long long* __restrict__ d_offset, // destination bit offsets
+    size_t first_block,                        // global index of first block in chunk
+    uint blocks_per_chunk,                     // number of blocks per chunk
+    uint bits_per_slot,                        // number of bits per fixed-size slot holding a block
+    uint words_per_slot,                       // number of 32-bit words per slot
+
+    const ::sycl::nd_item<3> &item_ct1,
+    ::sycl::atomic_ref<unsigned int,
+                        syclcompat::experimental::barrier_memory_order,
+                        ::sycl::memory_scope::device,
+                        ::sycl::access::address_space::global_space> &sync_ct1,
+    uint8_t* slm)
+{
+  auto sm_in = (uint32*)slm;
+  // sm_out[num_tiles * words_per_slot + 2]
+  uint32* sm_out = sm_in + num_tiles * words_per_slot;
+  // thread within thread block
+  const uint tid =
+      item_ct1.get_local_id(2) + item_ct1.get_local_id(1) * tile_size;
+  // number of blocks per group
+  const uint blocks_per_group = item_ct1.get_group_range(2) * num_tiles;
+  // first block in this subchunk
+  const uint first_subchunk_block = item_ct1.get_group(2) * num_tiles;
+
+  // zero-initialize compacted buffer (also done in store_subchunk())
+  for (uint i = tid; i < num_tiles * words_per_slot + 2; i += num_tiles * tile_size)
+    sm_out[i] = 0;
+
+  // compact chunk one group at a time
+  for (uint i = 0; i < blocks_per_chunk; i += blocks_per_group)
+  {
+    // first block in this subchunk
+    const uint base_block = first_subchunk_block + i;
+    // block assigned to this thread
+    const uint block = base_block + item_ct1.get_local_id(1);
+    // is this thread block assigned any compressed blocks?
+    const bool active_thread_block = (base_block < blocks_per_chunk);
+    // is this thread assigned to valid block?
+    const bool valid_block = (block < blocks_per_chunk);
+    // destination offset to beginning of subchunk in compacted stream
+    const unsigned long long base_offset = active_thread_block ? d_offset[base_block] : 0;
+    // destination offset within compacted stream
+    const unsigned long long offset_out = d_offset[block];
+    // bit length of this block
+    const uint length = (uint)(d_offset[block + 1] - offset_out);
+
+    if (valid_block)
+    {
+      // source offset within uncompacted stream
+      const unsigned long long offset_in = (first_block + block) * bits_per_slot;
+      // buffer block in fixed-size slot in shared memory
+      load_block<tile_size>(sm_in, words_per_slot, d_stream, offset_in, length,
+                            item_ct1);
+    }
+
+    // synchronize to ensure entire subchunk is loaded
+    /*
+    DPCT1118:6: SYCL group functions and algorithms must be encountered in
+    converged control flow. You may need to adjust the code.
+    */
+    /*
+    DPCT1065:35: Consider replacing ::sycl::nd_item::barrier() with
+    ::sycl::nd_item::barrier(::sycl::access::fence_space::local_space) for better
+    performance if there is no access to global memory.
+    */
+    item_ct1.barrier();
+
+    if (valid_block)
+    {
+      // compact subchunk by copying block to target location in shared memory
+      copy_block<tile_size>(sm_out, base_offset, offset_out, length, sm_in,
+                            words_per_slot, item_ct1);
+    }
+  }
+}
+
+template <int tile_size, int num_tiles>
+void
+store_subchunk_kernel(
+    uint32* __restrict__ d_stream,             // compressed bit stream
+    unsigned long long* __restrict__ d_offset, // destination bit offsets
+    size_t first_block,                        // global index of first block in chunk
+    uint blocks_per_chunk,                     // number of blocks per chunk
+    uint bits_per_slot,                        // number of bits per fixed-size slot holding a block
+    uint words_per_slot,                       // number of 32-bit words per slot
+
+    const ::sycl::nd_item<3> &item_ct1,
+    ::sycl::atomic_ref<unsigned int,
+                        syclcompat::experimental::barrier_memory_order,
+                        ::sycl::memory_scope::device,
+                        ::sycl::access::address_space::global_space> &sync_ct1,
+    uint8_t* slm)
+{
+  auto sm_in = (uint32*)slm;
+  // sm_out[num_tiles * words_per_slot + 2]
+  uint32* sm_out = sm_in + num_tiles * words_per_slot;
+  // thread within thread block
+  const uint tid =
+      item_ct1.get_local_id(2) + item_ct1.get_local_id(1) * tile_size;
+  // number of blocks per group
+  const uint blocks_per_group = item_ct1.get_group_range(2) * num_tiles;
+  // first block in this subchunk
+  const uint first_subchunk_block = item_ct1.get_group(2) * num_tiles;
+  // compact chunk one group at a time
+  for (uint i = 0; i < blocks_per_chunk; i += blocks_per_group)
+  {
+    // first block in this subchunk
+    const uint base_block = first_subchunk_block + i;
+    // block assigned to this thread
+    const uint block = base_block + item_ct1.get_local_id(1);
+    // is this thread block assigned any compressed blocks?
+    const bool active_thread_block = (base_block < blocks_per_chunk);
+    // is this thread assigned to valid block?
+    const bool valid_block = (block < blocks_per_chunk);
+    // destination offset to beginning of subchunk in compacted stream
+    const unsigned long long base_offset = active_thread_block ? d_offset[base_block] : 0;
+    // destination offset within compacted stream
+    const unsigned long long offset_out = d_offset[block];
+    // bit length of this block
+    const uint length = (uint)(d_offset[block + 1] - offset_out);
+
+    // copy compacted subchunk from shared memory to global memory
+    if (active_thread_block)
+    {
+      const unsigned long long last_offset =
+          d_offset[::sycl::min(base_block + num_tiles, blocks_per_chunk)];
+      const uint subchunk_length = (uint)(last_offset - base_offset);
+      // store compacted subchunk to global memory
+      store_subchunk<tile_size, num_tiles>(d_stream, base_offset, subchunk_length, sm_out, tid);
+    }
+  }
+
+  // update the base of the offset array for the next chunk's prefix sum
+  if (item_ct1.get_group(2) == 0 && tid == 0)
+    d_offset[0] = d_offset[blocks_per_chunk];
+}
+
+
+// cooperative kernel for stream compaction of one chunk of blocks
+template <int tile_size, int num_tiles>
+void
 compact_stream_kernel(
     uint32* __restrict__ d_stream,             // compressed bit stream
     unsigned long long* __restrict__ d_offset, // destination bit offsets
@@ -368,6 +511,9 @@ try
   auto d_sync_mem = ::sycl::malloc_device<unsigned int>(1, q); // Allocate atomic sync variable
   // Ensure memory is initialized
   q.memset(d_sync_mem, 0, sizeof(unsigned int)).wait();
+
+  // Allocate global buffer outside the kernel calls
+  uint8_t* d_intermediate_buffer = ::sycl::malloc_device<uint8_t>(slm_size * thread_blocks, q);
 //TODO: FIX HERE
   q.submit([&](::sycl::handler &cgh) {
     ::sycl::local_accessor<uint8_t, 1> slm_accessor(::sycl::range<1>(slm_size), cgh);
@@ -380,12 +526,35 @@ try
             ::sycl::memory_order::seq_cst, 
             ::sycl::memory_scope::device, 
             ::sycl::access::address_space::global_space> sync_ct1(*d_sync_mem); 
-          compact_stream_kernel<tile_size, num_tiles>(
+          load_subchunk_kernel<tile_size, num_tiles>(
               d_stream, d_offset, first_block, blocks_per_chunk, bits_per_slot,
               words_per_slot, item_ct1, sync_ct1, 
-              slm_accessor.get_multi_ptr<::sycl::access::decorated::yes>().get());
+              //slm_accessor.get_multi_ptr<::sycl::access::decorated::yes>().get()
+              d_intermediate_buffer + item_ct1.get_group_linear_id() * slm_size);
         });
   }).wait();
+
+  q.submit([&](::sycl::handler &cgh) {
+    ::sycl::local_accessor<uint8_t, 1> slm_accessor(::sycl::range<1>(slm_size), cgh);
+    cgh.parallel_for(
+        ::sycl::nd_range<3>(::sycl::range<3>(1, 1, thread_blocks) *
+                                ::sycl::range<3>(1, num_tiles, tile_size),
+                            ::sycl::range<3>(1, num_tiles, tile_size)),
+        [=](::sycl::nd_item<3> item_ct1) {
+          ::sycl::atomic_ref<unsigned int, // Wrap atomic variable
+            ::sycl::memory_order::seq_cst, 
+            ::sycl::memory_scope::device, 
+            ::sycl::access::address_space::global_space> sync_ct1(*d_sync_mem); 
+          store_subchunk_kernel<tile_size, num_tiles>(
+              d_stream, d_offset, first_block, blocks_per_chunk, bits_per_slot,
+              words_per_slot, item_ct1, sync_ct1, 
+              //slm_accessor.get_multi_ptr<::sycl::access::decorated::yes>().get()
+              d_intermediate_buffer + item_ct1.get_group_linear_id() * slm_size);
+        });
+  }).wait();
+
+  // Free the global buffer
+  ::sycl::free(d_intermediate_buffer, q);
   return true;
 }
 catch (::sycl::exception const &exc)
