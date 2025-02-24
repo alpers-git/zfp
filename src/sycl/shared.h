@@ -64,7 +64,23 @@ union Inplace{
 
 //Split the bigger size arrays into smaller arrays
 //to avoid register spillage
-template <typename T, int BlockSize>
+// Detect floating point numbers or inplace-union-wrapped floating point numbers
+
+namespace {
+    template <class> struct contains_floating_point                  : public std::false_type {};
+    template <>      struct contains_floating_point<Inplace<float>>  : public std::true_type  {};
+    template <>      struct contains_floating_point<Inplace<double>> : public std::true_type  {};
+    template <>      struct contains_floating_point<float>           : public std::true_type  {};
+    template <>      struct contains_floating_point<double>          : public std::true_type  {};
+}
+
+ 
+
+//Split the bigger size arrays into smaller arrays
+
+//to avoid register spillage
+
+template <typename T, int BlockSize, typename = void>
 class SplitMem {
 public:
     T& operator[](const int i) { return reg[i]; }
@@ -73,48 +89,34 @@ private:
     T reg[BlockSize];
 };
 
-template<>
-class SplitMem<float, 64> {
-public:
-    float& operator[](const int i) { 
-        if (i < 16) return reg[i];
-        else if (i < 32) return reg2[i - 16];
-        else if (i < 48) return reg3[i - 32];
-        else return reg4[i - 48];
-    }
-    const float& operator[](const int i) const { 
-        if (i < 16) return reg[i];
-        else if (i < 32) return reg2[i - 16];
-        else if (i < 48) return reg3[i - 32];
-        else return reg4[i - 48];
-    }
-private:
-    float reg[16];
-    float reg2[16];
-    float reg3[16];
-    float reg4[16];
-};
+ 
 
-template<>
-class SplitMem<Inplace<float>, 64> {
+template<typename T, int BlockSize>
+
+class SplitMem<T, BlockSize, std::enable_if_t<BlockSize == 64 && contains_floating_point<T>::value>> {
+
 public:
-    Inplace<float>& operator[](const int i) { 
+
+    T& operator[](const int i) {
         if (i < 16) return reg[i];
         else if (i < 32) return reg2[i - 16];
         else if (i < 48) return reg3[i - 32];
         else return reg4[i - 48];
     }
-    const Inplace<float>& operator[](const int i) const { 
+
+    const T& operator[](const int i) const {
         if (i < 16) return reg[i];
         else if (i < 32) return reg2[i - 16];
         else if (i < 48) return reg3[i - 32];
         else return reg4[i - 48];
+
     }
+
 private:
-    Inplace<float> reg[16];
-    Inplace<float> reg2[16];
-    Inplace<float> reg3[16];
-    Inplace<float> reg4[16];
+    T reg[16];
+    T reg2[16];
+    T reg3[16];
+    T reg4[16];
 };
 
 // round size up to the next multiple of unit
