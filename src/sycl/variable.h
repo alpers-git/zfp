@@ -526,29 +526,10 @@ try
             ::sycl::memory_order::seq_cst, 
             ::sycl::memory_scope::device, 
             ::sycl::access::address_space::global_space> sync_ct1(*d_sync_mem); 
-          load_subchunk_kernel<tile_size, num_tiles>(
+          compact_stream_kernel<tile_size, num_tiles>(
               d_stream, d_offset, first_block, blocks_per_chunk, bits_per_slot,
               words_per_slot, item_ct1, sync_ct1, 
-              //slm_accessor.get_multi_ptr<::sycl::access::decorated::yes>().get()
-              d_intermediate_buffer + item_ct1.get_group_linear_id() * slm_size);
-        });
-  }).wait();
-
-  q.submit([&](::sycl::handler &cgh) {
-    ::sycl::local_accessor<uint8_t, 1> slm_accessor(::sycl::range<1>(slm_size), cgh);
-    cgh.parallel_for(
-        ::sycl::nd_range<3>(::sycl::range<3>(1, 1, thread_blocks) *
-                                ::sycl::range<3>(1, num_tiles, tile_size),
-                            ::sycl::range<3>(1, num_tiles, tile_size)),
-        [=](::sycl::nd_item<3> item_ct1) {
-          ::sycl::atomic_ref<unsigned int, // Wrap atomic variable
-            ::sycl::memory_order::seq_cst, 
-            ::sycl::memory_scope::device, 
-            ::sycl::access::address_space::global_space> sync_ct1(*d_sync_mem); 
-          store_subchunk_kernel<tile_size, num_tiles>(
-              d_stream, d_offset, first_block, blocks_per_chunk, bits_per_slot,
-              words_per_slot, item_ct1, sync_ct1, 
-              //slm_accessor.get_multi_ptr<::sycl::access::decorated::yes>().get()
+              slm_accessor.get_multi_ptr<::sycl::access::decorated::yes>().get(),
               d_intermediate_buffer + item_ct1.get_group_linear_id() * slm_size);
         });
   }).wait();
