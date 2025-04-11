@@ -494,11 +494,15 @@ try
   "dpct::experimental::calculate_max_active_wg_per_xecore" base on the target
   function "compact_stream_kernel<tile_size, num_tiles>".
   */
-  dpct::experimental::calculate_max_active_wg_per_xecore(
-      &thread_blocks, tile_size * num_tiles, slm_size);
-  thread_blocks *= processors;
-  thread_blocks = std::min(thread_blocks, 
-                (int)count_up(blocks_per_chunk, num_tiles));
+  // dpct::experimental::calculate_max_active_wg_per_xecore(
+  //     &thread_blocks, tile_size * num_tiles, slm_size);
+  // thread_blocks *= processors;
+  // thread_blocks = std::min(thread_blocks, 
+  //               (int)count_up(blocks_per_chunk, num_tiles));
+
+  int num_wg; int wg_size = num_tiles; int max_wg_size=wg_size; // I set this, that we keep it in sync with num_tiles
+  syclcompat::experimental::calculate_max_potential_wg(&num_wg, &wg_size, max_wg_size, slm_size, 32, false, false);
+  wg_size = std::min(wg_size, static_cast<int>(max_wg_size)); // Check if the total number of work items can be scheduled actively
 
   /*
   TODO: DPCT1049:8: The work-group size passed to the SYCL kernel may exceed the
@@ -512,30 +516,25 @@ try
   // Ensure memory is initialized
   q.memset(d_sync_mem, 0, sizeof(unsigned int)).wait();
 
-  // Allocate global buffer outside the kernel calls
-  uint8_t* d_intermediate_buffer = ::sycl::malloc_device<uint8_t>(slm_size * thread_blocks, q);
 //TODO: FIX HERE
   q.submit([&](::sycl::handler &cgh) {
-    ::sycl::local_accessor<uint8_t, 1> slm_accessor(::sycl::range<1>(slm_size), cgh);
-    cgh.parallel_for(
-        ::sycl::nd_range<3>(::sycl::range<3>(1, 1, thread_blocks) *
-                                ::sycl::range<3>(1, num_tiles, tile_size),
-                            ::sycl::range<3>(1, num_tiles, tile_size)),
+        ::sycl::local_accessor<uint8_t, 1> slm_accessor(::sycl::range<1>(slm_size), cgh);
+        cgh.parallel_for(
+        ::sycl::nd_range<3>(::sycl::range<3>(1, 1, num_wg) *
+        ::sycl::range<3>(1, wg_size, tile_size),
+        ::sycl::range<3>(1, wg_size, tile_size)),
         [=](::sycl::nd_item<3> item_ct1) {
-          ::sycl::atomic_ref<unsigned int, // Wrap atomic variable
-            ::sycl::memory_order::seq_cst, 
-            ::sycl::memory_scope::device, 
-            ::sycl::access::address_space::global_space> sync_ct1(*d_sync_mem); 
-          compact_stream_kernel<tile_size, num_tiles>(
-              d_stream, d_offset, first_block, blocks_per_chunk, bits_per_slot,
-              words_per_slot, item_ct1, sync_ct1, 
-              slm_accessor.get_multi_ptr<::sycl::access::decorated::yes>().get(),
-              d_intermediate_buffer + item_ct1.get_group_linear_id() * slm_size);
+            ::sycl::atomic_ref<unsigned int, // Wrap atomic variable
+            ::sycl::memory_order::seq_cst,
+            ::sycl::memory_scope::device,
+            ::sycl::access::address_space::global_space> sync_ct1(*d_sync_mem);
+            compact_stream_kernel<tile_size, num_tiles>(
+            d_stream, d_offset, first_block, blocks_per_chunk, bits_per_slot,
+            words_per_slot, item_ct1, sync_ct1,
+            slm_accessor.get_multi_ptr<::sycl::access::decorated::yes>().get());
         });
-  }).wait();
+    }).wait_and_throw();
 
-  // Free the global buffer
-  ::sycl::free(d_intermediate_buffer, q);
   return true;
 }
 catch (::sycl::exception const &exc)
