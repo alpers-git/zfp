@@ -61,7 +61,8 @@ zfp_internal_sycl_init(zfp_exec_params_sycl* params) try {
   }
   initialized = true;
   //cache device properties
-  params->processors = dev.get_info<::sycl::info::device::max_compute_units>();
+  params->processors = dev.get_info<sycl::ext::intel::info::device::gpu_slices>()
+                     * dev.get_info<sycl::ext::intel::info::device::gpu_subslices_per_slice>();
   sycl::id<3> groups = dev.get_info<sycl::ext::oneapi::experimental::info::device::max_work_groups<3>>();
   params->grid_size[0] = groups[2];
   params->grid_size[1] = groups[1];

@@ -352,7 +352,7 @@ try
   function "compact_stream_kernel<tile_size, num_tiles>".
   */
   dpct::experimental::calculate_max_active_wg_per_xecore(
-      &thread_blocks, tile_size * num_tiles, slm_size);
+      &thread_blocks, tile_size * num_tiles, slm_size, 32, true,true);
   thread_blocks *= processors;
   thread_blocks = std::min(thread_blocks, 
                 (int)count_up(blocks_per_chunk, num_tiles));
@@ -386,6 +386,7 @@ try
               slm_accessor.get_multi_ptr<::sycl::access::decorated::yes>().get());
         });
   }).wait();
+  ::sycl::free(d_sync_mem, q);
   return true;
 }
 catch (::sycl::exception const &exc)
