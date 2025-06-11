@@ -85,9 +85,9 @@ _t2(compress_strided, Scalar, 3)(zfp_stream* stream, const zfp_field* field)
   ptrdiff_t sz = field->sz ? field->sz : (ptrdiff_t)(nx * ny);
   size_t x, y, z;
 
-  struct timespec start, end;
-  double elapsed;
-  clock_gettime(CLOCK_MONOTONIC, &start);
+  // struct timespec start, end;
+  // double elapsed;
+  // clock_gettime(CLOCK_MONOTONIC, &start);
   /* compress array one block of 4x4x4 values at a time */
   for (z = 0; z < nz; z += 4)
     for (y = 0; y < ny; y += 4)
@@ -101,16 +101,16 @@ _t2(compress_strided, Scalar, 3)(zfp_stream* stream, const zfp_field* field)
         if (length_table)
           *length_table++ = block_size;
       }
-  clock_gettime(CLOCK_MONOTONIC, &end);
-  elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
-  // Calculate elapsed time in seconds
-  elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
-  size_t bytes = nx * ny * nz * sizeof(Scalar);
-  double throughput = bytes / elapsed;
-  throughput /= 1024 * 1024 * 1024;
-  // Print elapsed time
-  printf("Encode elapsed time: %.6f seconds\n", elapsed);
-  printf("# encode3 rate: %.2f (GB / sec)\n", throughput);
+  // clock_gettime(CLOCK_MONOTONIC, &end);
+  // elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
+  // // Calculate elapsed time in seconds
+  // elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
+  // size_t bytes = nx * ny * nz * sizeof(Scalar);
+  // double throughput = bytes / elapsed;
+  // throughput /= 1024 * 1024 * 1024;
+  // // Print elapsed time
+  // printf("Encode elapsed time: %.6f seconds\n", elapsed);
+  // printf("# encode3 rate: %.2f (GB / sec)\n", throughput);
 }
 
 /* compress 4d strided array */

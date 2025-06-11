@@ -144,6 +144,8 @@ decode1(Scalar *d_data, const size_t size[], const ptrdiff_t stride[],
                                  ::sycl::range<1>(size[0]));
 #endif
 
+  // unsigned long long int offset;
+  // device_move_to_host(&d_offset, sizeof(offset), &offset, "stream pointer");
   return *offset;
 }
 
